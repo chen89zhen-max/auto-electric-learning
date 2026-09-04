@@ -1,0 +1,13 @@
+{
+  "WORK_ORDER": "今天开始正式训练。先去看看2号实训台。",
+  "ACCIDENT_START": "先看看现场发生了什么。",
+  "DIRECT_CONTACT_WARNING": "先别碰他。看看周围还有没有危险。",
+  "POWER_ON_HINT": "设备还在工作。最先该处理什么？",
+  "POWER_ISOLATED": "很好，危险源已经控制。",
+  "FIRST_AID_START": "现在再判断人员情况。",
+  "FIRST_AID_ORDER": "按现场安全、人员反应、呼叫支援的顺序来。",
+  "FIRE_WARNING": "别急着灭火。先判断是什么设备。",
+  "FIRE_POWER": "先看电源状态，再选择处置方法。",
+  "TRANSFER": "换了情境，也先判断状态。",
+  "LEVEL_COMPLETE": "安全作业最重要的是：先控制危险，再进行处置。"
+}

@@ -1,4 +1,4 @@
-import type { EventAction, GameEvent, StageId } from '@/src/core/types';
+import type { EventAction, GameEvent } from '@/src/core/types';
 
 const STORAGE_KEY = 'neev-training-sessions';
 
@@ -11,7 +11,7 @@ export class EventLogger {
   static createEvent(
     sessionId: string,
     levelId: string,
-    stage: StageId,
+    stage: string,
     action: EventAction,
     payload: Record<string, unknown> = {},
   ): GameEvent {
@@ -36,7 +36,8 @@ export class EventLogger {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = `level00-session-${events[0]?.sessionId ?? 'empty'}.json`;
+    const levelId = events[0]?.levelId?.toLowerCase() ?? 'level';
+    anchor.download = `${levelId}-session-${events[0]?.sessionId ?? 'empty'}.json`;
     anchor.click();
     URL.revokeObjectURL(url);
   }

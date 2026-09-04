@@ -177,6 +177,60 @@ h1 { margin: 0; font-size: clamp(18px, 2vw, 25px); letter-spacing: .02em; }
 .document-heading h2 { margin-top: 3px; font-size: 23px; }
 .order-note { margin: 24px 0 10px; color: var(--muted); }
 .order-list { margin: 0 0 26px; padding: 18px 18px 18px 42px; border-radius: 14px; background: #f2f7f7; line-height: 2.1; font-weight: 700; }
+.level01-shell { --brand: #08766f; --brand-dark: #075c57; --accent: #de9a35; }
+.safety-mark { background: #176c63; }
+.status-dot.danger { background: #db7b28; box-shadow: 0 0 0 4px rgb(219 123 40 / 16%); animation: safety-pulse 1.4s ease-in-out infinite; }
+.level01-unlocked { border-color: #98c9bd; box-shadow: 0 10px 30px rgb(23 108 99 / 10%); }
+.level01-unlocked > button { min-height: 44px; background: var(--brand); }
+.hint-meter { display: flex; justify-content: space-between; margin-top: 18px; padding: 12px 14px; border-radius: 12px; color: #6f5a2b; background: #fbf4e4; font-size: 12px; }
+.hint-meter strong { color: #9a6c14; }
+
+.accident-stage, .environment-stage, .isolation-stage, .knowledge-stage, .milestone-placeholder { min-height: 100%; padding: clamp(22px, 4vw, 54px); }
+.accident-stage { position: relative; display: grid; grid-template-columns: minmax(300px, 1fr) minmax(190px, .55fr); align-items: center; gap: clamp(24px, 6vw, 80px); }
+.sound-effect { position: absolute; top: 26px; left: 32px; padding: 9px 15px; border-radius: 999px; color: #8a4a05; background: #fff1d8; font-size: 23px; font-weight: 950; transform: rotate(-5deg); }
+.accident-workbench { min-height: 290px; display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto 1fr; gap: 16px; padding: 24px; border: 2px solid #607b84; border-radius: 22px; background: linear-gradient(160deg, #f8fbfa, #dce7e9); box-shadow: 0 18px 38px rgb(38 68 77 / 12%); }
+.bench-label strong, .bench-label small { display: block; }
+.bench-label strong { font-size: 20px; }
+.bench-label small { margin-top: 4px; color: var(--muted); }
+.warning-lamp, .large-power { display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 14px; font-weight: 900; }
+.warning-lamp { min-width: 130px; min-height: 48px; color: #657980; background: #edf2f3; }
+.warning-lamp.active { color: #9b5c12; background: #fff0d8; animation: safety-pulse 1.4s ease-in-out infinite; }
+.large-power { grid-column: 1 / -1; min-height: 160px; border: 1px solid #b6c8cd; font-size: 22px; }
+.large-power.on { color: #a05a0d; background: repeating-linear-gradient(135deg, #fff6e7, #fff6e7 16px, #fbeed9 16px, #fbeed9 32px); }
+.large-power.off { color: var(--success); background: #eef8f3; }
+.person-down { min-height: 210px; display: grid; place-items: center; align-content: center; gap: 9px; padding: 20px; border: 2px solid #c77c47; border-radius: 24px; color: #713e22; background: #fff7f0; cursor: pointer; transform: rotate(2deg); }
+.person-down:hover, .person-down:focus-visible { outline: 4px solid rgb(199 124 71 / 18%); outline-offset: 4px; }
+.person-down small { color: #8f6043; }
+.accident-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.accident-actions button { min-height: 50px; }
+.environment-stage { display: grid; grid-template-columns: minmax(300px, 1fr) minmax(290px, .8fr); align-items: center; gap: 24px; }
+.status-inspection { padding: 28px; border: 1px solid var(--line); border-radius: 22px; background: white; }
+.status-inspection h2 { margin: 0 0 20px; font-size: 27px; }
+.status-inspection dl { display: grid; gap: 8px; margin: 0 0 22px; }
+.status-inspection dl div { display: flex; justify-content: space-between; gap: 16px; padding: 9px 0; border-bottom: 1px solid #e1e9eb; }
+.status-inspection dt { color: var(--muted); }
+.status-inspection dd { margin: 0; color: #92530e; font-weight: 900; text-align: right; }
+.danger-control { width: 100%; min-height: 52px; color: white; background: #ba5f25; font-weight: 900; }
+.danger-control:hover { background: #96491b; }
+.isolation-stage, .knowledge-stage, .milestone-placeholder { display: grid; place-items: center; }
+.isolation-success, .milestone-placeholder { width: min(560px, 100%); padding: clamp(28px, 5vw, 54px); border: 1px solid #bdd7ce; border-radius: 24px; background: white; text-align: center; box-shadow: 0 18px 44px rgb(31 99 79 / 10%); }
+.isolation-success > span { display: grid; place-items: center; width: 74px; height: 74px; margin: 0 auto 16px; border-radius: 50%; color: white; background: var(--success); }
+.isolation-success h2, .milestone-placeholder h2 { margin: 0; font-size: clamp(27px, 3vw, 38px); }
+.isolation-success > p:not(.step-label), .milestone-placeholder > p:not(.step-label) { margin: 13px 0 24px; color: var(--muted); line-height: 1.7; }
+.knowledge-card { width: min(680px, 100%); padding: clamp(24px, 4vw, 42px); border: 1px solid #c9d9dd; border-radius: 24px; background: white; box-shadow: 0 20px 52px rgb(30 67 78 / 12%); }
+.knowledge-heading { display: flex; align-items: center; gap: 13px; }
+.knowledge-heading > span { display: grid; place-items: center; width: 50px; height: 50px; border-radius: 14px; color: white; background: var(--brand); }
+.knowledge-heading small { color: var(--brand); font-size: 11px; font-weight: 900; }
+.knowledge-heading h2 { margin: 2px 0 0; font-size: 28px; }
+.knowledge-card > p { margin: 20px 0; color: #395863; font-size: 17px; line-height: 1.7; font-weight: 700; }
+.knowledge-diagram { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 18px 0; }
+.knowledge-diagram div { position: relative; min-height: 76px; display: grid; place-items: center; padding: 12px; border: 1px solid #c7d7db; border-radius: 14px; background: #f1f7f6; text-align: center; }
+.knowledge-diagram svg { position: absolute; right: -15px; z-index: 1; color: var(--brand); transform: rotate(-90deg); }
+.micro-prompt, .micro-choice, .step-zones, .environment-options { margin: 18px 0; padding: 14px 16px; border-radius: 14px; background: #fbf4e7; }
+.micro-prompt { display: flex; align-items: center; gap: 8px; color: #775513; }
+.micro-choice, .step-zones, .environment-options { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; }
+.micro-choice strong, .step-zones span, .environment-options span, .environment-options strong { padding: 8px 12px; border-radius: 10px; background: white; }
+@keyframes safety-pulse { 50% { opacity: .55; } }
 @media (max-width: 900px) {
   .workspace { grid-template-columns: minmax(0, 1fr) 300px; padding: 12px; gap: 12px; }
   .topbar { padding: 12px 18px; }
@@ -186,6 +240,7 @@ h1 { margin: 0; font-size: clamp(18px, 2vw, 25px); letter-spacing: .02em; }
   .task-progress { display: none; }
   .bottom-bar button { min-width: 96px; }
   .review-panel { gap: 16px; padding: 22px; }
+  .level01-progress { display: none; }
 }
 @media (max-width: 720px) {
   .workspace { grid-template-columns: 1fr; overflow: auto; }
@@ -195,4 +250,7 @@ h1 { margin: 0; font-size: clamp(18px, 2vw, 25px); letter-spacing: .02em; }
   .interaction-stage, .review-panel { grid-template-columns: 1fr; }
   .workbench-controls, .level-cards { grid-template-columns: 1fr; }
   .certificate-list { grid-template-columns: 1fr; }
+  .accident-stage, .environment-stage { grid-template-columns: 1fr; }
+  .knowledge-diagram { grid-template-columns: 1fr; }
+  .knowledge-diagram svg { display: none; }
 }

@@ -38,13 +38,33 @@ export type EventAction =
   | 'REVIEW_START'
   | 'REVIEW_COMPLETE'
   | 'LEVEL_COMPLETE'
-  | 'LEVEL_RESTART';
+  | 'LEVEL_RESTART'
+  | 'ACCIDENT_DISCOVERED'
+  | 'ENVIRONMENT_CHECK'
+  | 'DIRECT_CONTACT_ATTEMPT'
+  | 'SECONDARY_RISK_WARNING'
+  | 'POWER_ISOLATED'
+  | 'KNOWLEDGE_CARD_OPEN'
+  | 'MICRO_SCENARIO_COMPLETE'
+  | 'FIRST_AID_ASSESSMENT_START'
+  | 'CONSCIOUSNESS_CHECK'
+  | 'BREATHING_CHECK'
+  | 'HELP_CALLED'
+  | 'FIRST_AID_SEQUENCE_COMPLETE'
+  | 'FIRE_EVENT_START'
+  | 'FIRE_POWER_CHECK'
+  | 'EXTINGUISHER_SELECTED'
+  | 'UNSAFE_FIRE_RESPONSE'
+  | 'FIRE_RESPONSE_SUCCESS'
+  | 'TRANSFER_CHECK_SUBMIT'
+  | 'REFLECTION_SUBMIT'
+  | 'ABILITY_REPORT_GENERATED';
 
 export interface GameEvent {
   timestamp: string;
   sessionId: string;
   levelId: string;
-  stage: StageId;
+  stage: string;
   action: EventAction;
   payload: Record<string, unknown>;
 }
@@ -53,11 +73,11 @@ export interface LevelConfig {
   id: string;
   title: string;
   subtitle: string;
-  mode: 'GUIDED';
+  mode: 'GUIDED' | 'SEMI_GUIDED';
   estimatedMinutes: number;
-  scoring: false;
-  objectives: ObjectiveId[];
-  stages: StageId[];
+  scoring: boolean;
+  objectives: string[];
+  stages: string[];
   unlock: string;
 }
 

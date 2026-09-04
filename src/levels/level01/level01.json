@@ -1,0 +1,31 @@
+{
+  "id": "LEVEL_01",
+  "title": "实训车间突发事故",
+  "subtitle": "安全用电",
+  "mode": "SEMI_GUIDED",
+  "estimatedMinutes": 18,
+  "scoring": false,
+  "objectives": [
+    "CONTROL_ELECTRICAL_RISK",
+    "ASSESS_FIRST_AID",
+    "RESPOND_TO_ELECTRICAL_FIRE",
+    "TRANSFER_SAFETY_RULE",
+    "REFLECT_SAFETY_CHAIN"
+  ],
+  "stages": [
+    "WORK_ORDER",
+    "ACCIDENT_DISCOVERY",
+    "ENVIRONMENT_CHECK",
+    "POWER_ISOLATION",
+    "SHOCK_MICRO_LEARNING",
+    "FIRST_AID_ASSESSMENT",
+    "FIRST_AID_ACTION",
+    "FIRE_EVENT",
+    "FIRE_RISK_ASSESSMENT",
+    "FIRE_RESPONSE",
+    "TRANSFER_CHECK",
+    "REFLECTION",
+    "COMPLETE"
+  ],
+  "unlock": "LEVEL_02"
+}

@@ -5,18 +5,23 @@ import { EventLogger } from '@/src/logging/EventLogger';
 const config = levelData as LevelConfig;
 
 export class LevelEngine {
-  readonly config = config;
+  readonly config: LevelConfig;
+
+  constructor(levelConfig: LevelConfig = config) {
+    this.config = levelConfig;
+  }
 
   createInitialState(restarted = false): GameState {
     const sessionId = EventLogger.createSessionId();
+    if (this.config.id !== 'LEVEL_00') throw new Error('Use the level-specific state factory for non-LEVEL_00 levels.');
     const firstStage: StageId = 'WELCOME';
     const initialEvents = restarted
-      ? [EventLogger.createEvent(sessionId, config.id, firstStage, 'LEVEL_RESTART')]
+      ? [EventLogger.createEvent(sessionId, this.config.id, firstStage, 'LEVEL_RESTART')]
       : [];
 
     return {
       sessionId,
-      currentLevel: config.id,
+      currentLevel: this.config.id,
       currentStage: firstStage,
       workOrderOpened: false,
       trainingObjectPosition: 'TRAY',
@@ -30,8 +35,8 @@ export class LevelEngine {
       unlockedFeatures: ['WORK_ORDER'],
       eventLog: [
         ...initialEvents,
-        EventLogger.createEvent(sessionId, config.id, firstStage, 'LEVEL_START'),
-        EventLogger.createEvent(sessionId, config.id, firstStage, 'WELCOME_SHOWN'),
+        EventLogger.createEvent(sessionId, this.config.id, firstStage, 'LEVEL_START'),
+        EventLogger.createEvent(sessionId, this.config.id, firstStage, 'WELCOME_SHOWN'),
       ],
       feedback: null,
       reviewAnswers: {},
@@ -40,9 +45,9 @@ export class LevelEngine {
     };
   }
 
-  nextStage(stage: StageId): StageId {
-    const index = config.stages.indexOf(stage);
-    return config.stages[index + 1] ?? stage;
+  nextStage<TStage extends string>(stage: TStage): TStage {
+    const index = this.config.stages.indexOf(stage);
+    return (this.config.stages[index + 1] ?? stage) as TStage;
   }
 
   completeObjective(state: GameState, objective: ObjectiveId): ObjectiveId[] {
@@ -58,7 +63,7 @@ export class LevelEngine {
   }
 
   hasCompletedAllObjectives(state: GameState): boolean {
-    return config.objectives.every((objective) => state.completedObjectives.includes(objective));
+    return this.config.objectives.every((objective) => state.completedObjectives.includes(objective as ObjectiveId));
   }
 }
 

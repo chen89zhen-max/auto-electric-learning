@@ -1,0 +1,22 @@
+{
+  "reflection": {
+    "prompt": "刚才两次事故中，什么事情都必须先做？",
+    "correctOrder": ["OBSERVE", "JUDGE", "CONTROL", "RESPOND", "CONFIRM"],
+    "steps": [
+      { "id": "RESPOND_DIRECTLY", "label": "直接处理人员", "distractor": true },
+      { "id": "OBSERVE", "label": "观察现场" },
+      { "id": "JUDGE", "label": "判断危险是否仍存在" },
+      { "id": "CONTROL", "label": "控制危险源" },
+      { "id": "RESPOND", "label": "实施相应处置" },
+      { "id": "CONFIRM", "label": "确认环境安全" }
+    ]
+  },
+  "transfer": {
+    "prompt": "某设备出现异常响声，状态灯仍亮。你准备第一步做什么？",
+    "options": [
+      { "id": "OBSERVE_STATUS", "label": "先观察设备状态", "correct": true },
+      { "id": "OPEN_DEVICE", "label": "直接打开设备", "correct": false },
+      { "id": "CHANGE_COMPONENT", "label": "马上更换部件", "correct": false }
+    ]
+  }
+}

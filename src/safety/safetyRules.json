@@ -1,0 +1,71 @@
+{
+  "version": "1.0",
+  "rules": [
+    {
+      "id": "SHOCK_DIRECT_CONTACT",
+      "when": { "powerState": "ON", "operation": "TOUCH_PERSON", "personContactRisk": true },
+      "allow": false,
+      "severity": "DANGER",
+      "messageKey": "CHECK_ENVIRONMENT_FIRST",
+      "consequence": "阻止接触，避免形成二次伤害风险"
+    },
+    {
+      "id": "ELECTRICAL_FIRE_WATER",
+      "when": { "fireType": "ELECTRICAL", "operation": "USE_WATER" },
+      "allow": false,
+      "severity": "DANGER",
+      "messageKey": "IDENTIFY_FIRE_FIRST"
+    },
+    {
+      "id": "POWERED_FIRE_EXTINGUISHER",
+      "when": { "fireType": "ELECTRICAL", "powerState": "ON", "operation": "USE_EXTINGUISHER" },
+      "allow": false,
+      "severity": "DANGER",
+      "messageKey": "ISOLATE_POWER_FIRST"
+    },
+    {
+      "id": "ELECTRICAL_FIRE_FOAM",
+      "when": { "fireType": "ELECTRICAL", "operation": "USE_EXTINGUISHER", "extinguisherType": "FOAM" },
+      "allow": false,
+      "severity": "WARNING",
+      "messageKey": "EXTINGUISHER_NOT_SUITABLE"
+    },
+    {
+      "id": "ELECTRICAL_FIRE_WATER_BASED",
+      "when": { "fireType": "ELECTRICAL", "operation": "USE_EXTINGUISHER", "extinguisherType": "WATER_BASED" },
+      "allow": false,
+      "severity": "DANGER",
+      "messageKey": "EXTINGUISHER_NOT_SUITABLE"
+    },
+    {
+      "id": "LIVE_DEVICE_OPEN",
+      "when": { "powerState": "ON", "operation": "OPEN_DEVICE" },
+      "allow": false,
+      "severity": "DANGER",
+      "messageKey": "CHECK_AND_ISOLATE_FIRST"
+    },
+    {
+      "id": "LIVE_COMPONENT_CHANGE",
+      "when": { "powerState": "ON", "operation": "CHANGE_COMPONENT" },
+      "allow": false,
+      "severity": "DANGER",
+      "messageKey": "CHECK_AND_ISOLATE_FIRST"
+    },
+    {
+      "id": "SAFE_DEFAULT",
+      "when": {},
+      "allow": true,
+      "severity": "INFO",
+      "messageKey": "OPERATION_ALLOWED"
+    }
+  ],
+  "reservedRuleTypes": [
+    "POWERED_RESISTANCE_MEASUREMENT",
+    "CURRENT_RANGE_PARALLEL_CONNECTION",
+    "METER_PORT_MISMATCH",
+    "SHORT_CIRCUIT_RISK",
+    "WRONG_FUSE_RATING",
+    "LIVE_COMPONENT_REPLACEMENT",
+    "UNSAFE_JUMPER_CONNECTION"
+  ]
+}

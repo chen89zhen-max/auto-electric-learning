@@ -1,0 +1,10 @@
+{
+  "reviewStatus": "REQUIRES_PROFESSIONAL_REVIEW_BEFORE_FORMAL_USE",
+  "compressionRate": null,
+  "compressionDepth": null,
+  "compressionRatio": null,
+  "breathConfig": null,
+  "simulationSeconds": 10,
+  "practiceActionsRequired": 6,
+  "sequence": ["CHECK_RESPONSE", "CALL_HELP", "CHECK_BREATHING"]
+}
