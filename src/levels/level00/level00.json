@@ -1,0 +1,24 @@
+{
+  "id": "LEVEL_00",
+  "title": "维修中心第一天",
+  "subtitle": "见习技师入职训练",
+  "mode": "GUIDED",
+  "estimatedMinutes": 8,
+  "scoring": false,
+  "objectives": [
+    "READ_WORK_ORDER",
+    "BASIC_INTERACTION",
+    "DEVICE_STATE_CHECK",
+    "USE_TUTOR_HELP"
+  ],
+  "stages": [
+    "WELCOME",
+    "READ_WORK_ORDER",
+    "INTERACTION_TUTORIAL",
+    "SAFETY_PRECHECK",
+    "HELP_TUTORIAL",
+    "REVIEW",
+    "COMPLETE"
+  ],
+  "unlock": "LEVEL_01"
+}

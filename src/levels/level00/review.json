@@ -1,0 +1,20 @@
+[
+  {
+    "id": "PREPARE_DEVICE",
+    "prompt": "准备操作一台设备时，首先应该做什么？",
+    "options": [
+      { "id": "OBSERVE", "label": "先观察设备当前状态", "correct": true, "feedback": "对，先看状态，再操作。" },
+      { "id": "OPERATE", "label": "直接开始操作", "correct": false, "feedback": "先别急。操作前需要先观察设备状态。" },
+      { "id": "GUESS", "label": "凭经验猜测状态", "correct": false, "feedback": "状态要亲自确认，不能靠猜。" }
+    ]
+  },
+  {
+    "id": "UNKNOWN_PROBLEM",
+    "prompt": "遇到还没有学习过的问题怎么办？",
+    "options": [
+      { "id": "ASK", "label": "先观察思考，需要时请求帮助", "correct": true, "feedback": "对，不懂不用猜，可以请求帮助。" },
+      { "id": "RANDOM", "label": "随便试一试", "correct": false, "feedback": "不确定时不要乱操作。" },
+      { "id": "QUIT", "label": "马上放弃任务", "correct": false, "feedback": "先观察思考，也可以请师傅提示。" }
+    ]
+  }
+]
