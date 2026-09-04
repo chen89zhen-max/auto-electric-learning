@@ -1,6 +1,11 @@
 # 新能源汽车电工电子游戏化学习系统
 
-Sprint 0《维修中心第一天——见习技师入职训练》是面向中职新能源汽车专业学生的任务式学习 MVP。本版本不教授正式专业知识，重点让学生在一次 8—10 分钟的引导体验中学会查看工单、完成基础操作、操作前确认设备状态，以及不会时请求帮助。
+面向中职新能源汽车专业学生的任务式学习系统。目前包含：
+
+- Sprint 0《维修中心第一天——见习技师入职训练》：完成基础操作与软件入职训练。
+- Sprint 1《实训车间突发事故——安全用电》：通过事故、人员处置、电气火情和陌生设备迁移情境，形成“观察—判断—控制危险—处置—确认”的职业决策链。
+
+Sprint 1 不接入 LLM，不做安全知识答题游戏。危险动作统一交给配置驱动的 `SafetyRuleEngine` 判断，场景流程由 `ScenarioEngine` 读取配置。
 
 ## 技术栈
 
@@ -40,11 +45,16 @@ src/app/GameShell.tsx        统一游戏外壳
 src/core/types.ts            领域类型与日志事件定义
 src/engine/                  Level、Tutorial、Interaction 引擎
 src/game/                    场景与可交互对象
-src/levels/level00/          关卡、教程、话术和复盘配置
+src/levels/level00/          Sprint 0 关卡、教程、话术和复盘配置
+src/levels/level01/          Sprint 1 场景、话术、知识、复盘和急救参数配置
+src/safety/                  统一安全规则引擎、类型与规则配置
+src/scenario/                通用场景引擎
+src/abilities/               过程能力评价
+src/reflection/              安全处置链复盘判断
 src/logging/EventLogger.ts   会话日志、本地存储与 JSON 导出
 src/stores/gameStore.tsx     单一状态源与业务状态转换
 src/components/              工单、导师、进度、工具栏、复盘组件
 tests/                       自动化测试
 ```
 
-详细实现见 [IMPLEMENTATION.md](./IMPLEMENTATION.md)，验证方法见 [TESTING.md](./TESTING.md)，后续边界见 [TODO.md](./TODO.md)。
+Sprint 0 详细实现见 [IMPLEMENTATION.md](./IMPLEMENTATION.md) 与 [TESTING.md](./TESTING.md)。Sprint 1 详见 [IMPLEMENTATION_SPRINT1.md](./IMPLEMENTATION_SPRINT1.md)、[TESTING_SPRINT1.md](./TESTING_SPRINT1.md) 和 [KNOWN_ISSUES.md](./KNOWN_ISSUES.md)。

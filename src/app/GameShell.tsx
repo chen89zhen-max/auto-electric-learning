@@ -51,6 +51,6 @@ function GameExperience({ onStartLevel01 }: { onStartLevel01: () => void }) {
 
 export function GameShell() {
   const [activeLevel, setActiveLevel] = useState<'LEVEL_00' | 'LEVEL_01'>('LEVEL_00');
-  if (activeLevel === 'LEVEL_01') return <Level01Experience />;
+  if (activeLevel === 'LEVEL_01') return <Level01Experience onReturnLevel00={() => setActiveLevel('LEVEL_00')} />;
   return <GameStoreProvider><GameExperience onStartLevel01={() => setActiveLevel('LEVEL_01')} /></GameStoreProvider>;
 }

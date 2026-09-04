@@ -3,11 +3,11 @@ import './globals.css';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://neev-technician-onboarding.zippy-hinny-9086.chatgpt.site'),
-  title: '维修中心第一天｜见习技师入职训练',
-  description: '新能源汽车电工电子游戏化学习系统 Sprint 0',
+  title: '新能源汽车电工电子｜安全用电实训',
+  description: '新能源汽车电工电子 AI 游戏化学习系统 Sprint 0—1',
   openGraph: {
-    title: '维修中心第一天｜见习技师入职训练',
-    description: '新能源汽车电工电子游戏化学习系统 Sprint 0',
+    title: '新能源汽车电工电子｜安全用电实训',
+    description: '新能源汽车电工电子 AI 游戏化学习系统 Sprint 0—1',
     type: 'website',
   },
 };

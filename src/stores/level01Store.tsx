@@ -31,6 +31,7 @@ export type Level01Action =
   | { type: 'PRACTICE_FIRST_AID' }
   | { type: 'COMPLETE_FIRST_AID' }
   | { type: 'USE_WATER' }
+  | { type: 'REQUEST_FIRE_SUPPORT' }
   | { type: 'CHECK_FIRE_DEVICE' }
   | { type: 'ACK_FIRE_KNOWLEDGE' }
   | { type: 'CHECK_FIRE_POWER' }
@@ -44,11 +45,14 @@ export type Level01Action =
   | { type: 'CLEAR_FEEDBACK' }
   | { type: 'RESTART' };
 
-const hints = [
-  '设备现在是什么状态？',
-  '先检查训练台是否仍在工作。',
-  '先切断相关电源，再接近人员。',
-];
+function getHint(state: Level01State, level: number): string {
+  const hintsByStage = state.currentStage.startsWith('FIRE')
+    ? ['这是什么设备？', '先查看配电箱的电源状态。', '先切断相关电源，再选择适用灭火器。']
+    : state.currentStage.startsWith('FIRST_AID')
+      ? ['现场现在安全吗？', '先检查人员反应，并呼叫周围人员支援。', '检查反应 → 呼叫支援 → 检查呼吸。']
+      : ['设备现在是什么状态？', '先检查训练台是否仍在工作。', '先切断相关电源，再接近人员。'];
+  return hintsByStage[level - 1];
+}
 
 function createEvent(state: Level01State, action: EventAction, payload: Record<string, unknown> = {}, stage = state.currentStage): GameEvent {
   return EventLogger.createEvent(state.sessionId, state.currentLevel, stage, action, payload);
@@ -120,7 +124,7 @@ export function level01Reducer(state: Level01State, action: Level01Action): Leve
       if (state.currentStage !== 'WORK_ORDER') return { ...state, workOrderOpened: false };
       return {
         ...state,
-        currentStage: 'ACCIDENT_DISCOVERY',
+        currentStage: level01ScenarioEngine.nextStage('WORK_ORDER'),
         workOrderOpened: false,
         eventLog: appendEvents(state, [{ action: 'WORK_ORDER_ACCEPTED' }, { action: 'ACCIDENT_DISCOVERED', stage: 'ACCIDENT_DISCOVERY' }]),
         feedback: '发现人员倒地，请立即处置。',
@@ -130,7 +134,7 @@ export function level01Reducer(state: Level01State, action: Level01Action): Leve
       const now = Date.now();
       return {
         ...state,
-        currentStage: 'ENVIRONMENT_CHECK',
+        currentStage: level01ScenarioEngine.nextStage('ACCIDENT_DISCOVERY'),
         environmentChecked: true,
         metrics: {
           ...state.metrics,
@@ -154,12 +158,16 @@ export function level01Reducer(state: Level01State, action: Level01Action): Leve
       };
     }
     case 'ISOLATE_POWER': {
-      if (state.currentStage !== 'ENVIRONMENT_CHECK' || !state.environmentChecked) return { ...state, feedback: '先观察现场，确认危险来自哪里。' };
+      if (state.currentStage !== 'ENVIRONMENT_CHECK' || !state.environmentChecked) return {
+        ...state,
+        metrics: { ...state.metrics, firstAction: state.metrics.firstAction ?? 'POWER_OFF' },
+        feedback: '先观察现场，确认危险来自哪里。',
+      };
       const decision = safetyRuleEngine.evaluate({ levelId: 'LEVEL_01', stage: state.currentStage, powerState: state.powerState, operation: 'POWER_OFF' });
       if (!decision.allowed) return { ...state, lastSafetyDecision: decision, feedback: '当前操作暂不可执行。' };
       return {
         ...state,
-        currentStage: 'POWER_ISOLATION',
+        currentStage: level01ScenarioEngine.nextStage('ENVIRONMENT_CHECK'),
         powerState: 'OFF',
         warningLight: false,
         powerIsolated: true,
@@ -175,16 +183,21 @@ export function level01Reducer(state: Level01State, action: Level01Action): Leve
       return {
         ...state,
         hintLevel,
-        metrics: { ...state.metrics, helpRequests: state.metrics.helpRequests + 1, maxHintLevel: Math.max(state.metrics.maxHintLevel, hintLevel) },
+        metrics: {
+          ...state.metrics,
+          firstAction: state.currentStage === 'ACCIDENT_DISCOVERY' ? state.metrics.firstAction ?? 'REQUEST_HELP' : state.metrics.firstAction,
+          helpRequests: state.metrics.helpRequests + 1,
+          maxHintLevel: Math.max(state.metrics.maxHintLevel, hintLevel),
+        },
         eventLog: appendEvents(state, [{ action: 'HELP_REQUESTED', payload: { hintLevel } }]),
-        feedback: hints[hintLevel - 1],
+        feedback: getHint(state, hintLevel),
       };
     }
     case 'OPEN_KNOWLEDGE':
       if (state.currentStage !== 'POWER_ISOLATION' || !state.powerIsolated) return state;
       return {
         ...state,
-        currentStage: 'SHOCK_MICRO_LEARNING',
+        currentStage: level01ScenarioEngine.nextStage('POWER_ISOLATION'),
         knowledgeIndex: 0,
         eventLog: appendEvents(state, [{ action: 'KNOWLEDGE_CARD_OPEN', payload: { knowledgeId: 'SHOCK_RISK' }, stage: 'SHOCK_MICRO_LEARNING' }]),
         feedback: null,
@@ -196,7 +209,7 @@ export function level01Reducer(state: Level01State, action: Level01Action): Leve
       if (nextIndex >= 5) {
         return {
           ...state,
-          currentStage: 'FIRST_AID_ASSESSMENT',
+          currentStage: level01ScenarioEngine.nextStage('SHOCK_MICRO_LEARNING'),
           knowledgeIndex: nextIndex,
           eventLog: appendEvents(state, [completionEvent, { action: 'FIRST_AID_ASSESSMENT_START', stage: 'FIRST_AID_ASSESSMENT' }]),
           feedback: '现在可以进行下一步处置。',
@@ -224,7 +237,7 @@ export function level01Reducer(state: Level01State, action: Level01Action): Leve
       const nextStep = state.firstAidStep + 1;
       return {
         ...state,
-        currentStage: nextStep >= firstAidConfig.sequence.length ? 'FIRST_AID_ACTION' : state.currentStage,
+        currentStage: nextStep >= firstAidConfig.sequence.length ? level01ScenarioEngine.nextStage('FIRST_AID_ASSESSMENT') : state.currentStage,
         firstAidStep: nextStep,
         personState: nextStep >= firstAidConfig.sequence.length ? 'ASSESSED' : state.personState,
         eventLog: appendEvents(state, [{ action: eventMap[action.action] }]),
@@ -238,12 +251,13 @@ export function level01Reducer(state: Level01State, action: Level01Action): Leve
       if (state.currentStage !== 'FIRST_AID_ACTION' || state.firstAidPracticeCount < firstAidConfig.practiceActionsRequired) return { ...state, feedback: '请先完成屏幕节奏模拟。' };
       return {
         ...state,
-        currentStage: 'FIRE_EVENT',
+        currentStage: level01ScenarioEngine.nextStage('FIRST_AID_ACTION'),
         completedObjectives: addObjective(state, 'ASSESS_FIRST_AID'),
         eventLog: appendEvents(state, [{ action: 'FIRST_AID_SEQUENCE_COMPLETE' }, { action: 'FIRE_EVENT_START', stage: 'FIRE_EVENT' }]),
         feedback: '发现另一侧配电箱异常冒烟。',
       };
     case 'USE_WATER': {
+      if (!['FIRE_EVENT', 'FIRE_RISK_ASSESSMENT'].includes(state.currentStage)) return state;
       const decision = safetyRuleEngine.evaluate({ levelId: 'LEVEL_01', stage: state.currentStage, powerState: state.firePowerState, fireType: 'ELECTRICAL', operation: 'USE_WATER' });
       return {
         ...state,
@@ -253,16 +267,24 @@ export function level01Reducer(state: Level01State, action: Level01Action): Leve
         feedback: '先确认这是不是电气设备火情。',
       };
     }
+    case 'REQUEST_FIRE_SUPPORT':
+      if (!level01ScenarioEngine.isActionAvailable(state.currentStage, 'REQUEST_FIRE_SUPPORT')) return state;
+      return {
+        ...state,
+        eventLog: appendEvents(state, [{ action: 'HELP_CALLED', payload: { context: 'ELECTRICAL_FIRE' } }]),
+        feedback: '已呼叫周围人员支援，继续在安全距离内判断。',
+      };
     case 'CHECK_FIRE_DEVICE':
       if (state.currentStage !== 'FIRE_EVENT') return state;
       return {
         ...state,
-        currentStage: 'FIRE_RISK_ASSESSMENT',
+        currentStage: level01ScenarioEngine.nextStage('FIRE_EVENT'),
         fireIdentified: true,
         eventLog: appendEvents(state, [{ action: 'KNOWLEDGE_CARD_OPEN', payload: { knowledgeId: 'ELECTRICAL_FIRE' }, stage: 'FIRE_RISK_ASSESSMENT' }]),
         feedback: null,
       };
     case 'ACK_FIRE_KNOWLEDGE':
+      if (state.currentStage !== 'FIRE_RISK_ASSESSMENT' || !state.fireIdentified) return state;
       return { ...state, fireKnowledgeAcknowledged: true, feedback: '已识别为电气设备火情。' };
     case 'CHECK_FIRE_POWER':
       if (!['FIRE_EVENT', 'FIRE_RISK_ASSESSMENT'].includes(state.currentStage)) return state;
@@ -272,11 +294,14 @@ export function level01Reducer(state: Level01State, action: Level01Action): Leve
         eventLog: state.firePowerChecked ? state.eventLog : appendEvents(state, [{ action: 'FIRE_POWER_CHECK' }]),
         feedback: `配电箱电源状态：${state.firePowerState}`,
       };
-    case 'ISOLATE_FIRE_POWER':
-      if (state.currentStage !== 'FIRE_RISK_ASSESSMENT' || !state.fireIdentified) return { ...state, feedback: '先识别设备和火情类型。' };
-      return { ...state, firePowerState: 'OFF', firePowerChecked: true, feedback: '✓ 配电箱相关电源已切断' };
+    case 'ISOLATE_FIRE_POWER': {
+      if (state.currentStage !== 'FIRE_RISK_ASSESSMENT' || !state.fireIdentified || !state.firePowerChecked) return { ...state, feedback: '先识别设备，并查看电源状态。' };
+      const decision = safetyRuleEngine.evaluate({ levelId: 'LEVEL_01', stage: state.currentStage, powerState: state.firePowerState, fireType: 'ELECTRICAL', operation: 'POWER_OFF' });
+      if (!decision.allowed) return { ...state, lastSafetyDecision: decision, feedback: '当前不能安全切断该电源，请请求支援。' };
+      return { ...state, firePowerState: 'OFF', firePowerChecked: true, lastSafetyDecision: decision, feedback: '✓ 配电箱相关电源已切断' };
+    }
     case 'SELECT_EXTINGUISHER': {
-      if (!['FIRE_RISK_ASSESSMENT', 'FIRE_RESPONSE'].includes(state.currentStage)) return state;
+      if (!['FIRE_RISK_ASSESSMENT', 'FIRE_RESPONSE'].includes(state.currentStage) || !state.fireKnowledgeAcknowledged) return { ...state, feedback: '先确认火情类型。' };
       const decision = safetyRuleEngine.evaluate({ levelId: 'LEVEL_01', stage: state.currentStage, powerState: state.firePowerState, fireType: 'ELECTRICAL', extinguisherType: action.extinguisherType, operation: 'USE_EXTINGUISHER' });
       if (!decision.allowed) {
         return {
@@ -289,7 +314,7 @@ export function level01Reducer(state: Level01State, action: Level01Action): Leve
       }
       return {
         ...state,
-        currentStage: 'FIRE_RESPONSE',
+        currentStage: level01ScenarioEngine.nextStage('FIRE_RISK_ASSESSMENT'),
         selectedExtinguisher: action.extinguisherType,
         lastSafetyDecision: decision,
         eventLog: appendEvents(state, [{ action: 'EXTINGUISHER_SELECTED', payload: { extinguisherType: action.extinguisherType, ruleId: decision.ruleId } }]),
@@ -300,7 +325,7 @@ export function level01Reducer(state: Level01State, action: Level01Action): Leve
       if (state.currentStage !== 'FIRE_RESPONSE' || !state.selectedExtinguisher || state.firePowerState !== 'OFF') return state;
       return {
         ...state,
-        currentStage: 'TRANSFER_CHECK',
+        currentStage: level01ScenarioEngine.nextStage('FIRE_RESPONSE'),
         fireResolved: true,
         completedObjectives: addObjective(state, 'RESPOND_TO_ELECTRICAL_FIRE'),
         eventLog: appendEvents(state, [{ action: 'FIRE_RESPONSE_SUCCESS' }]),
@@ -321,7 +346,7 @@ export function level01Reducer(state: Level01State, action: Level01Action): Leve
       }
       return {
         ...state,
-        currentStage: 'REFLECTION',
+        currentStage: level01ScenarioEngine.nextStage('TRANSFER_CHECK'),
         transferPassed: true,
         completedObjectives: addObjective(state, 'TRANSFER_SAFETY_RULE'),
         eventLog: appendEvents(state, [{ action: 'TRANSFER_CHECK_SUBMIT', payload: { firstAction: action.operation, passed: true } }]),
@@ -353,7 +378,7 @@ export function level01Reducer(state: Level01State, action: Level01Action): Leve
       });
       return {
         ...state,
-        currentStage: 'COMPLETE',
+        currentStage: level01ScenarioEngine.nextStage('REFLECTION'),
         completedObjectives,
         abilityReport: report,
         metrics: { ...state.metrics, levelDuration: Date.now() - state.metrics.levelStartedAt },
