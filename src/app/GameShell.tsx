@@ -19,6 +19,7 @@ import { FullscreenButton } from '@/src/components/FullscreenButton';
 import { LevelId, markLevelComplete } from '@/src/stores/userProgressStore';
 import { getStudentDisplayName, useAuth } from '@/src/stores/authStore';
 import { ChangePasswordGate } from '@/src/components/auth/ChangePasswordGate';
+import { SystemAdminConsole } from '@/src/components/admin/SystemAdminConsole';
 
 function ResultPanel({ onReturnHome }: { onReturnHome: () => void }) {
   const { dispatch } = useGameStore();
@@ -151,6 +152,10 @@ export function GameShell() {
 
   if (user?.mustChangePassword) {
     return <ChangePasswordGate user={user} />;
+  }
+
+  if (user?.role === 'admin') {
+    return <SystemAdminConsole />;
   }
 
   if (activeLevel === 'LEVEL_02') {
