@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import crypto from 'node:crypto';
 import { getDatabase } from '@/src/server/db/database';
-import { hashPassword, verifyPassword } from '@/src/server/auth/crypto';
+import { verifyPassword } from '@/src/server/auth/crypto';
 import { createSession, revokeSession, createClearCookieHeader } from '@/src/server/auth/session';
 import { checkLoginRateLimit, recordLoginAttempt } from '@/src/server/auth/rateLimit';
 import { recordAudit } from '@/src/server/auth/audit';
@@ -40,87 +39,23 @@ export async function POST(req: NextRequest) {
 
     // 1. REGISTER
     if (action === 'register') {
-      const { username, password, realName, className } = body;
-
-      if (!username || !password || !realName) {
-        return NextResponse.json(
-          { success: false, error: '学号/账号、姓名和密码为必填项' },
-          { status: 400 }
-        );
-      }
-
-      const cleanUsername = username.trim().toLowerCase();
-      if (!/^[a-zA-Z0-9_\-\u4e00-\u9fa5]{2,30}$/.test(cleanUsername)) {
-        return NextResponse.json(
-          { success: false, error: '学号/账号格式不合规（2-30位字符，支持字母、数字与中文）' },
-          { status: 400 }
-        );
-      }
-
-      if (password.trim().length < 6) {
-        return NextResponse.json(
-          { success: false, error: '密码长度至少需要 6 个字符' },
-          { status: 400 }
-        );
-      }
-
-      // Check existing user
-      const checkUser = db.prepare<UserRow>('SELECT id FROM users WHERE username = ?');
-      if (checkUser.get(cleanUsername)) {
-        return NextResponse.json(
-          { success: false, error: '该学号/账号已存在，请直接登录' },
-          { status: 409 }
-        );
-      }
-
-      const userId = `usr_${crypto.createHash('md5').update(cleanUsername).digest('hex')}`;
-      const passwordHash = hashPassword(password.trim());
-      const now = Date.now();
-      const userClassName = (className || '新能源汽修班').trim();
-      const userRealName = realName.trim();
-
-      db.transaction(() => {
-        const insertUser = db.prepare(
-          `INSERT INTO users (id, username, password_hash, real_name, role, class_name, status, must_change_password, created_at, updated_at)
-           VALUES (?, ?, ?, ?, 'student', ?, 'active', 0, ?, ?)`
-        );
-        insertUser.run(userId, cleanUsername, passwordHash, userRealName, userClassName, now, now);
-
-        const initialProg = createBaseUserProgress(userRealName);
-        const insertProg = db.prepare(
-          `INSERT INTO user_progress (user_id, progress_data, version, last_updated)
-           VALUES (?, ?, 1, ?)`
-        );
-        insertProg.run(userId, JSON.stringify(initialProg), now);
-      });
-
-      // Create session and set cookie
-      const userAgent = req.headers.get('user-agent') || '';
-      const { cookieHeader } = createSession(userId, 'student', { ip, userAgent, db });
-
       recordAudit({
-        actorId: userId,
-        actorUsername: cleanUsername,
-        actorRole: 'student',
-        action: 'USER_REGISTER',
-        result: 'SUCCESS',
-        details: { realName: userRealName, className: userClassName },
+        actorUsername: body.username?.trim().toLowerCase() || null,
+        actorRole: 'anonymous',
+        action: 'SELF_REGISTRATION_ATTEMPT',
+        result: 'DENIED',
+        details: { reason: 'SELF_REGISTRATION_DISABLED' },
         ip,
-      });
+      }, db);
 
-      const response = NextResponse.json({
-        success: true,
-        user: {
-          username: cleanUsername,
-          realName: userRealName,
-          className: userClassName,
-          role: 'student',
+      return NextResponse.json(
+        {
+          success: false,
+          code: 'SELF_REGISTRATION_DISABLED',
+          error: '学生账号由学校统一创建，请使用学号和一次性激活码完成首次激活',
         },
-        progress: createBaseUserProgress(userRealName),
-      });
-
-      response.headers.set('Set-Cookie', cookieHeader);
-      return response;
+        { status: 403 }
+      );
     }
 
     // 2. LOGIN

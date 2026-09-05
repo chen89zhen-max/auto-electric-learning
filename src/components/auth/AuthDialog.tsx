@@ -8,12 +8,10 @@ import {
   ShieldAlert,
   User,
   UserCheck,
-  UserPlus,
-  Users,
   X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { loginUser, registerUser, useAuth } from '@/src/stores/authStore';
+import { loginUser, useAuth } from '@/src/stores/authStore';
 
 interface AuthDialogProps {
   isOpen: boolean;
@@ -23,18 +21,11 @@ interface AuthDialogProps {
 
 export function AuthDialog({ isOpen, onClose, onSuccess }: AuthDialogProps) {
   const { user } = useAuth();
-  const [tab, setTab] = useState<'login' | 'register' | 'teacher' | 'admin'>('login');
+  const [tab, setTab] = useState<'login' | 'teacher' | 'admin'>('login');
 
   // Login form state
   const [loginUsername, setLoginUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
-
-  // Register form state
-  const [regUsername, setRegUsername] = useState('');
-  const [regRealName, setRegRealName] = useState('');
-  const [regClassName, setRegClassName] = useState('24新能源1班');
-  const [regPassword, setRegPassword] = useState('');
-  const [regConfirmPassword, setRegConfirmPassword] = useState('');
 
   // Admin form state
   const [adminUsername, setAdminUsername] = useState('');
@@ -66,30 +57,6 @@ export function AuthDialog({ isOpen, onClose, onSuccess }: AuthDialogProps) {
     }
   };
 
-  const handleStudentRegister = async (e: React.SyntheticEvent) => {
-    e.preventDefault();
-    if (!regUsername || !regRealName || !regPassword) {
-      setError('学号、真实姓名和密码为必填项');
-      return;
-    }
-    if (regPassword !== regConfirmPassword) {
-      setError('两次输入的密码不一致');
-      return;
-    }
-
-    setError(null);
-    setLoading(true);
-    const res = await registerUser(regUsername, regPassword, regRealName, regClassName);
-    setLoading(false);
-
-    if (res.success) {
-      onSuccess?.();
-      onClose();
-    } else {
-      setError(res.error || '注册失败');
-    }
-  };
-
   const handleManagementLogin = async (
     e: React.SyntheticEvent,
     expectedRole: 'teacher' | 'admin'
@@ -105,19 +72,6 @@ export function AuthDialog({ isOpen, onClose, onSuccess }: AuthDialogProps) {
       onClose();
     } else {
       setError(res.error || (expectedRole === 'teacher' ? '教师登录失败' : '管理员登录失败'));
-    }
-  };
-
-  const handleGuestDemo = async () => {
-    setError(null);
-    setLoading(true);
-    const res = await loginUser('guest', 'guest123', 'student');
-    setLoading(false);
-    if (res.success) {
-      onSuccess?.();
-      onClose();
-    } else {
-      setError(res.error || '快速体验登录失败');
     }
   };
 
@@ -152,7 +106,7 @@ export function AuthDialog({ isOpen, onClose, onSuccess }: AuthDialogProps) {
                 NEV ELECTRICAL TRAINING SYSTEM
               </span>
               <h2 className="text-xl font-black m-0 tracking-tight">
-                {user ? '切换学员 / 账号管理' : '技师账号登录与注册'}
+                {user ? '切换账号' : '实训系统身份登录'}
               </h2>
             </div>
           </div>
@@ -173,21 +127,6 @@ export function AuthDialog({ isOpen, onClose, onSuccess }: AuthDialogProps) {
             >
               <LogIn size={14} />
               学员登录
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setTab('register');
-                setError(null);
-              }}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                tab === 'register'
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-300 hover:text-white hover:bg-white/10'
-              }`}
-            >
-              <UserPlus size={14} />
-              学员注册
             </button>
             <button
               type="button"
@@ -280,115 +219,14 @@ export function AuthDialog({ isOpen, onClose, onSuccess }: AuthDialogProps) {
                   {loading ? '正在验证登录...' : '登 录 实 训'}
                 </Button>
 
-                <button
-                  type="button"
-                  onClick={handleGuestDemo}
-                  className="w-full text-center text-xs text-slate-500 hover:text-sky-600 py-1.5 font-medium transition-colors"
-                >
-                  免注册快速体验（体验学员）→
-                </button>
+                <p className="text-center text-xs text-slate-500 py-1.5">
+                  首次使用请凭学校发放的学号和一次性激活码完成账号激活。
+                </p>
               </div>
             </form>
           )}
 
-          {/* Tab 2: Student Registration */}
-          {tab === 'register' && (
-            <form onSubmit={handleStudentRegister} className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor="reg-username" className="block text-xs font-bold text-slate-700 mb-1">
-                    学号 / 账号 <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    id="reg-username"
-                    type="text"
-                    required
-                    value={regUsername}
-                    onChange={(e) => setRegUsername(e.target.value)}
-                    placeholder="如 20240101"
-                    className="w-full h-10 px-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm font-medium"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="reg-realname" className="block text-xs font-bold text-slate-700 mb-1">
-                    真实姓名 <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    id="reg-realname"
-                    type="text"
-                    required
-                    value={regRealName}
-                    onChange={(e) => setRegRealName(e.target.value)}
-                    placeholder="陈师傅将据此称呼你"
-                    className="w-full h-10 px-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm font-medium"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="reg-class" className="block text-xs font-bold text-slate-700 mb-1">
-                  所属班级
-                </label>
-                <div className="relative">
-                  <Users size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    id="reg-class"
-                    type="text"
-                    value={regClassName}
-                    onChange={(e) => setRegClassName(e.target.value)}
-                    placeholder="如 24新能源1班"
-                    className="w-full h-10 pl-9 pr-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm font-medium"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor="reg-password" className="block text-xs font-bold text-slate-700 mb-1">
-                    设置密码 <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    id="reg-password"
-                    type="password"
-                    required
-                    value={regPassword}
-                    onChange={(e) => setRegPassword(e.target.value)}
-                    placeholder="建议6位以上"
-                    className="w-full h-10 px-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm font-medium"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="reg-confirm-password" className="block text-xs font-bold text-slate-700 mb-1">
-                    确认密码 <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    id="reg-confirm-password"
-                    type="password"
-                    required
-                    value={regConfirmPassword}
-                    onChange={(e) => setRegConfirmPassword(e.target.value)}
-                    placeholder="再次输入密码"
-                    className="w-full h-10 px-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm font-medium"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  size="lg"
-                  className="w-full h-11 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-md"
-                >
-                  {loading ? '正在创建档案...' : '立 即 注 册 并 开 始 实 训'}
-                </Button>
-              </div>
-            </form>
-          )}
-
-          {/* Tab 3/4: Role-specific Teacher or System Admin Login */}
+          {/* Role-specific Teacher or System Admin Login */}
           {(tab === 'teacher' || tab === 'admin') && (
             <form
               onSubmit={(event) => handleManagementLogin(event, tab)}

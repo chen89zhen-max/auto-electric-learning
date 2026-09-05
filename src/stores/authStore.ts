@@ -93,44 +93,6 @@ export async function loginUser(
   }
 }
 
-export async function registerUser(
-  username: string,
-  pass: string,
-  realName: string,
-  className: string
-): Promise<{ success: boolean; error?: string; user?: UserProfile; progress?: UserProgressData }> {
-  try {
-    const res = await fetch('/api/auth', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'register',
-        username,
-        password: pass,
-        realName,
-        className,
-      }),
-    });
-
-    const data = (await res.json()) as AuthResponse;
-    if (!res.ok || !data.success || !data.user) {
-      return { success: false, error: data.error || '注册失败' };
-    }
-
-    const user: UserProfile = data.user;
-    setCurrentUser(user);
-
-    if (data.progress) {
-      saveUserProgress(data.progress, { sync: false });
-    }
-
-    return { success: true, user, progress: data.progress };
-  } catch (err) {
-    console.error('Register network error:', err);
-    return { success: false, error: '网络连接异常，请重试' };
-  }
-}
-
 export async function logoutUser(): Promise<{ success: boolean; error?: string }> {
   let serverLogoutSucceeded = false;
   try {
