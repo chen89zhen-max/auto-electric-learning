@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import {
   GraduationCap,
+  KeyRound,
   Lock,
   LogIn,
   ShieldAlert,
@@ -11,7 +12,7 @@ import {
   X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { loginUser, useAuth } from '@/src/stores/authStore';
+import { activateStudent, loginUser, useAuth } from '@/src/stores/authStore';
 
 interface AuthDialogProps {
   isOpen: boolean;
@@ -21,11 +22,16 @@ interface AuthDialogProps {
 
 export function AuthDialog({ isOpen, onClose, onSuccess }: AuthDialogProps) {
   const { user } = useAuth();
-  const [tab, setTab] = useState<'login' | 'teacher' | 'admin'>('login');
+  const [tab, setTab] = useState<'login' | 'activate' | 'teacher' | 'admin'>('login');
 
   // Login form state
   const [loginUsername, setLoginUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+
+  const [activationUsername, setActivationUsername] = useState('');
+  const [activationCode, setActivationCode] = useState('');
+  const [activationPassword, setActivationPassword] = useState('');
+  const [activationPasswordConfirm, setActivationPasswordConfirm] = useState('');
 
   // Admin form state
   const [adminUsername, setAdminUsername] = useState('');
@@ -72,6 +78,29 @@ export function AuthDialog({ isOpen, onClose, onSuccess }: AuthDialogProps) {
       onClose();
     } else {
       setError(res.error || (expectedRole === 'teacher' ? '教师登录失败' : '管理员登录失败'));
+    }
+  };
+
+  const handleStudentActivation = async (event: React.SyntheticEvent) => {
+    event.preventDefault();
+    if (activationPassword !== activationPasswordConfirm) {
+      setError('两次输入的新密码不一致');
+      return;
+    }
+
+    setError(null);
+    setLoading(true);
+    const result = await activateStudent(
+      activationUsername,
+      activationCode,
+      activationPassword
+    );
+    setLoading(false);
+    if (result.success) {
+      onSuccess?.();
+      onClose();
+    } else {
+      setError(result.error || '账号激活失败');
     }
   };
 
@@ -127,6 +156,21 @@ export function AuthDialog({ isOpen, onClose, onSuccess }: AuthDialogProps) {
             >
               <LogIn size={14} />
               学员登录
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setTab('activate');
+                setError(null);
+              }}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                tab === 'activate'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'text-emerald-300 hover:text-white hover:bg-emerald-500/20'
+              }`}
+            >
+              <KeyRound size={14} />
+              首次激活
             </button>
             <button
               type="button"
@@ -223,6 +267,68 @@ export function AuthDialog({ isOpen, onClose, onSuccess }: AuthDialogProps) {
                   首次使用请凭学校发放的学号和一次性激活码完成账号激活。
                 </p>
               </div>
+            </form>
+          )}
+
+          {tab === 'activate' && (
+            <form onSubmit={handleStudentActivation} className="space-y-3">
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-xs leading-relaxed text-emerald-900">
+                学生账号和班级由学校预先建立。这里不允许自行选择或修改班级。
+              </div>
+
+              <label className="block text-xs font-bold text-slate-700">
+                学号
+                <input
+                  type="text"
+                  required
+                  value={activationUsername}
+                  onChange={(event) => setActivationUsername(event.target.value)}
+                  className="mt-1 h-10 w-full rounded-xl border border-slate-300 px-3 text-sm"
+                />
+              </label>
+
+              <label className="block text-xs font-bold text-slate-700">
+                一次性激活码
+                <input
+                  type="text"
+                  required
+                  value={activationCode}
+                  onChange={(event) => setActivationCode(event.target.value)}
+                  className="mt-1 h-10 w-full rounded-xl border border-slate-300 px-3 font-mono text-sm"
+                />
+              </label>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label className="block text-xs font-bold text-slate-700">
+                  设置新密码
+                  <input
+                    type="password"
+                    required
+                    value={activationPassword}
+                    onChange={(event) => setActivationPassword(event.target.value)}
+                    placeholder="至少10位"
+                    className="mt-1 h-10 w-full rounded-xl border border-slate-300 px-3 text-sm"
+                  />
+                </label>
+                <label className="block text-xs font-bold text-slate-700">
+                  确认新密码
+                  <input
+                    type="password"
+                    required
+                    value={activationPasswordConfirm}
+                    onChange={(event) => setActivationPasswordConfirm(event.target.value)}
+                    className="mt-1 h-10 w-full rounded-xl border border-slate-300 px-3 text-sm"
+                  />
+                </label>
+              </div>
+
+              <Button
+                type="submit"
+                disabled={loading}
+                className="h-11 w-full bg-emerald-600 text-white hover:bg-emerald-500"
+              >
+                {loading ? '正在激活账号…' : '激活账号并进入实训'}
+              </Button>
             </form>
           )}
 

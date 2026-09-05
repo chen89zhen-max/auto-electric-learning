@@ -93,6 +93,57 @@ export async function loginUser(
   }
 }
 
+export async function activateStudent(
+  username: string,
+  activationCode: string,
+  newPassword: string
+): Promise<{ success: boolean; error?: string; user?: UserProfile; progress?: UserProgressData }> {
+  try {
+    const response = await fetch('/api/auth/activate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, activationCode, newPassword }),
+    });
+    const data = (await response.json()) as AuthResponse;
+    if (!response.ok || !data.success || !data.user) {
+      return { success: false, error: data.error || '账号激活失败' };
+    }
+
+    setCurrentUser(data.user);
+    if (data.progress) {
+      saveUserProgress(data.progress, { sync: false });
+    }
+    return { success: true, user: data.user, progress: data.progress };
+  } catch (err) {
+    console.error('Student activation network error:', err);
+    return { success: false, error: '网络连接异常，请重试' };
+  }
+}
+
+export async function changeCurrentPassword(
+  currentPassword: string,
+  newPassword: string
+): Promise<{ success: boolean; error?: string; user?: UserProfile }> {
+  try {
+    const response = await fetch('/api/auth/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+    const data = (await response.json()) as AuthResponse;
+    if (!response.ok || !data.success || !data.user) {
+      return { success: false, error: data.error || '密码修改失败' };
+    }
+
+    setCurrentUser(data.user);
+    restorePromise = Promise.resolve(data.user);
+    return { success: true, user: data.user };
+  } catch (err) {
+    console.error('Change password network error:', err);
+    return { success: false, error: '网络连接异常，请重试' };
+  }
+}
+
 export async function logoutUser(): Promise<{ success: boolean; error?: string }> {
   let serverLogoutSucceeded = false;
   try {
