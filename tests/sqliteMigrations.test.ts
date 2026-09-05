@@ -86,4 +86,19 @@ describe('immutable SQLite migration runner', () => {
     expect(db.prepare("SELECT name FROM sqlite_master WHERE name='should_not_replay'").get()).toBeUndefined();
     db.close();
   });
+
+  it('refuses to run a database created by a newer application schema', () => {
+    const directory = migrations({
+      '0001_init.sql': 'CREATE TABLE known_table (id TEXT);',
+    });
+    const db = createTestDatabase();
+    db.exec(`CREATE TABLE schema_migrations (
+      version INTEGER PRIMARY KEY,name TEXT NOT NULL,sha256 TEXT,applied_at INTEGER NOT NULL
+    )`);
+    db.prepare('INSERT INTO schema_migrations(version,name,sha256,applied_at) VALUES(2,?,?,1)')
+      .run('0002_future', 'a'.repeat(64));
+
+    expect(() => runPendingMigrations(db, directory)).toThrow(/newer/i);
+    db.close();
+  });
 });

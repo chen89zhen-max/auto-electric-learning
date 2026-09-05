@@ -3,6 +3,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { AppDatabase } from './database';
 
+export const LATEST_SCHEMA_VERSION = 6;
+
 interface MigrationFile {
   version: number;
   filename: string;
@@ -70,6 +72,10 @@ export function runPendingMigrations(db: AppDatabase, directory: string): Migrat
   ).all();
   const appliedByVersion = new Map(appliedRows.map((row) => [row.version, row]));
   const fromVersion = appliedRows.at(-1)?.version ?? 0;
+  const latestAvailableVersion = migrations.at(-1)?.version ?? 0;
+  if (fromVersion > latestAvailableVersion) {
+    throw new Error(`Database schema ${fromVersion} is newer than application schema ${latestAvailableVersion}`);
+  }
   const newlyApplied: string[] = [];
 
   for (const migration of migrations) {
@@ -97,6 +103,6 @@ export function runPendingMigrations(db: AppDatabase, directory: string): Migrat
     newlyApplied.push(migration.filename);
   }
 
-  const toVersion = migrations.at(-1)?.version ?? fromVersion;
+  const toVersion = latestAvailableVersion || fromVersion;
   return { fromVersion, toVersion, applied: newlyApplied };
 }

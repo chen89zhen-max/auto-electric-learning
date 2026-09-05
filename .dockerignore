@@ -1,0 +1,17 @@
+.git
+.github
+.agents
+.codex
+.superpowers
+.env
+.env.*
+!.env.production.example
+data
+backups
+dist
+node_modules
+scratch
+*.db
+*.db-wal
+*.db-shm
+npm-debug.log*
