@@ -85,7 +85,7 @@ export function bootstrapDefaultDataIfNeeded(
     const checkClass = db.prepare<Record<string, unknown>>('SELECT id FROM classes WHERE id = ?');
     const insertClass = db.prepare(
       `INSERT OR IGNORE INTO classes (id, school_id, name, grade, cohort_year, status, created_at, updated_at)
-       VALUES (?, 'school_default', ?, '2024级', 2024, 'active', ?, ?)`
+       VALUES (?, 'default_school', ?, '2024级', 2024, 'active', ?, ?)`
     );
 
     if (!checkClass.get('class_24new1')) {

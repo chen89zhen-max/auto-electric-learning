@@ -7,6 +7,7 @@ import {
   transferStudent,
 } from '@/src/server/db/classService';
 import { createSqliteAdapter, type AppDatabase } from '@/src/server/db/database';
+import { bootstrapDefaultDataIfNeeded } from '@/src/server/db/bootstrap';
 
 let db: AppDatabase;
 
@@ -114,5 +115,17 @@ describe('organization relationship invariants', () => {
     const counts = Object.fromEntries(listAllClasses(db).map((item) => [item.id, item.studentCount]));
     expect(counts[first.id]).toBe(0);
     expect(counts[second.id]).toBe(1);
+  });
+
+  it('seeds development demo classes inside the supported school scope', () => {
+    const fresh = createSqliteAdapter(':memory:');
+    bootstrapDefaultDataIfNeeded(fresh, { environment: 'development', enableDemoSeed: true });
+
+    expect(
+      fresh.prepare<{ count: number }>(
+        "SELECT COUNT(*) count FROM classes WHERE school_id != 'default_school'"
+      ).get()?.count
+    ).toBe(0);
+    fresh.close();
   });
 });
