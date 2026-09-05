@@ -20,6 +20,7 @@ import { LevelId, markLevelComplete } from '@/src/stores/userProgressStore';
 import { getStudentDisplayName, useAuth } from '@/src/stores/authStore';
 import { ChangePasswordGate } from '@/src/components/auth/ChangePasswordGate';
 import { SystemAdminConsole } from '@/src/components/admin/SystemAdminConsole';
+import { TeacherDashboard } from '@/src/components/teacher/TeacherDashboard';
 
 function ResultPanel({ onReturnHome }: { onReturnHome: () => void }) {
   const { dispatch } = useGameStore();
@@ -156,6 +157,10 @@ export function GameShell() {
 
   if (user?.role === 'admin') {
     return <SystemAdminConsole />;
+  }
+
+  if (user?.role === 'teacher') {
+    return <TeacherDashboard />;
   }
 
   if (activeLevel === 'LEVEL_02') {
