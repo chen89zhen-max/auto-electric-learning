@@ -13,38 +13,43 @@ export interface AuditEntry {
   ip?: string | null;
 }
 
-/**
- * Records a structured audit event into audit_logs table.
- */
+function insertAudit(entry: AuditEntry, db: AppDatabase): void {
+  const id = `aud_${generateSecureToken(12)}`;
+  const ipHash = entry.ip ? hashIp(entry.ip) : null;
+  const detailsStr = entry.details
+    ? typeof entry.details === 'string'
+      ? entry.details
+      : JSON.stringify(entry.details)
+    : null;
+
+  db.prepare(
+    `INSERT INTO audit_logs (id, actor_id, actor_username, actor_role, action, target_type, target_id, result, details, ip_hash, occurred_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    id,
+    entry.actorId || null,
+    entry.actorUsername || null,
+    entry.actorRole || null,
+    entry.action,
+    entry.targetType || null,
+    entry.targetId || null,
+    entry.result,
+    detailsStr,
+    ipHash,
+    Date.now()
+  );
+}
+
+/** Records best-effort audit events for paths where logging must not hide the primary result. */
 export function recordAudit(entry: AuditEntry, db: AppDatabase = getDatabase()): void {
   try {
-    const id = `aud_${generateSecureToken(12)}`;
-    const ipHash = entry.ip ? hashIp(entry.ip) : null;
-    const detailsStr = entry.details
-      ? typeof entry.details === 'string'
-        ? entry.details
-        : JSON.stringify(entry.details)
-      : null;
-    const now = Date.now();
-
-    const insertStmt = db.prepare(
-      `INSERT INTO audit_logs (id, actor_id, actor_username, actor_role, action, target_type, target_id, result, details, ip_hash, occurred_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    );
-    insertStmt.run(
-      id,
-      entry.actorId || null,
-      entry.actorUsername || null,
-      entry.actorRole || null,
-      entry.action,
-      entry.targetType || null,
-      entry.targetId || null,
-      entry.result,
-      detailsStr,
-      ipHash,
-      now
-    );
+    insertAudit(entry, db);
   } catch (err) {
     console.error('[Audit Error] Failed to write audit log:', err);
   }
+}
+
+/** Records a mandatory audit event and propagates failures to the surrounding transaction. */
+export function recordAuditStrict(entry: AuditEntry, db: AppDatabase = getDatabase()): void {
+  insertAudit(entry, db);
 }
