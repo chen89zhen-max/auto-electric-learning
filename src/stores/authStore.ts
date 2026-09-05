@@ -2,7 +2,11 @@
 
 import { useEffect, useSyncExternalStore } from 'react';
 import type { UserProgressData } from './userProgressStore';
-import { saveUserProgress, createDefaultUserProgress } from './userProgressStore';
+import {
+  saveUserProgress,
+  createDefaultUserProgress,
+  setProgressServerSyncEnabled,
+} from './userProgressStore';
 
 export interface UserProfile {
   username: string;
@@ -48,6 +52,7 @@ export function getCurrentUser(): UserProfile | null {
 export function setCurrentUser(user: UserProfile | null): void {
   cachedUser = user;
   authStatus = user ? 'authenticated' : 'anonymous';
+  setProgressServerSyncEnabled(user?.role === 'student');
 
   if (typeof localStorage !== 'undefined') {
     // Remove the legacy trusted identity snapshot. Server session is the source of truth.
@@ -78,7 +83,7 @@ export async function loginUser(
     setCurrentUser(user);
 
     if (data.progress) {
-      saveUserProgress(data.progress);
+      saveUserProgress(data.progress, { sync: false });
     }
 
     return { success: true, user, progress: data.progress };
@@ -116,7 +121,7 @@ export async function registerUser(
     setCurrentUser(user);
 
     if (data.progress) {
-      saveUserProgress(data.progress);
+      saveUserProgress(data.progress, { sync: false });
     }
 
     return { success: true, user, progress: data.progress };
@@ -138,7 +143,7 @@ export async function logoutUser(): Promise<{ success: boolean; error?: string }
     console.error('Logout network error:', err);
   } finally {
     setCurrentUser(null);
-    saveUserProgress(createDefaultUserProgress());
+    saveUserProgress(createDefaultUserProgress(), { sync: false });
     restorePromise = null;
   }
 
@@ -169,7 +174,7 @@ export async function restoreSession(force = false): Promise<UserProfile | null>
 
       setCurrentUser(data.user);
       if (data.user.role === 'student' && data.progress) {
-        saveUserProgress(data.progress);
+        saveUserProgress(data.progress, { sync: false });
       }
       return data.user;
     } catch (err) {
