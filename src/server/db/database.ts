@@ -1,16 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
-import initSqlJs, { type Database as SqlJsDatabase, type SqlJsStatic } from 'sql.js';
 import { bootstrapDefaultDataIfNeeded } from './bootstrap';
-import { MemorySqlDatabase } from './memorySqlStore';
-
-let sqlJsModule: SqlJsStatic | null = null;
-try {
-  sqlJsModule = await initSqlJs();
-} catch {
-  // sql.js top-level await fallback notice
-}
+import { openProductionDatabase } from './productionDatabase';
+import { createTestDatabase } from './testDatabase';
 
 export interface RunResult {
   changes: number;
@@ -343,156 +335,8 @@ function applyMigrations(db: AppDatabase): void {
   } catch {}
 }
 
-function createSqlJsAdapter(db: SqlJsDatabase, filePath?: string): AppDatabase {
-  function persist() {
-    if (filePath && filePath !== ':memory:') {
-      try {
-        const data = db.export();
-        fs.writeFileSync(filePath, Buffer.from(data));
-      } catch {}
-    }
-  }
-
-  return {
-    exec(sql: string) {
-      db.run(sql);
-      persist();
-    },
-    prepare<T = Record<string, unknown>>(sql: string): StatementAdapter<T> {
-      return {
-        run(...params: unknown[]) {
-          const cleanParams = params.map((p) => (p === undefined ? null : p)) as unknown as Array<
-            number | string | Uint8Array | null
-          >;
-          db.run(sql, cleanParams);
-          const changes = db.getRowsModified();
-          persist();
-          return { changes, lastInsertRowid: 0 };
-        },
-        get(...params: unknown[]) {
-          const cleanParams = params.map((p) => (p === undefined ? null : p)) as unknown as Array<
-            number | string | Uint8Array | null
-          >;
-          const stmt = db.prepare(sql);
-          stmt.bind(cleanParams);
-          const hasRow = stmt.step();
-          const row = hasRow ? (stmt.getAsObject() as T) : undefined;
-          stmt.free();
-          return row;
-        },
-        all(...params: unknown[]) {
-          const cleanParams = params.map((p) => (p === undefined ? null : p)) as unknown as Array<
-            number | string | Uint8Array | null
-          >;
-          const stmt = db.prepare(sql);
-          stmt.bind(cleanParams);
-          const rows: T[] = [];
-          while (stmt.step()) {
-            rows.push(stmt.getAsObject() as T);
-          }
-          stmt.free();
-          return rows;
-        },
-      };
-    },
-    transaction<R>(fn: () => R): R {
-      db.run('BEGIN TRANSACTION');
-      try {
-        const result = fn();
-        db.run('COMMIT');
-        persist();
-        return result;
-      } catch (err) {
-        try {
-          db.run('ROLLBACK');
-        } catch {}
-        throw err;
-      }
-    },
-    close() {
-      try {
-        db.close();
-      } catch {}
-    },
-  };
-}
-
 export function createSqliteAdapter(filePath: string): AppDatabase {
-  let nativeSyncDb: DatabaseSync | null = null;
-  try {
-    nativeSyncDb = new DatabaseSync(filePath);
-  } catch {
-    nativeSyncDb = null;
-  }
-
-  let adapter: AppDatabase;
-
-  if (nativeSyncDb) {
-    if (filePath !== ':memory:') {
-      try {
-        nativeSyncDb.exec('PRAGMA journal_mode = WAL;');
-      } catch {}
-    }
-    nativeSyncDb.exec('PRAGMA foreign_keys = ON;');
-    try {
-      nativeSyncDb.exec('PRAGMA busy_timeout = 5000;');
-    } catch {}
-
-    adapter = {
-      exec(sql: string) {
-        nativeSyncDb!.exec(sql);
-      },
-      prepare<T = Record<string, unknown>>(sql: string): StatementAdapter<T> {
-        const stmt = nativeSyncDb!.prepare(sql);
-        return {
-          run(...params: unknown[]) {
-            return (stmt.run as (...args: unknown[]) => RunResult)(...params);
-          },
-          get(...params: unknown[]) {
-            return (stmt.get as (...args: unknown[]) => T | undefined)(...params);
-          },
-          all(...params: unknown[]) {
-            return (stmt.all as (...args: unknown[]) => T[])(...params);
-          },
-        };
-      },
-      transaction<R>(fn: () => R): R {
-        nativeSyncDb!.exec('BEGIN IMMEDIATE');
-        try {
-          const result = fn();
-          nativeSyncDb!.exec('COMMIT');
-          return result;
-        } catch (err) {
-          try {
-            nativeSyncDb!.exec('ROLLBACK');
-          } catch {}
-          throw err;
-        }
-      },
-      close() {
-        try {
-          nativeSyncDb!.close();
-        } catch {}
-      },
-    };
-  } else if (sqlJsModule) {
-    let sqlDb: SqlJsDatabase;
-    if (filePath !== ':memory:' && fs.existsSync(filePath)) {
-      try {
-        const buf = fs.readFileSync(filePath);
-        sqlDb = new sqlJsModule.Database(buf);
-      } catch {
-        sqlDb = new sqlJsModule.Database();
-      }
-    } else {
-      sqlDb = new sqlJsModule.Database();
-    }
-    adapter = createSqlJsAdapter(sqlDb, filePath);
-  } else {
-    const jsonPath = filePath === ':memory:' ? ':memory:' : filePath.replace(/\.db$/, '.json');
-    adapter = new MemorySqlDatabase(jsonPath);
-  }
-
+  const adapter = createTestDatabase(filePath);
   applyMigrations(adapter);
   return adapter;
 }
@@ -500,7 +344,16 @@ export function createSqliteAdapter(filePath: string): AppDatabase {
 export function getDatabase(): AppDatabase {
   if (dbInstance) return dbInstance;
   const dbPath = getDatabasePath();
-  dbInstance = createSqliteAdapter(dbPath);
+  if (process.env.NODE_ENV === 'production') {
+    const dataDir = process.env.APP_DATA_DIR;
+    if (!dataDir) {
+      throw new Error('APP_DATA_DIR is required in production');
+    }
+    dbInstance = openProductionDatabase({ dataDir, filename: 'app.db', busyTimeoutMs: 5000 });
+    applyMigrations(dbInstance);
+  } else {
+    dbInstance = createSqliteAdapter(dbPath);
+  }
   if (dbPath !== ':memory:') {
     try {
       bootstrapDefaultDataIfNeeded(dbInstance);
