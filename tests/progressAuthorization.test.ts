@@ -73,18 +73,14 @@ describe('原始学习进度写入权限', () => {
     expect(body.error).toContain('只有学生本人');
   });
 
-  it('学生只能按当前Session写本人，不依赖客户端用户名确定所有者', async () => {
+  it('学生本人提交旧整份进度接口返回410且不写入', async () => {
     const response = await postProgress(student1Token);
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(410);
 
     const row = testDb.prepare<{ progress_data: string }>(
       'SELECT progress_data FROM user_progress WHERE user_id = ?'
     ).get('usr_student1');
-    expect(row).toBeDefined();
-
-    const saved = JSON.parse(row!.progress_data) as ReturnType<typeof createBaseUserProgress>;
-    expect(saved.traineeName).toBe('学生甲');
-    expect(saved.levels.LEVEL_00).toMatchObject({ status: 'completed', score: 90 });
+    expect(row).toBeUndefined();
   });
 
   it('学生伪造其他用户名仍返回403且不写入目标学生', async () => {

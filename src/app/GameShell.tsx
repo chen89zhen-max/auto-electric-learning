@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Award, Check, GraduationCap, LogOut, Wrench } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { GameStoreProvider, useGameStore } from '@/src/stores/gameStore';
@@ -16,7 +16,7 @@ import { Level01Experience } from '@/src/levels/level01/Level01Experience';
 import { Level02Experience } from '@/src/levels/level02/Level02Experience';
 import { CourseMapLobby } from '@/src/components/CourseMapLobby';
 import { FullscreenButton } from '@/src/components/FullscreenButton';
-import { LevelId, markLevelComplete } from '@/src/stores/userProgressStore';
+import { LevelId, submitLevelCompletion } from '@/src/stores/userProgressStore';
 import { getStudentDisplayName, useAuth } from '@/src/stores/authStore';
 import { ChangePasswordGate } from '@/src/components/auth/ChangePasswordGate';
 import { SystemAdminConsole } from '@/src/components/admin/SystemAdminConsole';
@@ -24,10 +24,13 @@ import { TeacherDashboard } from '@/src/components/teacher/TeacherDashboard';
 
 function ResultPanel({ onReturnHome }: { onReturnHome: () => void }) {
   const { dispatch } = useGameStore();
+  const completionSubmitted = useRef(false);
 
   useEffect(() => {
-    // Automatically save Level 00 completion & unlock Level 01
-    markLevelComplete('LEVEL_00', 100);
+    if (completionSubmitted.current) return;
+    completionSubmitted.current = true;
+    void submitLevelCompletion('LEVEL_00', 100, { source: 'sprint0_result' })
+      .catch((error) => console.error('Sprint 0 completion save failed:', error));
   }, []);
 
   return (

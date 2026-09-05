@@ -179,11 +179,6 @@ export function createDefaultUserProgress(): UserProgressData {
 }
 
 let cachedProgress: UserProgressData | null = null;
-let serverSyncEnabled = false;
-
-export function setProgressServerSyncEnabled(enabled: boolean): void {
-  serverSyncEnabled = enabled;
-}
 
 export function getUserProgress(): UserProgressData {
   if (cachedProgress) {
@@ -224,7 +219,7 @@ export function getUserProgress(): UserProgressData {
 
 export function saveUserProgress(
   data: UserProgressData,
-  options: { sync?: boolean } = {}
+  _options: { sync?: boolean } = {}
 ): void {
   cachedProgress = { ...data, lastUpdated: Date.now() };
   if (typeof localStorage === 'undefined') return;
@@ -234,17 +229,36 @@ export function saveUserProgress(
       window.dispatchEvent(new Event(CHANGE_EVENT));
     }
 
-    // Only a server-confirmed student session may sync formal progress.
-    if (serverSyncEnabled && options.sync !== false) {
-      fetch('/api/progress', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ progress: cachedProgress }),
-      }).catch(() => {});
-    }
   } catch (err) {
     console.error('Failed to save user progress:', err);
   }
+}
+
+export async function submitLevelCompletion(
+  levelId: LevelId,
+  score = 100,
+  evidence: Record<string, unknown> = {}
+): Promise<UserProgressData> {
+  const eventId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : `evt_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  const response = await fetch('/api/learning/events', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      eventId,
+      levelId,
+      eventType: 'LEVEL_COMPLETE',
+      payload: { score, evidence },
+      occurredAt: Date.now(),
+    }),
+  });
+  const body = await response.json() as { projection?: UserProgressData; error?: string };
+  if (!response.ok || !body.projection) {
+    throw new Error(body.error || '学习结果保存失败');
+  }
+  saveUserProgress(body.projection, { sync: false });
+  return body.projection;
 }
 
 const NEXT_LEVEL_MAP: Record<LevelId, LevelId | null> = {

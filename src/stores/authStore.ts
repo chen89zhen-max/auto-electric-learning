@@ -5,7 +5,6 @@ import type { UserProgressData } from './userProgressStore';
 import {
   saveUserProgress,
   createDefaultUserProgress,
-  setProgressServerSyncEnabled,
 } from './userProgressStore';
 
 export interface UserProfile {
@@ -52,8 +51,6 @@ export function getCurrentUser(): UserProfile | null {
 export function setCurrentUser(user: UserProfile | null): void {
   cachedUser = user;
   authStatus = user ? 'authenticated' : 'anonymous';
-  setProgressServerSyncEnabled(user?.role === 'student');
-
   if (typeof localStorage !== 'undefined') {
     // Remove the legacy trusted identity snapshot. Server session is the source of truth.
     localStorage.removeItem(AUTH_STORAGE_KEY);

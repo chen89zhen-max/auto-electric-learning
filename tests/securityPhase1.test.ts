@@ -7,9 +7,12 @@ import { checkLoginRateLimit, recordLoginAttempt } from '@/src/server/auth/rateL
 import { GET as adminGet, POST as adminPost } from '@/app/api/admin/route';
 import { GET as progressGet, POST as progressPost } from '@/app/api/progress/route';
 import { GET as authGet, POST as authPost } from '@/app/api/auth/route';
+import { POST as learningEventPost } from '@/app/api/learning/events/route';
 import { createBaseUserProgress } from '@/src/types/progress';
+import { assignStudentToClass, createClass } from '@/src/server/db/classService';
 
 let testDb: AppDatabase;
+let testClassId: string;
 
 beforeEach(() => {
   // Use isolated in-memory SQLite database for test runs
@@ -25,6 +28,10 @@ beforeEach(() => {
   insertUser.run('usr_admin', 'admin', hashPassword('Admin#Pass123'), '陈师傅', 'admin', '教师组', now, now);
   insertUser.run('usr_student1', 'stu1', hashPassword('Stu1#Pass123'), '小明', 'student', '24新能源1班', now, now);
   insertUser.run('usr_student2', 'stu2', hashPassword('Stu2#Pass123'), '小红', 'student', '24新能源1班', now, now);
+
+  testClassId = createClass({ name: '24新能源1班' }, testDb).id;
+  assignStudentToClass('usr_student1', testClassId, undefined, testDb);
+  assignStudentToClass('usr_student2', testClassId, undefined, testDb);
 
   const insertProg = testDb.prepare(
     `INSERT INTO user_progress (user_id, progress_data, version, last_updated)
@@ -189,36 +196,25 @@ describe('阶段1 安全风险封堵全量自动化验证 (Phase 1 Security Cont
     const { token } = createSession('usr_student1', 'student', { db: testDb });
     const headers = { cookie: `nev_session=${token}` };
 
-    const forgedProgress = createBaseUserProgress('小明');
-    // Forge LEVEL_02 as completed with 100 points, but LEVEL_00 and LEVEL_01 are locked!
-    forgedProgress.levels.LEVEL_02 = { status: 'completed', score: 100 };
-    forgedProgress.teacherMode = true; // Attempt to forge teacherMode
-
-    const reqPost = new NextRequest('http://localhost:3000/api/progress', {
+    const reqPost = new NextRequest('http://localhost:3000/api/learning/events', {
       method: 'POST',
       headers,
-      body: JSON.stringify({ username: 'stu1', progress: forgedProgress }),
+      body: JSON.stringify({ eventId: 'evt-forged-level02', levelId: 'LEVEL_02', eventType: 'LEVEL_COMPLETE', payload: { score: 100, teacherMode: true }, occurredAt: Date.now() }),
     });
-    const resPost = await progressPost(reqPost);
-    expect(resPost.status).toBe(400);
+    const resPost = await learningEventPost(reqPost);
+    expect(resPost.status).toBe(422);
     const body = (await resPost.json()) as { error: string };
-    expect(body.error).toContain('关卡非法跳过');
+    expect(body.error).toContain('前置关卡');
 
-    // Verify student cannot set teacherMode: true even when valid
-    const validProgress = createBaseUserProgress('小明');
-    validProgress.teacherMode = true; // Forged
-    validProgress.levels.LEVEL_00 = { status: 'completed', score: 100 };
-
-    const reqValid = new NextRequest('http://localhost:3000/api/progress', {
+    const reqValid = new NextRequest('http://localhost:3000/api/learning/events', {
       method: 'POST',
       headers,
-      body: JSON.stringify({ username: 'stu1', progress: validProgress }),
+      body: JSON.stringify({ eventId: 'evt-valid-level000', levelId: 'LEVEL_00', eventType: 'LEVEL_COMPLETE', payload: { score: 100, teacherMode: true }, occurredAt: Date.now() }),
     });
-    const resValid = await progressPost(reqValid);
+    const resValid = await learningEventPost(reqValid);
     expect(resValid.status).toBe(200);
-    const savedBody = (await resValid.json()) as { progress: { teacherMode: boolean } };
-    // Teacher mode MUST be sanitized to false for students
-    expect(savedBody.progress.teacherMode).toBe(false);
+    const savedBody = (await resValid.json()) as { projection: { teacherMode: boolean } };
+    expect(savedBody.projection.teacherMode).toBe(false);
   });
 
   // 8. 高并发事务性读写一致性（40并发无锁冲突与数据损坏）
@@ -238,22 +234,20 @@ describe('阶段1 安全风险封堵全量自动化验证 (Phase 1 Security Cont
          VALUES (?, ?, ?, ?, 'student', '并发班', 'active', 0, ?, ?)`
       ).run(userId, username, hashPassword('Pass123'), `学生${i}`, now, now);
 
+      assignStudentToClass(userId, testClassId, undefined, testDb);
+
       const { token } = createSession(userId, 'student', { db: testDb });
       tokens.push(token);
     }
 
     // Perform 40 concurrent POST requests
     const promises = tokens.map((tok, idx) => {
-      const u = students[idx];
-      const prog = createBaseUserProgress(`学生${idx}`);
-      prog.levels.LEVEL_00 = { status: 'completed', score: 95 };
-
-      const req = new NextRequest('http://localhost:3000/api/progress', {
+      const req = new NextRequest('http://localhost:3000/api/learning/events', {
         method: 'POST',
         headers: { cookie: `nev_session=${tok}` },
-        body: JSON.stringify({ username: u, progress: prog }),
+        body: JSON.stringify({ eventId: `evt-concurrent-${idx}`, levelId: 'LEVEL_00', eventType: 'LEVEL_COMPLETE', payload: { score: 95 }, occurredAt: Date.now() }),
       });
-      return progressPost(req);
+      return learningEventPost(req);
     });
 
     const responses = await Promise.all(promises);
