@@ -567,7 +567,7 @@ export function D01RelayControlScene({
 
             {/* LCD Display */}
             <div className="bg-emerald-950/30 border border-emerald-500/40 rounded-lg p-3 my-3 text-center">
-              <div className="text-[10px] text-emerald-400/70 font-mono tracking-widest uppercase mb-1">
+              <div className="text-xs text-emerald-400/70 font-mono tracking-widest uppercase mb-1">
                 {meterKnob === 'DCV_20' ? 'DC VOLTAGE (20V)' : meterKnob === 'OHM_200' ? 'RESISTANCE (200Ω)' : 'POWER OFF'}
               </div>
               <div className="text-4xl lg:text-5xl font-mono font-black text-emerald-400 tracking-tight">
@@ -704,7 +704,7 @@ export function D01RelayControlScene({
                         setS1Submitted(true);
                       }
                     }}
-                    className="w-full bg-sky-600 hover:bg-sky-500 text-xs font-semibold py-2"
+                    className="w-full bg-sky-600 hover:bg-sky-500 text-sm font-semibold py-2"
                   >
                     提交判别分析
                   </Button>
@@ -715,7 +715,7 @@ export function D01RelayControlScene({
                       assessment.startStage('standard');
                       onAdvanceStep();
                     }}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold py-2"
                   >
                     通过！进入引脚万用表辨识 <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
@@ -726,7 +726,7 @@ export function D01RelayControlScene({
                       setS1Choice(null);
                     }}
                     variant="outline"
-                    className="w-full text-xs"
+                    className="w-full text-sm"
                   >
                     重新思考
                   </Button>
@@ -786,7 +786,7 @@ export function D01RelayControlScene({
                         setS2Submitted(true);
                       }
                     }}
-                    className="w-full bg-sky-600 hover:bg-sky-500 text-xs font-semibold py-2"
+                    className="w-full bg-sky-600 hover:bg-sky-500 text-sm font-semibold py-2"
                   >
                     核验引脚测试数据
                   </Button>
@@ -797,7 +797,7 @@ export function D01RelayControlScene({
                       assessment.startStage('calculation');
                       onAdvanceStep();
                     }}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold py-2"
                   >
                     判定准确！进入电磁吸合规律测试 <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
@@ -808,7 +808,7 @@ export function D01RelayControlScene({
                       setS2Answer(null);
                     }}
                     variant="outline"
-                    className="w-full text-xs"
+                    className="w-full text-sm"
                   >
                     重新测量
                   </Button>
@@ -867,7 +867,7 @@ export function D01RelayControlScene({
                         setS3Submitted(true);
                       }
                     }}
-                    className="w-full bg-sky-600 hover:bg-sky-500 text-xs font-semibold py-2"
+                    className="w-full bg-sky-600 hover:bg-sky-500 text-sm font-semibold py-2"
                   >
                     {!s3Observed ? '请先在左侧闭合开关通电观察' : '提交动作机理分析'}
                   </Button>
@@ -878,7 +878,7 @@ export function D01RelayControlScene({
                       assessment.startStage('blind_test');
                       onAdvanceStep();
                     }}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold py-2"
                   >
                     非常透彻！进入独立盲测排故实战 <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
@@ -889,7 +889,7 @@ export function D01RelayControlScene({
                       setS3Choice(null);
                     }}
                     variant="outline"
-                    className="w-full text-xs"
+                    className="w-full text-sm"
                   >
                     重新思考
                   </Button>
@@ -953,7 +953,7 @@ export function D01RelayControlScene({
                         setS4Submitted(true);
                       }
                     }}
-                    className="w-full bg-sky-600 hover:bg-sky-500 text-xs font-semibold py-2"
+                    className="w-full bg-sky-600 hover:bg-sky-500 text-sm font-semibold py-2"
                   >
                     提交盲测诊断结论
                   </Button>
@@ -970,7 +970,7 @@ export function D01RelayControlScene({
                         onAdvanceStep();
                       }
                     }}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold py-2"
                   >
                     {blindIndex < BLIND_CASES.length - 1 ? '正确！进入下一个盲测案例' : '盲测全部通关！进入实车修复与交车'}
                   </Button>
@@ -981,7 +981,7 @@ export function D01RelayControlScene({
                       setS4Choice(null);
                     }}
                     variant="outline"
-                    className="w-full text-xs"
+                    className="w-full text-sm"
                   >
                     重新排查打表
                   </Button>
@@ -1036,7 +1036,7 @@ export function D01RelayControlScene({
                       onComplete?.(finalResult);
                       onAdvanceStep();
                     }}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold py-2"
                   >
                     {!s5Repaired ? '请先领用换装新继电器' : !s5SwitchOn ? '请通电闭合开关测试' : !s5WorkOrderSigned ? '请勾选签署交付工单' : '完成交车验收'}
                   </Button>

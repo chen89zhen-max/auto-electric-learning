@@ -531,19 +531,19 @@ export function E04TransistorScene({
                   {/* 状态看板 */}
                   <div className="grid grid-cols-4 gap-2 text-center pt-2 border-t border-slate-800">
                     <div className="p-2 bg-slate-950 rounded-lg">
-                      <div className="text-[10px] text-slate-400">基极 Ib</div>
+                      <div className="text-xs text-slate-400">基极 Ib</div>
                       <div className="text-sm font-mono font-bold text-cyan-400">{s3Point.ibMa} mA</div>
                     </div>
                     <div className="p-2 bg-slate-950 rounded-lg">
-                      <div className="text-[10px] text-slate-400">集电极 Ic</div>
+                      <div className="text-xs text-slate-400">集电极 Ic</div>
                       <div className="text-sm font-mono font-bold text-emerald-400">{s3Point.icMa} mA</div>
                     </div>
                     <div className="p-2 bg-slate-950 rounded-lg">
-                      <div className="text-[10px] text-slate-400">管压降 Uce</div>
+                      <div className="text-xs text-slate-400">管压降 Uce</div>
                       <div className="text-sm font-mono font-bold text-amber-300">{s3Point.uceV} V</div>
                     </div>
                     <div className="p-2 bg-slate-950 rounded-lg">
-                      <div className="text-[10px] text-slate-400">当前区域</div>
+                      <div className="text-xs text-slate-400">当前区域</div>
                       <div className="text-xs font-bold mt-0.5">
                         {s3Point.state === 'CUTOFF' && <span className="text-slate-400">截止区 (关断)</span>}
                         {s3Point.state === 'ACTIVE' && <span className="text-amber-400">放大区 (发热)</span>}

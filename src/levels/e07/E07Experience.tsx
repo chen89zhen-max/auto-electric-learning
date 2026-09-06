@@ -9,14 +9,12 @@ import {
   HelpCircle,
   LogOut,
   RotateCcw,
-  Volume2,
   Zap,
 } from 'lucide-react';
 import { FullscreenButton } from '@/src/components/FullscreenButton';
 import { AbilityReport } from '@/src/components/AbilityReport';
 import { MasterChenAvatar } from '@/src/components/visuals/MasterChenAvatar';
-import { sounds } from '@/src/components/visuals/SoundEffects';
-import { speakText, stopSpeaking } from '@/src/components/visuals/SpeechTts';
+import { SpeechControls } from '@/src/components/visuals/SpeechControls';
 import { getStudentDisplayName } from '@/src/stores/authStore';
 import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
 import { scoreAssessment } from '@/src/assessment/scoreAssessment';
@@ -39,13 +37,7 @@ export function E07Experience({ onReturnLobby }: E07ExperienceProps) {
 
   const guidance = E07_STAGE_CONTENT[currentStep];
 
-  useEffect(() => {
-    const textToSpeak = hintRequested ? guidance.hint : guidance.mentorPrompt;
-    speakText(textToSpeak);
-    return () => {
-      stopSpeaking();
-    };
-  }, [currentStep, hintRequested, guidance.mentorPrompt, guidance.hint]);
+
 
   const handleStepComplete = (step: E07Step, evidence: Record<string, unknown>) => {
     setStepEvidences((prev) => ({
@@ -185,7 +177,7 @@ export function E07Experience({ onReturnLobby }: E07ExperienceProps) {
               }`}
             >
               <span
-                className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
                   isActive
                     ? 'bg-blue-600 text-white'
                     : isPast
@@ -214,17 +206,7 @@ export function E07Experience({ onReturnLobby }: E07ExperienceProps) {
             {hintRequested ? `【提示】${guidance.hint}` : guidance.mentorPrompt}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            speakText(hintRequested ? guidance.hint : guidance.mentorPrompt);
-            sounds.playToggleSound?.();
-          }}
-          className="p-2 rounded-xl bg-slate-700/60 hover:bg-slate-700 text-slate-300 transition-colors"
-          title="重新播放导师语音"
-        >
-          <Volume2 size={18} />
-        </button>
+        <SpeechControls currentText={hintRequested ? guidance.hint : guidance.mentorPrompt} />
       </section>
 
       {/* Main Workspace Area */}

@@ -227,7 +227,7 @@ export function E07PcbAssemblyScene({
                           : 'border-slate-800 bg-slate-900 text-slate-400 hover:border-slate-700'
                       }`}
                     >
-                      <div className="text-[10px] font-bold text-blue-400">第 {step.num} 步</div>
+                      <div className="text-xs font-bold text-blue-400">第 {step.num} 步</div>
                       <div className="text-xs font-bold mt-0.5">{step.name}</div>
                     </button>
                   ))}
@@ -252,7 +252,7 @@ export function E07PcbAssemblyScene({
                       <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
                       电烙铁通电前 6 项安全必检（未全部确认严禁通电加热）
                     </span>
-                    <span className="text-[11px] font-mono text-slate-400">
+                    <span className="text-xs font-mono text-slate-400">
                       已核验: {Object.values(s1CheckedItems).filter(Boolean).length} / 6
                     </span>
                   </div>
@@ -275,12 +275,12 @@ export function E07PcbAssemblyScene({
                               : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700'
                           }`}
                         >
-                          <span className={`w-4 h-4 rounded flex items-center justify-center text-[10px] font-bold border ${
+                          <span className={`w-4 h-4 rounded flex items-center justify-center text-xs font-bold border ${
                             isChecked ? 'bg-emerald-600 border-emerald-400 text-white' : 'border-slate-600'
                           }`}>
                             {isChecked ? '✓' : ''}
                           </span>
-                          <span className="text-[11px] leading-tight">{item.label}</span>
+                          <span className="text-xs leading-tight">{item.label}</span>
                         </button>
                       );
                     })}
@@ -294,7 +294,7 @@ export function E07PcbAssemblyScene({
                   )}
 
                   <div className="flex items-center justify-between pt-1">
-                    <span className="text-[10px] text-slate-500">
+                    <span className="text-xs text-slate-500">
                       {s1HeatingStarted ? '🔥 焊台已接通并加温至 330°C' : '请逐项核对无隐患后通电'}
                     </span>
                     <button
@@ -441,14 +441,14 @@ export function E07PcbAssemblyScene({
                 <div className="p-4 bg-emerald-950/40 border-2 border-emerald-800/80 rounded-xl mb-4 relative min-h-[160px] flex items-center justify-around">
                   {/* 色环电阻 */}
                   <div className="p-3 bg-slate-900/90 rounded-lg border border-slate-700 text-center">
-                    <div className="text-[10px] text-slate-400">R1 贴板电阻</div>
+                    <div className="text-xs text-slate-400 mb-1">R1 贴板电阻</div>
                     <Button
                       size="sm"
                       onClick={() => {
                         setS2InsertedParts((p) => ({ ...p, resistor: true }));
                         sounds.playToggleSound?.();
                       }}
-                      className={s2InsertedParts.resistor ? 'bg-emerald-600 text-white text-xs' : 'bg-slate-700 text-slate-300 text-xs'}
+                      className={s2InsertedParts.resistor ? 'bg-emerald-600 text-white text-sm font-semibold' : 'bg-slate-700 text-slate-300 text-sm font-semibold'}
                     >
                       {s2InsertedParts.resistor ? '✓ 已水平平贴插装' : '折弯引脚并插装'}
                     </Button>
@@ -456,14 +456,14 @@ export function E07PcbAssemblyScene({
 
                   {/* 二极管 */}
                   <div className="p-3 bg-slate-900/90 rounded-lg border border-slate-700 text-center">
-                    <div className="text-[10px] text-slate-400">D1 二极管 (色环对齐阴极)</div>
+                    <div className="text-xs text-slate-400 mb-1">D1 二极管 (色环对齐阴极)</div>
                     <Button
                       size="sm"
                       onClick={() => {
                         setS2InsertedParts((p) => ({ ...p, diode: true }));
                         sounds.playToggleSound?.();
                       }}
-                      className={s2InsertedParts.diode ? 'bg-emerald-600 text-white text-xs' : 'bg-slate-700 text-slate-300 text-xs'}
+                      className={s2InsertedParts.diode ? 'bg-emerald-600 text-white text-sm font-semibold' : 'bg-slate-700 text-slate-300 text-sm font-semibold'}
                     >
                       {s2InsertedParts.diode ? '✓ 极性核对插装' : '核对色环方向插装'}
                     </Button>
@@ -471,14 +471,14 @@ export function E07PcbAssemblyScene({
 
                   {/* 电解电容 */}
                   <div className="p-3 bg-slate-900/90 rounded-lg border border-slate-700 text-center">
-                    <div className="text-[10px] text-slate-400">C1 电解电容 (白条对阴影)</div>
+                    <div className="text-xs text-slate-400 mb-1">C1 电解电容 (白条对阴影)</div>
                     <Button
                       size="sm"
                       onClick={() => {
                         setS2InsertedParts((p) => ({ ...p, capacitor: true }));
                         sounds.playToggleSound?.();
                       }}
-                      className={s2InsertedParts.capacitor ? 'bg-emerald-600 text-white text-xs' : 'bg-slate-700 text-slate-300 text-xs'}
+                      className={s2InsertedParts.capacitor ? 'bg-emerald-600 text-white text-sm font-semibold' : 'bg-slate-700 text-slate-300 text-sm font-semibold'}
                     >
                       {s2InsertedParts.capacitor ? '✓ 负极对阴影插装' : '核对极性插装'}
                     </Button>
@@ -805,14 +805,14 @@ export function E07PcbAssemblyScene({
 
                   <div className="p-3 bg-slate-950 rounded-lg border border-slate-800 flex items-center justify-between">
                     <div>
-                      <div className="text-[10px] text-slate-400">10X 显微镜视觉形态</div>
+                      <div className="text-xs text-slate-400">10X 显微镜视觉形态</div>
                       <div className="text-sm font-bold text-amber-300 mt-1">{activeDefect.visualFeature}</div>
                     </div>
                   </div>
 
                   <div className="p-3 bg-slate-950 rounded-lg border border-slate-800 flex items-center justify-between">
                     <div>
-                      <div className="text-[10px] text-slate-400">万用表电阻/蜂鸣档实测</div>
+                      <div className="text-xs text-slate-400">万用表电阻/蜂鸣档实测</div>
                       <div className="text-sm font-mono font-bold text-cyan-400 mt-1">
                         {activeDefect.multimeterOhm < 1 ? (
                           <span className="text-rose-400 animate-pulse">0.1 Ω (蜂鸣器短路狂叫！)</span>

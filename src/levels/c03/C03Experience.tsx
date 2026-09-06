@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   ClipboardList,
   GraduationCap,
@@ -8,13 +8,11 @@ import {
   LogOut,
   RotateCcw,
   UserCheck,
-  Volume2,
 } from 'lucide-react';
 import { FullscreenButton } from '@/src/components/FullscreenButton';
 import { AbilityReport } from '@/src/components/AbilityReport';
 import { MasterChenAvatar } from '@/src/components/visuals/MasterChenAvatar';
-import { sounds } from '@/src/components/visuals/SoundEffects';
-import { speakText, stopSpeaking } from '@/src/components/visuals/SpeechTts';
+import { SpeechControls } from '@/src/components/visuals/SpeechControls';
 import { getStudentDisplayName } from '@/src/stores/authStore';
 import { C03IndependentDeliveryScene } from './C03IndependentDeliveryScene';
 import { C03_STAGE_CONTENT, type C03Step } from './c03Training';
@@ -34,15 +32,6 @@ export function C03Experience({ onReturnLobby }: C03ExperienceProps) {
   const [hintRequested, setHintRequested] = useState(false);
 
   const guidance = C03_STAGE_CONTENT[currentStep];
-
-  // Auto-speak Master Chen's prompt or hint on new dialog
-  useEffect(() => {
-    const textToSpeak = hintRequested ? guidance.hint : guidance.mentorPrompt;
-    speakText(textToSpeak);
-    return () => {
-      stopSpeaking();
-    };
-  }, [currentStep, hintRequested, guidance.mentorPrompt, guidance.hint]);
 
   const handleStepComplete = (step: C03Step, evidence: Record<string, unknown>) => {
     setStepEvidences((prev) => ({
@@ -103,7 +92,7 @@ export function C03Experience({ onReturnLobby }: C03ExperienceProps) {
           <button
             type="button"
             onClick={onReturnLobby}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg transition-colors cursor-pointer shadow-xs"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg transition-colors cursor-pointer shadow-xs"
             title="退出当前实训并返回课程地图"
           >
             <LogOut size={15} />
@@ -196,18 +185,7 @@ export function C03Experience({ onReturnLobby }: C03ExperienceProps) {
                       ? guidance.hint
                       : `“${guidance.mentorPrompt}”`}
                   </p>
-                  <button
-                    type="button"
-                    className="text-emerald-700/70 hover:text-emerald-900 transition-colors p-1.5 cursor-pointer rounded hover:bg-emerald-100"
-                    title="重播陈师傅语音"
-                    onClick={() => {
-                      sounds.click();
-                      const textToSpeak = hintRequested ? guidance.hint : guidance.mentorPrompt;
-                      speakText(textToSpeak);
-                    }}
-                  >
-                    <Volume2 size={18} />
-                  </button>
+                  <SpeechControls currentText={hintRequested ? guidance.hint : guidance.mentorPrompt} />
                 </div>
               </div>
 

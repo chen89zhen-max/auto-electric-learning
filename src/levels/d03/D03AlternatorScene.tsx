@@ -631,7 +631,7 @@ export function D03AlternatorScene({
 
             {/* LCD Display */}
             <div className="bg-emerald-950/30 border border-emerald-500/40 rounded-lg p-3 my-3 text-center">
-              <div className="text-[10px] text-emerald-400/70 font-mono tracking-widest uppercase mb-1">
+              <div className="text-xs text-emerald-400/70 font-mono tracking-widest uppercase mb-1">
                 {meterKnob === 'DCV_20'
                   ? 'DC VOLTAGE (20V)'
                   : meterKnob === 'ACV_200'

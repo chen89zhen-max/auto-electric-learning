@@ -181,7 +181,7 @@ export function E03RectifierScene({
 
               {/* 动态波形可视化 */}
               <div className="relative w-full h-52 flex flex-col items-center justify-center my-4 bg-slate-900/60 rounded-xl border border-slate-800/80 p-3">
-                <div className="text-[10px] text-slate-500 font-mono flex justify-between w-full mb-1">
+                <div className="text-xs text-slate-500 font-mono flex justify-between w-full mb-1">
                   <span>OSCILLOSCOPE CH1: OUTPUT WAVEFORM</span>
                   <span>{s1Topology === 'HALF_WAVE' ? '半波脉动 (基波50Hz)' : '桥式全波翻折 (倍频100Hz)'}</span>
                 </div>
@@ -507,7 +507,7 @@ export function E03RectifierScene({
                     <div className="text-2xl font-mono font-black text-emerald-400">
                       {s3Output.uDc.toFixed(1)} V
                     </div>
-                    <div className="text-[10px] text-slate-500 mt-1">
+                    <div className="text-xs text-slate-500 mt-1">
                       {s3HasCapacitor ? '公式: Uo ≈ 1.2 × U₂' : '公式: Uo ≈ 0.9 × U₂'}
                     </div>
                   </div>
@@ -516,7 +516,7 @@ export function E03RectifierScene({
                     <div className="text-2xl font-mono font-black text-cyan-400">
                       {s3Output.rippleVpp.toFixed(2)} V
                     </div>
-                    <div className="text-[10px] text-slate-500 mt-1">
+                    <div className="text-xs text-slate-500 mt-1">
                       {s3HasCapacitor ? '电容削峰填谷 (纹波压制)' : '剧烈脉动 (无滤波)'}
                     </div>
                   </div>

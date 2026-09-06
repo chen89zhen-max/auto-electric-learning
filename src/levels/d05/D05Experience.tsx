@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   ClipboardList,
   Cpu,
@@ -8,14 +8,13 @@ import {
   HelpCircle,
   LogOut,
   RotateCcw,
-  Volume2,
 } from 'lucide-react';
 import { FullscreenButton } from '@/src/components/FullscreenButton';
 import { AbilityReport } from '@/src/components/AbilityReport';
 import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
 import { MasterChenAvatar } from '@/src/components/visuals/MasterChenAvatar';
+import { SpeechControls } from '@/src/components/visuals/SpeechControls';
 import { sounds } from '@/src/components/visuals/SoundEffects';
-import { speakText, stopSpeaking } from '@/src/components/visuals/SpeechTts';
 import { getStudentDisplayName } from '@/src/stores/authStore';
 import { D05TransformerScene } from './D05TransformerScene';
 import { D05_STAGE_CONTENT, type D05Step } from './d05Training';
@@ -34,14 +33,6 @@ export function D05Experience({ onReturnLobby }: D05ExperienceProps) {
   const [hintRequested, setHintRequested] = useState(false);
 
   const guidance = D05_STAGE_CONTENT[currentStep];
-
-  useEffect(() => {
-    const textToSpeak = hintRequested ? guidance.hint : guidance.mentorPrompt;
-    speakText(textToSpeak);
-    return () => {
-      stopSpeaking();
-    };
-  }, [currentStep, hintRequested, guidance.mentorPrompt, guidance.hint]);
 
   const handleStepComplete = (step: D05Step, evidence: Record<string, unknown>) => {
     setStepEvidences((prev) => ({
@@ -92,7 +83,7 @@ export function D05Experience({ onReturnLobby }: D05ExperienceProps) {
           <div>
             <div className="flex items-center gap-2">
               <p className="eyebrow">篇章四：让电和磁配合工作 · 电磁感应高阶</p>
-              <span className="text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/30 px-1.5 py-0.2 rounded font-bold">
+              <span className="text-xs bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded font-bold">
                 ⭐ 星号选学
               </span>
             </div>
@@ -146,21 +137,11 @@ export function D05Experience({ onReturnLobby }: D05ExperienceProps) {
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
                 <span className="font-bold text-purple-300 text-sm">陈师傅（实训总教练）</span>
-                <span className="text-[11px] px-2 py-0.5 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-full font-mono">
+                <span className="text-xs px-2 py-0.5 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-full font-mono">
                   D05 · {guidance.title.split('：')[0]}
                 </span>
               </div>
-              <button
-                onClick={() => {
-                  sounds.click();
-                  speakText(hintRequested ? guidance.hint : guidance.mentorPrompt);
-                }}
-                className="text-xs text-slate-400 hover:text-purple-300 flex items-center gap-1 bg-slate-800 px-2 py-1 rounded"
-                title="重新朗读指导语"
-              >
-                <Volume2 size={13} />
-                <span>朗读</span>
-              </button>
+              <SpeechControls currentText={hintRequested ? guidance.hint : guidance.mentorPrompt} />
             </div>
             <p className="text-slate-200 text-sm leading-relaxed">
               {hintRequested ? guidance.hint : guidance.mentorPrompt}
@@ -206,7 +187,7 @@ export function D05Experience({ onReturnLobby }: D05ExperienceProps) {
                     : 'border-slate-800 bg-slate-900/50 text-slate-500'
                 }`}
               >
-                <span className="block font-mono text-[10px] text-slate-400">阶段 0{idx + 1}</span>
+                <span className="block font-mono text-xs text-slate-400">阶段 0{idx + 1}</span>
                 <span className="truncate block">{s.label.split('. ')[1]}</span>
               </div>
             );

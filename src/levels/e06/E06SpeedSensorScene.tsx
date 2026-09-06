@@ -204,7 +204,7 @@ export function E06SpeedSensorScene({
 
               {/* 示波器波形对比 */}
               <div className="relative w-full h-52 flex flex-col items-center justify-center my-4 bg-slate-900/60 rounded-xl border border-slate-800/80 p-3">
-                <div className="text-[10px] text-slate-500 font-mono flex justify-between w-full mb-1">
+                <div className="text-xs text-slate-500 font-mono flex justify-between w-full mb-1">
                   <span>OSCILLOSCOPE CH1</span>
                   <span>{s1SensorType === 'MAGNETIC_VR' ? '正弦波交流电 (幅值随转速增加)' : '0~5V 数字方波 (幅值恒定)'}</span>
                 </div>
@@ -655,19 +655,19 @@ export function E06SpeedSensorScene({
                   </div>
                   <div className="grid grid-cols-3 gap-2 w-full text-center">
                     <div className="p-2 bg-slate-950 rounded-lg">
-                      <div className="text-[10px] text-slate-400">线圈阻值</div>
+                      <div className="text-xs text-slate-400">线圈阻值</div>
                       <div className="text-sm font-mono font-bold text-cyan-400 mt-1">
                         {activeSample.measuredResistance > 9000000 ? 'OL (断路)' : `${activeSample.measuredResistance} Ω`}
                       </div>
                     </div>
                     <div className="p-2 bg-slate-950 rounded-lg">
-                      <div className="text-[10px] text-slate-400">信号幅值</div>
+                      <div className="text-xs text-slate-400">信号幅值</div>
                       <div className="text-sm font-mono font-bold text-emerald-400 mt-1">
                         {activeSample.vppAmplitude} Vpp
                       </div>
                     </div>
                     <div className="p-2 bg-slate-950 rounded-lg">
-                      <div className="text-[10px] text-slate-400">杂波毛刺</div>
+                      <div className="text-xs text-slate-400">杂波毛刺</div>
                       <div className="text-sm font-mono font-bold mt-1">
                         {activeSample.hasNoiseSpikes ? <span className="text-rose-400">严重杂波！</span> : <span className="text-slate-400">纯净</span>}
                       </div>

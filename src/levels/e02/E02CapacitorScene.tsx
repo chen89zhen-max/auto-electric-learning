@@ -317,7 +317,7 @@ export function E02CapacitorScene({
                     <div className="flex items-center justify-between flex-wrap gap-1">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-bold text-blue-300">📐 控制变量微实验：极板面积与间距对电容量的影响</span>
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800">
+                        <span className="text-xs font-mono px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800">
                           C = ε · S / d
                         </span>
                       </div>
@@ -341,7 +341,7 @@ export function E02CapacitorScene({
                           onChange={(e) => setS1PlateArea(parseFloat(e.target.value))}
                           className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
                         />
-                        <div className="flex justify-between text-[10px] text-slate-500">
+                        <div className="flex justify-between text-xs text-slate-500">
                           <span>50% (面积减半)</span>
                           <span>200% (面积翻倍)</span>
                         </div>
@@ -361,7 +361,7 @@ export function E02CapacitorScene({
                           onChange={(e) => setS1PlateDistance(parseFloat(e.target.value))}
                           className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
                         />
-                        <div className="flex justify-between text-[10px] text-slate-500">
+                        <div className="flex justify-between text-xs text-slate-500">
                           <span>50% (薄介质极近)</span>
                           <span>200% (拉开距离)</span>
                         </div>
@@ -384,7 +384,7 @@ export function E02CapacitorScene({
                               key={item.val}
                               type="button"
                               onClick={() => setS1Dielectric(item.val)}
-                              className={`flex-1 py-1 px-1 rounded text-[10px] font-bold cursor-pointer transition-colors ${
+                              className={`flex-1 py-1 px-1 rounded text-xs font-bold cursor-pointer transition-colors ${
                                 s1Dielectric === item.val
                                   ? 'bg-blue-600 text-white shadow-xs'
                                   : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
@@ -394,11 +394,11 @@ export function E02CapacitorScene({
                             </button>
                           ))}
                         </div>
-                        <div className="text-[10px] text-slate-500 text-right">介电常数越大电容越大</div>
+                        <div className="text-xs text-slate-500 text-right">介电常数越大电容越大</div>
                       </div>
                     </div>
 
-                    <div className="p-2 bg-slate-950/70 rounded-lg border border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
+                    <div className="p-2 bg-slate-950/70 rounded-lg border border-slate-800 text-xs text-slate-400 flex items-center justify-between">
                       <span>💡 <strong>物理规律</strong>：面积 $S$ 越大、间距 $d$ 越小，电容量 $C$ 越大，储存电荷量 $Q=CU$ 越多。</span>
                       <span className="text-amber-300 shrink-0 font-mono ml-2">τ = RC 随之增大</span>
                     </div>
@@ -711,7 +711,7 @@ export function E02CapacitorScene({
 
                 {/* 示波器波形画布 */}
                 <div className="relative w-full h-40 bg-slate-950 border border-slate-800 rounded-xl p-3 flex flex-col justify-between overflow-hidden">
-                  <div className="text-[10px] text-slate-500 font-mono flex justify-between">
+                  <div className="text-xs text-slate-500 font-mono flex justify-between">
                     <span>OSCILLOSCOPE CH1: V_C(t)</span>
                     <span>12.0V FULL SCALE</span>
                   </div>

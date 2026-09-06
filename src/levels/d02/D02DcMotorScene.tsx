@@ -511,9 +511,9 @@ export function D02DcMotorScene({
                       <div key={comp.id} className="p-2 bg-slate-950/70 rounded border border-slate-800 flex flex-col gap-1">
                         <div className="flex items-center justify-between">
                           <span className="font-bold text-sky-300">{comp.name}</span>
-                          <span className="text-[10px] text-slate-400 bg-slate-800 px-1 py-0.5 rounded">{comp.location}</span>
+                          <span className="text-xs text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">{comp.location}</span>
                         </div>
-                        <p className="text-[11px] text-slate-400 leading-tight">{comp.role}</p>
+                        <p className="text-xs text-slate-400 leading-tight">{comp.role}</p>
                       </div>
                     ))}
                   </div>
@@ -523,8 +523,8 @@ export function D02DcMotorScene({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-slate-900/90 rounded-lg border border-slate-800 text-xs">
                     <div className="p-2.5 bg-slate-950/70 rounded border border-slate-800 flex flex-col gap-1.5">
                       <span className="font-bold text-rose-400">{MAGNETIC_FIELD_COMPARISON.singlePhase.name}</span>
-                      <p className="text-[11px] text-slate-300">{MAGNETIC_FIELD_COMPARISON.singlePhase.description}</p>
-                      <div className="mt-1 flex items-center gap-2 text-[10px] text-slate-400">
+                      <p className="text-xs text-slate-300">{MAGNETIC_FIELD_COMPARISON.singlePhase.description}</p>
+                      <div className="mt-1 flex items-center gap-2 text-xs text-slate-400">
                         <span className="px-1.5 py-0.5 bg-rose-950/60 text-rose-300 rounded border border-rose-900">
                           不能自起动
                         </span>
@@ -533,8 +533,8 @@ export function D02DcMotorScene({
                     </div>
                     <div className="p-2.5 bg-slate-950/70 rounded border border-slate-800 flex flex-col gap-1.5">
                       <span className="font-bold text-emerald-400">{MAGNETIC_FIELD_COMPARISON.threePhase.name}</span>
-                      <p className="text-[11px] text-slate-300">{MAGNETIC_FIELD_COMPARISON.threePhase.description}</p>
-                      <div className="mt-1 flex items-center gap-2 text-[10px] text-slate-400">
+                      <p className="text-xs text-slate-300">{MAGNETIC_FIELD_COMPARISON.threePhase.description}</p>
+                      <div className="mt-1 flex items-center gap-2 text-xs text-slate-400">
                         <span className="px-1.5 py-0.5 bg-emerald-950/60 text-emerald-300 rounded border border-emerald-900">
                           120° 空间对称
                         </span>
@@ -682,7 +682,7 @@ export function D02DcMotorScene({
 
             {/* LCD Display */}
             <div className="bg-emerald-950/30 border border-emerald-500/40 rounded-lg p-3 my-3 text-center">
-              <div className="text-[10px] text-emerald-400/70 font-mono tracking-widest uppercase mb-1">
+              <div className="text-xs text-emerald-400/70 font-mono tracking-widest uppercase mb-1">
                 {meterKnob === 'DCV_20'
                   ? 'DC VOLTAGE (20V)'
                   : meterKnob === 'OHM_200'

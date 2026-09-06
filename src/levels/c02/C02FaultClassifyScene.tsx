@@ -698,7 +698,7 @@ export function C02FaultClassifyScene({
 
           {/* Instrument Controls */}
           <div className="mt-3 pt-3 border-t border-slate-700 flex flex-col gap-2">
-            <span className="text-xs font-bold text-slate-400">万用表功能旋钮挡位：</span>
+            <span className="text-sm font-bold text-slate-400">万用表功能旋钮挡位：</span>
             <div className="grid grid-cols-3 gap-1.5">
               {[
                 { key: 'OFF', label: '关机 (OFF)' },
@@ -714,7 +714,7 @@ export function C02FaultClassifyScene({
                       handleTurnKnob(knobItem.key as typeof meterKnob);
                       setActiveTool('MULTIMETER');
                     }}
-                    className={`px-2 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer text-center ${
+                    className={`px-2 py-2 rounded-lg text-sm font-bold transition-colors cursor-pointer text-center ${
                       isSelected
                         ? 'bg-amber-500 text-slate-950 shadow-md font-black'
                         : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
