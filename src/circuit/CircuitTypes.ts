@@ -10,7 +10,11 @@ export type ComponentType =
   | 'LAMP'
   | 'WIRE'
   | 'GROUND_BUS'
-  | 'CHASSIS_POINT';
+  | 'CHASSIS_POINT'
+  | 'RESISTOR'
+  | 'POTENTIOMETER'
+  | 'MULTIMETER'
+  | 'CLAMP_METER';
 
 export type ComponentState = 'NORMAL' | 'OPEN' | 'CLOSED' | 'BLOWN';
 
@@ -28,6 +32,11 @@ export interface CircuitComponent {
   terminals: Terminal[];
   state: ComponentState;
   schematicSymbolId: string;
+  voltage?: number;             // Nominal/actual voltage in Volts
+  internalResistance?: number;  // Internal resistance in Ohms
+  resistance?: number;          // Nominal resistance in Ohms
+  ratedCurrent?: number;        // Fuse/load rated current in Amperes
+  wiperRatio?: number;          // Potentiometer wiper ratio (0.0 to 1.0)
 }
 
 export interface Connection {

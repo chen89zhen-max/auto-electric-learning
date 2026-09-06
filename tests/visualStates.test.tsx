@@ -22,7 +22,7 @@ describe('动画服从电路状态', () => {
     expect(render(false, true)).not.toContain('data-light-beam');
   });
   it('反向点击端子接线不会倒转电流动画，断路后所有流动停止', () => {
-    const engine = new CircuitTopologyEngine();
+    const engine = new CircuitTopologyEngine(true);
     engine.connect('FUSE_T1', 'BAT_POS');
     engine.connect('FUSE_T2', 'SW_T1');
     engine.connect('SW_T2', 'LAMP_T1');

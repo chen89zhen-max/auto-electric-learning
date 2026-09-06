@@ -207,7 +207,7 @@ export function createDefaultUserProgress(): UserProgressData {
 let cachedProgress: UserProgressData | null = null;
 let identityRevision = 0;
 let progressOwner = '';
-const pendingCompletions = new Map<LevelId, { body: string; promise?: Promise<UserProgressData> }>();
+const pendingCompletions = new Map<string, { body: string; promise?: Promise<UserProgressData> }>();
 
 export function resetProgressIdentity(name = '见习学员', username = ''): void {
   identityRevision += 1;
@@ -271,7 +271,7 @@ export function saveUserProgress(
 }
 
 export async function submitLevelCompletion(
-  levelId: LevelId,
+  levelId: string,
   score = 100,
   evidence: Record<string, unknown> = {},
   options: { allowReplay?: boolean } = {}
@@ -322,7 +322,7 @@ const NEXT_LEVEL_MAP: Record<LevelId, LevelId | null> = {
   LEVEL_09: null,
 };
 
-export function markLevelComplete(levelId: LevelId, score = 100): UserProgressData {
+export function markLevelComplete(levelId: string, score = 100): UserProgressData {
   const current = getUserProgress();
 
   // If in teacher mode, do not pollute student record
@@ -340,7 +340,7 @@ export function markLevelComplete(levelId: LevelId, score = 100): UserProgressDa
     }
   }
 
-  const nextLevel = NEXT_LEVEL_MAP[levelId];
+  const nextLevel = NEXT_LEVEL_MAP[levelId as LevelId];
   const nextMeta = nextLevel ? COURSE_MAP.find((c) => c.id === nextLevel) : null;
   const canUnlockNext = nextMeta && nextMeta.implemented;
 
@@ -386,7 +386,7 @@ export function markLevelComplete(levelId: LevelId, score = 100): UserProgressDa
 
   const updatedData: UserProgressData = {
     ...current,
-    currentActiveLevel: canUnlockNext && nextLevel && !isReplay ? nextLevel : levelId,
+    currentActiveLevel: canUnlockNext && nextLevel && !isReplay ? nextLevel : (levelId as LevelId),
     levels: updatedLevels,
   };
 

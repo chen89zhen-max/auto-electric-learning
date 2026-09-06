@@ -8,9 +8,11 @@ import {
 export class CircuitTopologyEngine {
   public graph: CircuitGraph;
 
-  constructor() {
+  constructor(autoInitLevel02 = false) {
     this.graph = new CircuitGraph();
-    this.initDefaultLevel02Components();
+    if (autoInitLevel02) {
+      this.initDefaultLevel02Components();
+    }
   }
 
   initDefaultLevel02Components(): void {

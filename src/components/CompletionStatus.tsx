@@ -2,12 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { CheckCircle2, CloudUpload, RotateCcw } from 'lucide-react';
-import { getUserProgress, submitLevelCompletion, type LevelId } from '@/src/stores/userProgressStore';
+import { getUserProgress, submitLevelCompletion } from '@/src/stores/userProgressStore';
 import type { AbilityReportData } from '@/src/abilities/AbilityTracker';
 import { scoreFromDimensions } from '@/src/abilities/reportScore';
 
 export function CompletionStatus({ levelId, report, metrics, nextTask }: {
-  levelId: LevelId; report?: AbilityReportData; metrics?: object; nextTask?: string;
+  levelId: string; report?: AbilityReportData; metrics?: object; nextTask?: string;
 }) {
   const [status, setStatus] = useState<'saving' | 'saved' | 'error'>('saving');
   const [message, setMessage] = useState('');
@@ -18,8 +18,11 @@ export function CompletionStatus({ levelId, report, metrics, nextTask }: {
     try {
       const { report: result, metrics: processMetrics, replay } = initial.current;
       const defaultEvidence: Record<string, string> =
-        levelId === 'LEVEL_00' ? { SAFETY_SPECIFICATION: 'GUIDED_COMPLETE', CIRCUIT_READING: 'GUIDED_COMPLETE' }
-        : levelId === 'LEVEL_01' ? { SAFETY_SPECIFICATION: 'INDEPENDENT_COMPLETE', DIAGNOSTIC_STRATEGY: 'GUIDED_COMPLETE', EVIDENCE_EXPRESSION: 'GUIDED_COMPLETE' }
+        levelId === 'LEVEL_00' || levelId === 'O00' ? { SAFETY_SPECIFICATION: 'GUIDED_COMPLETE', CIRCUIT_READING: 'GUIDED_COMPLETE' }
+        : levelId === 'LEVEL_01' || levelId === 'O01' ? { SAFETY_SPECIFICATION: 'INDEPENDENT_COMPLETE', DIAGNOSTIC_STRATEGY: 'GUIDED_COMPLETE', EVIDENCE_EXPRESSION: 'GUIDED_COMPLETE' }
+        : levelId === 'A02' ? { TOOL_MEASUREMENT: 'INDEPENDENT_COMPLETE', RULE_EXPLANATION: 'INDEPENDENT_COMPLETE' }
+        : levelId === 'A03' || levelId === 'LEVEL_03' ? { TOOL_MEASUREMENT: 'INDEPENDENT_COMPLETE', CIRCUIT_READING: 'INDEPENDENT_COMPLETE' }
+        : levelId === 'A04' || levelId === 'LEVEL_04' ? { TOOL_MEASUREMENT: 'INDEPENDENT_COMPLETE', SAFETY_SPECIFICATION: 'INDEPENDENT_COMPLETE' }
         : { CIRCUIT_READING: 'INDEPENDENT_COMPLETE', SAFETY_SPECIFICATION: 'INDEPENDENT_COMPLETE', TOOL_MEASUREMENT: 'GUIDED_COMPLETE' };
 
       const projection = await submitLevelCompletion(levelId, result ? scoreFromDimensions(result.dimensions) : 100, {

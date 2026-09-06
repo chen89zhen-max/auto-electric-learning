@@ -142,7 +142,7 @@ export type Level02Action =
   | { type: 'RESTART' }
   | { type: 'REQUEST_HINT' };
 
-const engine = new CircuitTopologyEngine();
+const engine = new CircuitTopologyEngine(true);
 
 function evaluateGraph(
   wires: WireConnection[],

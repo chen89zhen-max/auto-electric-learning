@@ -14,9 +14,11 @@ import { BottomToolbar } from '@/src/components/BottomToolbar';
 import { ReviewPanel } from '@/src/components/ReviewPanel';
 import { Level01Experience } from '@/src/levels/level01/Level01Experience';
 import { Level02Experience } from '@/src/levels/level02/Level02Experience';
+import { A02Experience } from '@/src/levels/a02/A02Experience';
+import { A03Experience } from '@/src/levels/a03/A03Experience';
+import { A04Experience } from '@/src/levels/a04/A04Experience';
 import { CourseMapLobby } from '@/src/components/CourseMapLobby';
 import { FullscreenButton } from '@/src/components/FullscreenButton';
-import { LevelId } from '@/src/stores/userProgressStore';
 import { CompletionStatus } from '@/src/components/CompletionStatus';
 import { getStudentDisplayName, useAuth } from '@/src/stores/authStore';
 import { ChangePasswordGate } from '@/src/components/auth/ChangePasswordGate';
@@ -132,7 +134,7 @@ export function GameShell() {
 function SessionGameShell() {
   const { user, isLoading } = useAuth();
   // Home is the default view when user opens or refreshes the page!
-  const [activeLevel, setActiveLevel] = useState<'HOME' | LevelId>('HOME');
+  const [activeLevel, setActiveLevel] = useState<string>('HOME');
 
   const handleReturnHome = () => {
     setActiveLevel('HOME');
@@ -158,15 +160,27 @@ function SessionGameShell() {
     return <TeacherDashboard />;
   }
 
-  if (activeLevel === 'LEVEL_02') {
+  if (activeLevel === 'A02') {
+    return <A02Experience onReturnLobby={handleReturnHome} />;
+  }
+
+  if (activeLevel === 'A03' || activeLevel === 'LEVEL_03') {
+    return <A03Experience onReturnLobby={handleReturnHome} />;
+  }
+
+  if (activeLevel === 'A04' || activeLevel === 'LEVEL_04') {
+    return <A04Experience onReturnLobby={handleReturnHome} />;
+  }
+
+  if (activeLevel === 'LEVEL_02' || activeLevel === 'A01') {
     return <Level02Experience onReturnLobby={handleReturnHome} />;
   }
 
-  if (activeLevel === 'LEVEL_01') {
+  if (activeLevel === 'LEVEL_01' || activeLevel === 'O01') {
     return <Level01Experience onReturnLevel00={handleReturnHome} />;
   }
 
-  if (activeLevel === 'LEVEL_00') {
+  if (activeLevel === 'LEVEL_00' || activeLevel === 'O00') {
     return (
       <GameStoreProvider>
         <GameExperience onReturnHome={handleReturnHome} />

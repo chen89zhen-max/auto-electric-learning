@@ -49,7 +49,7 @@ export interface UserProgressData {
   version: number;
   traineeName: string;
   currentActiveLevel: LevelId;
-  levels: Record<LevelId, LevelProgress>;
+  levels: Record<LevelId, LevelProgress> & Record<string, LevelProgress>;
   teacherMode: boolean;
   lastUpdated: number;
 }
