@@ -20,12 +20,10 @@ import { Workbench } from '@/src/game/objects/Workbench';
 import { WorkshopBackground } from '@/src/components/visuals/WorkshopBackground';
 import { sounds } from '@/src/components/visuals/SoundEffects';
 import { getStudentDisplayName } from '@/src/stores/authStore';
-import { WorkshopPreview } from '@/src/game/workshop-preview/WorkshopPreview';
 
 export function WorkshopScene() {
   const { state, dispatch } = useGameStore();
   const [deviceShake, setDeviceShake] = useState(false);
-  const [immersivePreview, setImmersivePreview] = useState(true);
 
   const handleUnknownAction = () => {
     sounds.zap();
@@ -38,10 +36,6 @@ export function WorkshopScene() {
     sounds.success();
     dispatch({ type: 'PLACE_OBJECT' });
   };
-
-  if (state.currentStage === 'WELCOME' && immersivePreview) {
-    return <div className="wp-embedded"><WorkshopPreview onExit={() => setImmersivePreview(false)} /></div>;
-  }
 
   return (
     <div className="relative w-full h-full min-h-0 flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-hidden">
