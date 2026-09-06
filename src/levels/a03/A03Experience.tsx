@@ -156,8 +156,18 @@ export function A03Experience({ onReturnLobby }: A03ExperienceProps) {
                   { id: 'POTENTIOMETER', label: '电位器动片特性验证', stars: 5 },
                 ]}
                 summaryItems={[
-                  { label: '标称阻值识读', value: '220 Ω ±5%' },
-                  { label: '公差区间判定', value: '209~231 Ω 合格' },
+                  {
+                    label: '标称阻值识读',
+                    value: (stepEvidences.COLOR_CODE_CALC as { nominal?: number; tolerance?: number } | undefined)?.nominal
+                      ? `${(stepEvidences.COLOR_CODE_CALC as { nominal: number; tolerance: number }).nominal} Ω (±${(stepEvidences.COLOR_CODE_CALC as { nominal: number; tolerance: number }).tolerance}%)`
+                      : '220 Ω (±5%)',
+                  },
+                  {
+                    label: '公差区间判定',
+                    value: (stepEvidences.COLOR_CODE_CALC as { min?: number; max?: number } | undefined)?.min
+                      ? `${(stepEvidences.COLOR_CODE_CALC as { min: number; max: number }).min}~${(stepEvidences.COLOR_CODE_CALC as { min: number; max: number }).max} Ω 合格`
+                      : '209~231 Ω 合格',
+                  },
                   { label: '带电测阻拦截', value: '安全触发 100%' },
                   { label: '超差电阻排查', value: '筛选识别准确' },
                   { label: '电位器滑动特性', value: '双向线性核验' },

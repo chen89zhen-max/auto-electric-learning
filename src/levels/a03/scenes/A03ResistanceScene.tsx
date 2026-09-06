@@ -10,6 +10,7 @@ import {
   Sliders,
   ShieldAlert,
   Thermometer,
+  Shuffle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Multimeter, MultimeterDialMode } from '@/src/game/instruments/Multimeter';
@@ -24,11 +25,157 @@ interface A03ResistanceSceneProps {
   onAdvanceStep: () => void;
 }
 
-const SAMPLE_DEFS = {
-  A: { id: 'A', name: '样品 A (精密碳膜电阻)', trueR: 224.0, expected: 'QUALIFIED' },
-  B: { id: 'B', name: '样品 B (老化发热电阻)', trueR: 330.0, expected: 'UNQUALIFIED' },
-  C: { id: 'C', name: '样品 C (内部破裂电阻)', trueR: 1e9, expected: 'BROKEN' },
-} as const;
+export interface ColorBandInfo {
+  name: string;
+  color: string;
+  textColor: string;
+  bgColor: string;
+  borderColor: string;
+  value: number;
+}
+
+export interface StandardResistor {
+  id: string;
+  name: string;
+  bands: [ColorBandInfo, ColorBandInfo, ColorBandInfo, ColorBandInfo];
+  nominal: number;
+  tolerance: number; // 5 or 10
+  expectedMin: number;
+  expectedMax: number;
+  sampleAValue: number;
+  sampleBValue: number;
+}
+
+export const STANDARD_RESISTOR_POOL: readonly StandardResistor[] = [
+  {
+    id: 'RES_220_G',
+    name: '红·红·棕·金 (标称 220Ω ±5%)',
+    bands: [
+      { name: '红', color: '#dc2626', textColor: 'text-red-700', bgColor: 'bg-red-50', borderColor: 'border-red-300', value: 2 },
+      { name: '红', color: '#dc2626', textColor: 'text-red-700', bgColor: 'bg-red-50', borderColor: 'border-red-300', value: 2 },
+      { name: '棕', color: '#78350f', textColor: 'text-amber-900', bgColor: 'bg-amber-100', borderColor: 'border-amber-300', value: 1 },
+      { name: '金', color: '#eab308', textColor: 'text-amber-800', bgColor: 'bg-amber-50', borderColor: 'border-amber-300', value: 5 },
+    ],
+    nominal: 220,
+    tolerance: 5,
+    expectedMin: 209,
+    expectedMax: 231,
+    sampleAValue: 224.0,
+    sampleBValue: 330.0,
+  },
+  {
+    id: 'RES_330_S',
+    name: '橙·橙·棕·银 (标称 330Ω ±10%)',
+    bands: [
+      { name: '橙', color: '#ea580c', textColor: 'text-orange-700', bgColor: 'bg-orange-50', borderColor: 'border-orange-300', value: 3 },
+      { name: '橙', color: '#ea580c', textColor: 'text-orange-700', bgColor: 'bg-orange-50', borderColor: 'border-orange-300', value: 3 },
+      { name: '棕', color: '#78350f', textColor: 'text-amber-900', bgColor: 'bg-amber-100', borderColor: 'border-amber-300', value: 1 },
+      { name: '银', color: '#94a3b8', textColor: 'text-slate-700', bgColor: 'bg-slate-100', borderColor: 'border-slate-300', value: 10 },
+    ],
+    nominal: 330,
+    tolerance: 10,
+    expectedMin: 297,
+    expectedMax: 363,
+    sampleAValue: 338.0,
+    sampleBValue: 490.0,
+  },
+  {
+    id: 'RES_100_G',
+    name: '棕·黑·棕·金 (标称 100Ω ±5%)',
+    bands: [
+      { name: '棕', color: '#78350f', textColor: 'text-amber-900', bgColor: 'bg-amber-100', borderColor: 'border-amber-300', value: 1 },
+      { name: '黑', color: '#0f172a', textColor: 'text-slate-800', bgColor: 'bg-slate-100', borderColor: 'border-slate-300', value: 0 },
+      { name: '棕', color: '#78350f', textColor: 'text-amber-900', bgColor: 'bg-amber-100', borderColor: 'border-amber-300', value: 1 },
+      { name: '金', color: '#eab308', textColor: 'text-amber-800', bgColor: 'bg-amber-50', borderColor: 'border-amber-300', value: 5 },
+    ],
+    nominal: 100,
+    tolerance: 5,
+    expectedMin: 95,
+    expectedMax: 105,
+    sampleAValue: 99.0,
+    sampleBValue: 155.0,
+  },
+  {
+    id: 'RES_470_S',
+    name: '黄·紫·棕·银 (标称 470Ω ±10%)',
+    bands: [
+      { name: '黄', color: '#ca8a04', textColor: 'text-yellow-800', bgColor: 'bg-yellow-50', borderColor: 'border-yellow-300', value: 4 },
+      { name: '紫', color: '#7c3aed', textColor: 'text-purple-700', bgColor: 'bg-purple-50', borderColor: 'border-purple-300', value: 7 },
+      { name: '棕', color: '#78350f', textColor: 'text-amber-900', bgColor: 'bg-amber-100', borderColor: 'border-amber-300', value: 1 },
+      { name: '银', color: '#94a3b8', textColor: 'text-slate-700', bgColor: 'bg-slate-100', borderColor: 'border-slate-300', value: 10 },
+    ],
+    nominal: 470,
+    tolerance: 10,
+    expectedMin: 423,
+    expectedMax: 517,
+    sampleAValue: 480.0,
+    sampleBValue: 680.0,
+  },
+  {
+    id: 'RES_1000_G',
+    name: '棕·黑·红·金 (标称 1000Ω ±5%)',
+    bands: [
+      { name: '棕', color: '#78350f', textColor: 'text-amber-900', bgColor: 'bg-amber-100', borderColor: 'border-amber-300', value: 1 },
+      { name: '黑', color: '#0f172a', textColor: 'text-slate-800', bgColor: 'bg-slate-100', borderColor: 'border-slate-300', value: 0 },
+      { name: '红', color: '#dc2626', textColor: 'text-red-700', bgColor: 'bg-red-50', borderColor: 'border-red-300', value: 2 },
+      { name: '金', color: '#eab308', textColor: 'text-amber-800', bgColor: 'bg-amber-50', borderColor: 'border-amber-300', value: 5 },
+    ],
+    nominal: 1000,
+    tolerance: 5,
+    expectedMin: 950,
+    expectedMax: 1050,
+    sampleAValue: 1015.0,
+    sampleBValue: 1450.0,
+  },
+  {
+    id: 'RES_680_G',
+    name: '蓝·灰·棕·金 (标称 680Ω ±5%)',
+    bands: [
+      { name: '蓝', color: '#2563eb', textColor: 'text-blue-700', bgColor: 'bg-blue-50', borderColor: 'border-blue-300', value: 6 },
+      { name: '灰', color: '#64748b', textColor: 'text-slate-700', bgColor: 'bg-slate-100', borderColor: 'border-slate-300', value: 8 },
+      { name: '棕', color: '#78350f', textColor: 'text-amber-900', bgColor: 'bg-amber-100', borderColor: 'border-amber-300', value: 1 },
+      { name: '金', color: '#eab308', textColor: 'text-amber-800', bgColor: 'bg-amber-50', borderColor: 'border-amber-300', value: 5 },
+    ],
+    nominal: 680,
+    tolerance: 5,
+    expectedMin: 646,
+    expectedMax: 714,
+    sampleAValue: 688.0,
+    sampleBValue: 950.0,
+  },
+  {
+    id: 'RES_240_G',
+    name: '红·黄·棕·金 (标称 240Ω ±5%)',
+    bands: [
+      { name: '红', color: '#dc2626', textColor: 'text-red-700', bgColor: 'bg-red-50', borderColor: 'border-red-300', value: 2 },
+      { name: '黄', color: '#ca8a04', textColor: 'text-yellow-800', bgColor: 'bg-yellow-50', borderColor: 'border-yellow-300', value: 4 },
+      { name: '棕', color: '#78350f', textColor: 'text-amber-900', bgColor: 'bg-amber-100', borderColor: 'border-amber-300', value: 1 },
+      { name: '金', color: '#eab308', textColor: 'text-amber-800', bgColor: 'bg-amber-50', borderColor: 'border-amber-300', value: 5 },
+    ],
+    nominal: 240,
+    tolerance: 5,
+    expectedMin: 228,
+    expectedMax: 252,
+    sampleAValue: 243.0,
+    sampleBValue: 360.0,
+  },
+  {
+    id: 'RES_1000_S',
+    name: '棕·黑·红·银 (标称 1000Ω ±10%)',
+    bands: [
+      { name: '棕', color: '#78350f', textColor: 'text-amber-900', bgColor: 'bg-amber-100', borderColor: 'border-amber-300', value: 1 },
+      { name: '黑', color: '#0f172a', textColor: 'text-slate-800', bgColor: 'bg-slate-100', borderColor: 'border-slate-300', value: 0 },
+      { name: '红', color: '#dc2626', textColor: 'text-red-700', bgColor: 'bg-red-50', borderColor: 'border-red-300', value: 2 },
+      { name: '银', color: '#94a3b8', textColor: 'text-slate-700', bgColor: 'bg-slate-100', borderColor: 'border-slate-300', value: 10 },
+    ],
+    nominal: 1000,
+    tolerance: 10,
+    expectedMin: 900,
+    expectedMax: 1100,
+    sampleAValue: 1040.0,
+    sampleBValue: 1550.0,
+  },
+];
 
 export function A03ResistanceScene({
   currentStep,
@@ -36,13 +183,60 @@ export function A03ResistanceScene({
   onStepComplete,
   onAdvanceStep,
 }: A03ResistanceSceneProps) {
-  // Step 1: Color code inputs & feedback
+  // Step 1: Resistor selection & inputs
+  const [resistorIndex, setResistorIndex] = useState(0);
+  const activeResistor = STANDARD_RESISTOR_POOL[resistorIndex];
+
   const [nominalInput, setNominalInput] = useState('');
+  const [toleranceInput, setToleranceInput] = useState('');
   const [minBoundInput, setMinBoundInput] = useState('');
   const [maxBoundInput, setMaxBoundInput] = useState('');
   const [activeBandIndex, setActiveBandIndex] = useState<number | null>(null);
   const [calcVerified, setCalcVerified] = useState(false);
   const [calcFeedback, setCalcFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // Switch to another random resistor in Step 1
+  const handleRandomizeResistor = () => {
+    sounds.click();
+    setResistorIndex((prev) => {
+      let next = Math.floor(Math.random() * STANDARD_RESISTOR_POOL.length);
+      if (next === prev) {
+        next = (prev + 1) % STANDARD_RESISTOR_POOL.length;
+      }
+      return next;
+    });
+    setNominalInput('');
+    setToleranceInput('');
+    setMinBoundInput('');
+    setMaxBoundInput('');
+    setActiveBandIndex(null);
+    setCalcVerified(false);
+    setCalcFeedback(null);
+  };
+
+  // Step 2: Dynamic samples derived from the active resistor
+  const activeSamples = useMemo(() => {
+    return {
+      A: {
+        id: 'A' as const,
+        name: `样品 A (精密膜电阻 · 标称${activeResistor.nominal}Ω)`,
+        trueR: activeResistor.sampleAValue,
+        expected: 'QUALIFIED' as const,
+      },
+      B: {
+        id: 'B' as const,
+        name: `样品 B (老化超差件 · 标称${activeResistor.nominal}Ω)`,
+        trueR: activeResistor.sampleBValue,
+        expected: 'UNQUALIFIED' as const,
+      },
+      C: {
+        id: 'C' as const,
+        name: '样品 C (烧毁开路件)',
+        trueR: 1e9,
+        expected: 'BROKEN' as const,
+      },
+    };
+  }, [activeResistor]);
 
   // Step 2: DMM states & sample measurement
   const [dial, setDial] = useState<MultimeterDialMode>('RESISTANCE');
@@ -68,7 +262,7 @@ export function A03ResistanceScene({
     dmm.setBlackProbeJack('COM');
 
     if (currentStep === 'SAMPLE_MEASUREMENT') {
-      const activeSample = SAMPLE_DEFS[selectedSample];
+      const activeSample = activeSamples[selectedSample];
       return dmm.measure({
         isCircuitPowered: isPowerAppliedToSample,
         isolatedResistance: activeSample.trueR,
@@ -107,27 +301,40 @@ export function A03ResistanceScene({
     }
 
     return dmm.measure({});
-  }, [dial, currentStep, selectedSample, isPowerAppliedToSample, potProbePair, potKnobRatio, coolantTemp, practiceMode]);
+  }, [dial, currentStep, selectedSample, activeSamples, isPowerAppliedToSample, potProbePair, potKnobRatio, coolantTemp, practiceMode]);
 
-  // Step 1: Verify calculation without giving away answers
+  // Step 1: Verify calculation without giving away answers (user must judge tolerance independently)
   const handleVerifyCalc = () => {
     sounds.click();
     const nomVal = parseFloat(nominalInput.trim());
+    const tolVal = parseFloat(toleranceInput.trim());
     const minVal = parseFloat(minBoundInput.trim());
     const maxVal = parseFloat(maxBoundInput.trim());
 
-    if (isNaN(nomVal) || isNaN(minVal) || isNaN(maxVal)) {
+    if (isNaN(nomVal) || isNaN(tolVal) || isNaN(minVal) || isNaN(maxVal)) {
       setCalcFeedback({
         type: 'error',
-        message: '请输入完整的标称阻值、允许下限和允许上限数值！',
+        message: '请完整填写标称阻值、第4环允许误差选择以及允许上下限数值！',
       });
       return;
     }
 
-    if (nomVal !== 220) {
+    if (nomVal !== activeResistor.nominal) {
+      const b1 = activeResistor.bands[0];
+      const b2 = activeResistor.bands[1];
+      const b3 = activeResistor.bands[2];
       setCalcFeedback({
         type: 'error',
-        message: `标称阻值有误（输入为 ${nomVal}Ω）：第1环红(2)、第2环红(2)组成前两位有效数字 22；第3环棕(10¹)为倍率 ×10。标称值应为 22 × 10 = 220 Ω。`,
+        message: `标称阻值有误（输入为 ${nomVal}Ω）：第1环${b1.name}(${b1.value})、第2环${b2.name}(${b2.value})组成前两位有效数字 ${b1.value}${b2.value}；第3环${b3.name}为倍率 ×10^${b3.value}。标称值应为 ${activeResistor.nominal} Ω。`,
+      });
+      return;
+    }
+
+    if (tolVal !== activeResistor.tolerance) {
+      const b4 = activeResistor.bands[3];
+      setCalcFeedback({
+        type: 'error',
+        message: `第4环允许误差判断有误（选择为 ±${tolVal}%）：当前电阻第4环为【${b4.name}色】，对应的允许公差应为 ±${activeResistor.tolerance}%！请参考下方色标基准口诀。`,
       });
       return;
     }
@@ -140,28 +347,30 @@ export function A03ResistanceScene({
       return;
     }
 
-    const expectedMin = 209; // 220 * 0.95
-    const expectedMax = 231; // 220 * 1.05
+    const delta = activeResistor.nominal * (activeResistor.tolerance / 100);
+    const expectedMin = activeResistor.expectedMin;
+    const expectedMax = activeResistor.expectedMax;
 
     if (Math.abs(minVal - expectedMin) < 1 && Math.abs(maxVal - expectedMax) < 1) {
       setCalcVerified(true);
       sounds.success();
       setCalcFeedback({
         type: 'success',
-        message:
-          '✓ 色环解码与公差区间校验完全正确！标称值 220Ω，金色误差 ±5%（±11Ω），合格区间为 [209Ω, 231Ω]。已达成第一阶段目标！',
+        message: `✓ 色环解码与公差推算完全正确！标称阻值 ${activeResistor.nominal}Ω，第4环${activeResistor.bands[3].name}色公差 ±${activeResistor.tolerance}%（公差幅度 ±${delta}Ω），合格区间为 [${expectedMin}Ω, ${expectedMax}Ω]。已达成第一阶段目标！`,
       });
       onStepComplete('COLOR_CODE_CALC', {
-        nominal: 220,
-        tolerance: 5,
-        min: 209,
-        max: 231,
+        resistorId: activeResistor.id,
+        resistorName: activeResistor.name,
+        nominal: activeResistor.nominal,
+        tolerance: activeResistor.tolerance,
+        min: expectedMin,
+        max: expectedMax,
         mode: practiceMode,
       });
     } else {
       setCalcFeedback({
         type: 'error',
-        message: `公差区间计算有误（当前输入 [${minVal}Ω, ${maxVal}Ω]）：标称值 220Ω，金环误差为 ±5%，公差幅度 = 220 × 5% = 11Ω。请重新计算下限 (220 - 11) 与上限 (220 + 11)！`,
+        message: `公差区间计算有误（当前输入 [${minVal}Ω, ${maxVal}Ω]）：标称值 ${activeResistor.nominal}Ω，第4环${activeResistor.bands[3].name}色公差为 ±${activeResistor.tolerance}%，公差幅度 = ${activeResistor.nominal} × ${activeResistor.tolerance}% = ${delta}Ω。请重新计算下限 (${activeResistor.nominal} - ${delta}) 与上限 (${activeResistor.nominal} + ${delta})！`,
       });
     }
   };
@@ -187,8 +396,8 @@ export function A03ResistanceScene({
     if (newEvals.A === 'QUALIFIED' && newEvals.B === 'UNQUALIFIED' && newEvals.C === 'BROKEN') {
       sounds.success();
       onStepComplete('SAMPLE_MEASUREMENT', {
-        sampleA: 224,
-        sampleB: 330,
+        sampleA: activeResistor.sampleAValue,
+        sampleB: activeResistor.sampleBValue,
         sampleC: 'O.L',
         v04Passed: true,
         v05Encountered: v05Triggered,
@@ -284,23 +493,34 @@ export function A03ResistanceScene({
         )}
       </div>
 
-      {/* STEP 1: Color Band Reading & Calculation (Zero spoiler, interactive magnifier) */}
+      {/* STEP 1: Color Band Reading & Calculation (Zero spoiler, interactive magnifier, random switch) */}
       {currentStep === 'COLOR_CODE_CALC' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           {/* Left 7 Cols: Optical Resistor Viewer */}
           <div className="lg:col-span-7 flex flex-col gap-3 p-4 bg-white border border-slate-200 rounded-xl shadow-xs">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                <Sparkles size={15} className="text-amber-500" />
-                四色环电阻光学放大检测台
-              </span>
-              <span className="text-[11px] text-slate-400">点击色环可查看对应数字基准</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                  <Sparkles size={15} className="text-amber-500" />
+                  四色环电阻光学放大检测台
+                </span>
+                <span className="text-[11px] text-slate-400">点击色环可高亮对应环位</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleRandomizeResistor}
+                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-amber-800 bg-amber-100 hover:bg-amber-200 border border-amber-300 rounded-lg transition-all cursor-pointer shadow-xs"
+                title="随机更换另一颗色环电阻进行识别练习"
+              >
+                <Shuffle size={13} />
+                <span>随机切换电阻</span>
+              </button>
             </div>
 
             {/* Realistic Resistor SVG Viewer */}
             <div className="w-full h-44 bg-gradient-to-b from-slate-900 to-slate-950 rounded-xl flex items-center justify-center p-4 relative overflow-hidden border border-slate-800 shadow-inner">
               <div className="absolute top-2 left-3 text-[10px] text-slate-400 font-mono">
-                OPTICAL_ZOOM: 15X · CARBON_FILM
+                OPTICAL_ZOOM: 15X · {activeResistor.name}
               </div>
 
               <svg viewBox="0 0 420 100" className="w-full max-w-sm drop-shadow-lg">
@@ -313,27 +533,27 @@ export function A03ResistanceScene({
                 <rect x="108" y="16" width="30" height="68" rx="8" fill="#cbd5e1" stroke="#64748b" strokeWidth="2" />
                 <rect x="282" y="16" width="30" height="68" rx="8" fill="#cbd5e1" stroke="#64748b" strokeWidth="2" />
 
-                {/* Color Band 1: Red */}
+                {/* Color Band 1 */}
                 <g onClick={() => setActiveBandIndex(1)} className="cursor-pointer">
-                  <rect x="135" y="16" width="18" height="68" fill="#dc2626" rx="2" />
+                  <rect x="135" y="16" width="18" height="68" fill={activeResistor.bands[0].color} rx="2" />
                   {activeBandIndex === 1 && <rect x="132" y="13" width="24" height="74" fill="none" stroke="#fef08a" strokeWidth="3" rx="4" />}
                 </g>
 
-                {/* Color Band 2: Red */}
+                {/* Color Band 2 */}
                 <g onClick={() => setActiveBandIndex(2)} className="cursor-pointer">
-                  <rect x="175" y="20" width="18" height="60" fill="#dc2626" rx="2" />
+                  <rect x="175" y="20" width="18" height="60" fill={activeResistor.bands[1].color} rx="2" />
                   {activeBandIndex === 2 && <rect x="172" y="17" width="24" height="66" fill="none" stroke="#fef08a" strokeWidth="3" rx="4" />}
                 </g>
 
-                {/* Color Band 3: Brown */}
+                {/* Color Band 3 */}
                 <g onClick={() => setActiveBandIndex(3)} className="cursor-pointer">
-                  <rect x="215" y="20" width="18" height="60" fill="#78350f" rx="2" />
+                  <rect x="215" y="20" width="18" height="60" fill={activeResistor.bands[2].color} rx="2" />
                   {activeBandIndex === 3 && <rect x="212" y="17" width="24" height="66" fill="none" stroke="#fef08a" strokeWidth="3" rx="4" />}
                 </g>
 
-                {/* Color Band 4: Gold */}
+                {/* Color Band 4 */}
                 <g onClick={() => setActiveBandIndex(4)} className="cursor-pointer">
-                  <rect x="275" y="16" width="18" height="68" fill="#eab308" rx="2" />
+                  <rect x="275" y="16" width="18" height="68" fill={activeResistor.bands[3].color} rx="2" />
                   {activeBandIndex === 4 && <rect x="272" y="13" width="24" height="74" fill="none" stroke="#fef08a" strokeWidth="3" rx="4" />}
                 </g>
               </svg>
@@ -341,46 +561,36 @@ export function A03ResistanceScene({
 
             {/* Interactive Color Guide Strip */}
             <div className="grid grid-cols-4 gap-2 text-center text-xs">
-              <button
-                type="button"
-                onClick={() => setActiveBandIndex(1)}
-                className={`p-2 rounded-lg border transition-all cursor-pointer ${
-                  activeBandIndex === 1 ? 'bg-red-50 border-red-400 ring-2 ring-red-300' : 'bg-slate-50 border-slate-200'
-                }`}
-              >
-                <span className="font-bold text-red-900 block">第一环：红</span>
-                <span className="text-slate-600 text-[11px]">第1位有效数字</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveBandIndex(2)}
-                className={`p-2 rounded-lg border transition-all cursor-pointer ${
-                  activeBandIndex === 2 ? 'bg-red-50 border-red-400 ring-2 ring-red-300' : 'bg-slate-50 border-slate-200'
-                }`}
-              >
-                <span className="font-bold text-red-900 block">第二环：红</span>
-                <span className="text-slate-600 text-[11px]">第2位有效数字</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveBandIndex(3)}
-                className={`p-2 rounded-lg border transition-all cursor-pointer ${
-                  activeBandIndex === 3 ? 'bg-amber-50 border-amber-400 ring-2 ring-amber-300' : 'bg-slate-50 border-slate-200'
-                }`}
-              >
-                <span className="font-bold text-amber-900 block">第三环：棕</span>
-                <span className="text-slate-600 text-[11px]">倍率 (10ⁿ)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveBandIndex(4)}
-                className={`p-2 rounded-lg border transition-all cursor-pointer ${
-                  activeBandIndex === 4 ? 'bg-yellow-50 border-yellow-400 ring-2 ring-yellow-300' : 'bg-slate-50 border-slate-200'
-                }`}
-              >
-                <span className="font-bold text-yellow-900 block">第四环：金</span>
-                <span className="text-slate-600 text-[11px]">允许公差误差</span>
-              </button>
+              {activeResistor.bands.map((band, idx) => {
+                const ringNum = idx + 1;
+                const isSelected = activeBandIndex === ringNum;
+                const roleText =
+                  ringNum === 1
+                    ? '第1位有效数字'
+                    : ringNum === 2
+                    ? '第2位有效数字'
+                    : ringNum === 3
+                    ? '倍率 (10ⁿ)'
+                    : '允许公差误差';
+
+                return (
+                  <button
+                    key={ringNum}
+                    type="button"
+                    onClick={() => setActiveBandIndex(ringNum)}
+                    className={`p-2 rounded-lg border transition-all cursor-pointer ${
+                      isSelected
+                        ? `${band.bgColor} ${band.borderColor} ring-2 ring-amber-300`
+                        : 'bg-slate-50 border-slate-200 hover:bg-white'
+                    }`}
+                  >
+                    <span className={`font-bold ${band.textColor} block`}>
+                      第{ringNum === 1 ? '一' : ringNum === 2 ? '二' : ringNum === 3 ? '三' : '四'}环：{band.name}
+                    </span>
+                    <span className="text-slate-600 text-[11px]">{roleText}</span>
+                  </button>
+                );
+              })}
             </div>
 
             {/* Quick decode reference card */}
@@ -394,9 +604,14 @@ export function A03ResistanceScene({
 
           {/* Right 5 Cols: Inspection Calculation Worksheet */}
           <div className="lg:col-span-5 flex flex-col gap-3 p-4 bg-white border border-slate-200 rounded-xl shadow-xs">
-            <span className="text-xs font-black text-slate-800 uppercase tracking-wider">
-              实训工单 · 阻值解码与公差预测记录卡
-            </span>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                实训工单 · 阻值解码与公差预测记录卡
+              </span>
+              <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                当前样品：{activeResistor.bands.map((b) => b.name).join('·')}
+              </span>
+            </div>
 
             <div className="flex flex-col gap-3 text-xs">
               <div className="flex flex-col gap-1.5 p-3 bg-slate-50 rounded-lg border border-slate-200">
@@ -414,7 +629,25 @@ export function A03ResistanceScene({
               </div>
 
               <div className="flex flex-col gap-1.5 p-3 bg-slate-50 rounded-lg border border-slate-200">
-                <span className="font-bold text-slate-700">2. ±5% 允许公差合格区间：</span>
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-700">2. 判定第 4 环允许公差：</span>
+                  <span className="text-[11px] text-slate-500">（观察末环颜色自主判断）</span>
+                </div>
+                <select
+                  value={toleranceInput}
+                  onChange={(e) => setToleranceInput(e.target.value)}
+                  className="w-full p-2 bg-white border border-slate-300 rounded text-slate-900 font-bold cursor-pointer"
+                >
+                  <option value="">-- 请观察第4环颜色自主选择允许误差 --</option>
+                  <option value="5">±5%（金色环 · 汽车电子常用）</option>
+                  <option value="10">±10%（银色环 · 普通等级）</option>
+                  <option value="1">±1%（棕色环 · 精密等级）</option>
+                  <option value="2">±2%（红色环 · 高精等级）</option>
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1.5 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                <span className="font-bold text-slate-700">3. 推算允许公差合格区间：</span>
                 <div className="flex items-center gap-2">
                   <span className="text-slate-600 shrink-0">下限：</span>
                   <input
@@ -440,7 +673,7 @@ export function A03ResistanceScene({
                 onClick={handleVerifyCalc}
                 className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 cursor-pointer shadow-sm"
               >
-                校验并提交区间
+                校验并提交工单
               </Button>
 
               {/* Feedback Banner */}
@@ -471,7 +704,12 @@ export function A03ResistanceScene({
           {/* Left 7 Cols: Resistor Test Fixture & Safety Switch */}
           <div className="lg:col-span-7 flex flex-col gap-3.5 p-4 bg-white border border-slate-200 rounded-xl shadow-xs">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-700">待检电阻样品夹持工位</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-700">待检电阻样品夹持工位</span>
+                <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                  基准：{activeResistor.nominal}Ω (合格区间: {activeResistor.expectedMin}~{activeResistor.expectedMax}Ω)
+                </span>
+              </div>
 
               {/* V05 Live Circuit Toggle */}
               <button
@@ -491,7 +729,7 @@ export function A03ResistanceScene({
             {/* Three Sample Slots */}
             <div className="grid grid-cols-3 gap-3">
               {(['A', 'B', 'C'] as const).map((id) => {
-                const sample = SAMPLE_DEFS[id];
+                const sample = activeSamples[id];
                 const isSelected = selectedSample === id;
                 const evaluated = sampleEvaluations[id];
                 return (
@@ -546,7 +784,7 @@ export function A03ResistanceScene({
             {/* Classification Actions */}
             <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-2.5">
               <span className="text-xs font-bold text-slate-700">
-                当前夹接：{SAMPLE_DEFS[selectedSample].name} · 根据测量示数出具判定：
+                当前夹接：{activeSamples[selectedSample].name} · 根据测量示数出具判定：
               </span>
               <div className="grid grid-cols-3 gap-2">
                 <Button
