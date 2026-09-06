@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { GraduationCap, LogOut, Wrench } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { GraduationCap, Lock, LogOut, Wrench } from 'lucide-react';
 import { GameStoreProvider, useGameStore } from '@/src/stores/gameStore';
 import { levelEngine } from '@/src/engine/LevelEngine';
 import { tutorialEngine } from '@/src/engine/TutorialEngine';
@@ -44,7 +44,9 @@ import { getStudentDisplayName, useAuth } from '@/src/stores/authStore';
 import { ChangePasswordGate } from '@/src/components/auth/ChangePasswordGate';
 import { SystemAdminConsole } from '@/src/components/admin/SystemAdminConsole';
 import { TeacherDashboard } from '@/src/components/teacher/TeacherDashboard';
-import { resolveRequestedLevel } from '@/src/app/levelRoute';
+import { resolveRequestedLevel, resolveRequestedLevelRoute } from '@/src/app/levelRoute';
+import { useUserProgress } from '@/src/stores/userProgressStore';
+import { checkLevelPrerequisites, normalizeLevelId } from '@/src/courses/registry';
 
 function ResultPanel({ onReturnHome }: { onReturnHome: () => void }) {
   const { dispatch } = useGameStore();
@@ -159,6 +161,15 @@ export function GameShell() {
 
 function SessionGameShell() {
   const { user, isLoading } = useAuth();
+  const progress = useUserProgress();
+  const isTeacherOrAdmin = progress.teacherMode || user?.role === 'admin' || user?.role === 'teacher';
+
+  const completedLevelIds = useMemo(() => {
+    return Object.entries(progress.levels)
+      .filter(([, v]) => v.status === 'completed')
+      .map(([id]) => normalizeLevelId(id));
+  }, [progress.levels]);
+
   // Home is the default view when user opens or refreshes the page!
   const [activeLevel, setActiveLevel] = useState<string>(() => typeof window === 'undefined' ? 'HOME' : resolveRequestedLevel(window.location.search));
 
@@ -185,6 +196,44 @@ function SessionGameShell() {
 
   if (user?.role === 'teacher') {
     return <TeacherDashboard />;
+  }
+
+  // Enforce student prerequisites on activeLevel
+  if (activeLevel !== 'HOME') {
+    const normalized = normalizeLevelId(activeLevel);
+    if (!isTeacherOrAdmin) {
+      const prereqCheck = checkLevelPrerequisites(normalized, completedLevelIds);
+      if (!prereqCheck.allowed) {
+        return (
+          <main className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4">
+            <div className="max-w-md w-full p-6 bg-slate-900 border-2 border-rose-500/60 rounded-2xl shadow-2xl flex flex-col gap-4">
+              <div className="flex items-center gap-3 text-rose-400">
+                <Lock size={28} className="shrink-0" />
+                <h2 className="text-lg font-bold">关卡未解锁：前置课程尚未完成</h2>
+              </div>
+              <p className="text-sm text-slate-300">
+                当前关卡【<strong className="text-amber-400">{normalized}</strong>】设置了严格的教学先决条件。为保障技能链条完整与实训安全，必须先按序完成以下前置课程：
+              </p>
+              <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1.5">
+                <span className="text-xs font-semibold text-slate-400">未满足的前置课程：</span>
+                <ul className="list-disc list-inside text-xs text-rose-300 space-y-1">
+                  {prereqCheck.missingPrerequisites.map((p) => (
+                    <li key={p}>{p}</li>
+                  ))}
+                </ul>
+              </div>
+              <button
+                type="button"
+                onClick={handleReturnHome}
+                className="w-full py-2.5 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-sm rounded-xl cursor-pointer transition-colors"
+              >
+                返回课程大厅
+              </button>
+            </div>
+          </main>
+        );
+      }
+    }
   }
 
   if (activeLevel === 'A02') {
