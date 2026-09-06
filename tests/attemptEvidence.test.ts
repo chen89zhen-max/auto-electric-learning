@@ -99,7 +99,7 @@ describe('Attempt Tracking, Replay & Evidence Framework (P1)', () => {
     expect(attempts[1].mode).toBe('independent');
   });
 
-  it('rejects event submission for under-construction levels (LEVEL_05 / B01)', async () => {
+  it('rejects event submission for under-construction levels (LEVEL_05 / C01)', async () => {
     // LEVEL_00 and LEVEL_01 completed first
     await eventPost(request(studentToken, makeEvent('evt-lvl00', 'LEVEL_00', 90)));
     await eventPost(request(studentToken, makeEvent('evt-lvl01', 'LEVEL_01', 90)));
@@ -111,8 +111,8 @@ describe('Attempt Tracking, Replay & Evidence Framework (P1)', () => {
     const bodyLegacy = (await responseLegacy.json()) as { error: string };
     expect(bodyLegacy.error).toContain('建设中');
 
-    // Attempting to submit for canonical B01
-    const responseCanonical = await eventPost(request(studentToken, makeEvent('evt-under-cons-2', 'B01', 90)));
+    // Attempting to submit for canonical C01
+    const responseCanonical = await eventPost(request(studentToken, makeEvent('evt-under-cons-2', 'C01', 90)));
     expect(responseCanonical.status).toBe(422);
     const bodyCanonical = (await responseCanonical.json()) as { error: string };
     expect(bodyCanonical.error).toContain('建设中');
@@ -121,6 +121,48 @@ describe('Attempt Tracking, Replay & Evidence Framework (P1)', () => {
     expect(
       db.prepare<{ count: number }>("SELECT COUNT(*) count FROM learning_events WHERE id LIKE 'evt-under-cons%'").get()?.count
     ).toBe(0);
+  });
+
+  it('accepts published B01 and records its independent evidence separately', async () => {
+    await eventPost(request(studentToken, makeEvent('evt-b01-o00', 'LEVEL_00', 90)));
+    await eventPost(request(studentToken, makeEvent('evt-b01-o01', 'LEVEL_01', 90)));
+    await eventPost(request(studentToken, makeEvent('evt-b01-a01', 'LEVEL_02', 90)));
+    await eventPost(request(studentToken, makeEvent('evt-b01-a02', 'A02', 90)));
+    await eventPost(request(studentToken, makeEvent('evt-b01-a03', 'A03', 90)));
+    await eventPost(request(studentToken, makeEvent('evt-b01-a04', 'A04', 90)));
+    const response = await eventPost(request(studentToken, makeEvent('evt-b01-published', 'B01', 96, {
+      mode: 'independent',
+      evidence: {
+        RULE_EXPLANATION: 'INDEPENDENT_COMPLETE',
+        TOOL_MEASUREMENT: 'INDEPENDENT_COMPLETE',
+      },
+    })));
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { projection: UserProgressData };
+    expect(body.projection.levels.B01.recentRecord?.mode).toBe('independent');
+    expect(body.projection.levels.B01.evidence?.RULE_EXPLANATION).toBe('INDEPENDENT_COMPLETE');
+    expect(body.projection.levels.B01.evidence?.TOOL_MEASUREMENT).toBe('INDEPENDENT_COMPLETE');
+  });
+
+  it('enforces the B01-B06 prerequisite chain and advances the next B-level', async () => {
+    await eventPost(request(studentToken, makeEvent('evt-chain-00', 'LEVEL_00', 90)));
+    await eventPost(request(studentToken, makeEvent('evt-chain-01', 'LEVEL_01', 90)));
+    await eventPost(request(studentToken, makeEvent('evt-chain-a01', 'LEVEL_02', 90)));
+    await eventPost(request(studentToken, makeEvent('evt-chain-a02', 'A02', 90)));
+    await eventPost(request(studentToken, makeEvent('evt-chain-a03', 'A03', 90)));
+    await eventPost(request(studentToken, makeEvent('evt-chain-a04', 'A04', 90)));
+
+    const prematureB02 = await eventPost(request(studentToken, makeEvent('evt-chain-b02-early', 'B02', 90)));
+    expect(prematureB02.status).toBe(422);
+
+    const b01 = await eventPost(request(studentToken, makeEvent('evt-chain-b01', 'B01', 90)));
+    expect(b01.status).toBe(200);
+    const b01Body = (await b01.json()) as { projection: UserProgressData };
+    expect(b01Body.projection.currentActiveLevel).toBe('B02');
+    expect(b01Body.projection.levels.B02.status).toBe('unlocked');
+
+    const b02 = await eventPost(request(studentToken, makeEvent('evt-chain-b02', 'B02', 90)));
+    expect(b02.status).toBe(200);
   });
 
   it('maintains strict idempotency on identical payload resubmission', async () => {

@@ -14,6 +14,7 @@ import {
   normalizeLevelId,
   toLegacyLevelId,
   isLevelPublished,
+  checkLevelPrerequisites,
   getLevelsByChapter,
   CHAPTER_LIST,
   type CourseLevelDefinition,
@@ -28,6 +29,7 @@ export {
   normalizeLevelId,
   toLegacyLevelId,
   isLevelPublished,
+  checkLevelPrerequisites,
   getLevelsByChapter,
   CHAPTER_LIST,
 };
@@ -44,6 +46,24 @@ export interface LevelMeta {
   prerequisiteName: string | null;
   implemented: boolean;
 }
+
+export interface CanonicalLevelMeta extends Omit<LevelMeta, 'id' | 'prerequisiteId'> {
+  id: string;
+  prerequisiteId: string | null;
+}
+
+export const CANONICAL_COURSE_MAP: CanonicalLevelMeta[] = CANONICAL_COURSE_REGISTRY.map((level) => ({
+  id: level.canonicalId,
+  num: level.num,
+  title: level.title,
+  subtitle: level.subtitle,
+  description: level.description,
+  category: level.category,
+  duration: level.duration,
+  prerequisiteId: level.prerequisiteLevelIds[0] ?? null,
+  prerequisiteName: level.prerequisiteLevelIds[0] ? getCourseLevel(level.prerequisiteLevelIds[0])?.title ?? level.prerequisiteLevelIds[0] : null,
+  implemented: level.implemented,
+}));
 
 export const COURSE_MAP: LevelMeta[] = [
   {
@@ -274,7 +294,7 @@ export async function submitLevelCompletion(
   levelId: string,
   score = 100,
   evidence: Record<string, unknown> = {},
-  options: { allowReplay?: boolean } = {}
+  options: { allowReplay?: boolean; mode?: 'guided' | 'independent' | 'transfer'; metrics?: object } = {}
 ): Promise<UserProgressData> {
   const current = getUserProgress();
   // If in teacher demo mode, do not write to student records
@@ -290,7 +310,13 @@ export async function submitLevelCompletion(
   if (!pending) {
     const eventId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
       ? crypto.randomUUID() : `evt_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    pending = { body: JSON.stringify({ eventId, levelId, eventType: 'LEVEL_COMPLETE', payload: { score, evidence }, occurredAt: Date.now() }) };
+    pending = { body: JSON.stringify({
+      eventId,
+      levelId,
+      eventType: 'LEVEL_COMPLETE',
+      payload: { score, evidence, ...(options.mode ? { mode: options.mode } : {}), ...(options.metrics ? { metrics: options.metrics } : {}) },
+      occurredAt: Date.now(),
+    }) };
     pendingCompletions.set(levelId, pending);
   }
   if (pending.promise) return pending.promise;
@@ -419,7 +445,7 @@ export function toggleTeacherMode(enable?: boolean): UserProgressData {
   return updatedData;
 }
 
-export function setCurrentActiveLevel(levelId: LevelId): void {
+export function setCurrentActiveLevel(levelId: string): void {
   const current = getUserProgress();
   if (current.currentActiveLevel !== levelId) {
     saveUserProgress({
@@ -429,10 +455,17 @@ export function setCurrentActiveLevel(levelId: LevelId): void {
   }
 }
 
-export function isLevelUnlocked(levelId: LevelId, progress: UserProgressData): boolean {
+export function isLevelUnlocked(levelId: string, progress: UserProgressData): boolean {
   if (progress.teacherMode) return true;
-  const meta = COURSE_MAP.find((c) => c.id === levelId);
-  if (!meta) return false;
+  const meta = COURSE_MAP.find((c) => c.id === levelId as LevelId);
+  if (!meta) {
+    const canonical = getCourseLevel(levelId);
+    if (!canonical || !canonical.implemented) return false;
+    const completed = Object.entries(progress.levels)
+      .filter(([, value]) => value.status === 'completed')
+      .map(([id]) => normalizeLevelId(id));
+    return checkLevelPrerequisites(canonical.canonicalId, completed).allowed;
+  }
   if (!meta.prerequisiteId) {
     return progress.levels[levelId]?.status === 'unlocked' || progress.levels[levelId]?.status === 'completed';
   }

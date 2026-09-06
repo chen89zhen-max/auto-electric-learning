@@ -17,6 +17,12 @@ import { Level02Experience } from '@/src/levels/level02/Level02Experience';
 import { A02Experience } from '@/src/levels/a02/A02Experience';
 import { A03Experience } from '@/src/levels/a03/A03Experience';
 import { A04Experience } from '@/src/levels/a04/A04Experience';
+import { B01Experience } from '@/src/levels/b01/B01Experience';
+import { B02Experience } from '@/src/levels/b02/B02Experience';
+import { B03Experience } from '@/src/levels/b03/B03Experience';
+import { B04Experience } from '@/src/levels/b04/B04Experience';
+import { B05Experience } from '@/src/levels/b05/B05Experience';
+import { B06Experience } from '@/src/levels/b06/B06Experience';
 import { CourseMapLobby } from '@/src/components/CourseMapLobby';
 import { FullscreenButton } from '@/src/components/FullscreenButton';
 import { CompletionStatus } from '@/src/components/CompletionStatus';
@@ -24,6 +30,7 @@ import { getStudentDisplayName, useAuth } from '@/src/stores/authStore';
 import { ChangePasswordGate } from '@/src/components/auth/ChangePasswordGate';
 import { SystemAdminConsole } from '@/src/components/admin/SystemAdminConsole';
 import { TeacherDashboard } from '@/src/components/teacher/TeacherDashboard';
+import { resolveRequestedLevel } from '@/src/app/levelRoute';
 
 function ResultPanel({ onReturnHome }: { onReturnHome: () => void }) {
   const { dispatch } = useGameStore();
@@ -134,10 +141,11 @@ export function GameShell() {
 function SessionGameShell() {
   const { user, isLoading } = useAuth();
   // Home is the default view when user opens or refreshes the page!
-  const [activeLevel, setActiveLevel] = useState<string>('HOME');
+  const [activeLevel, setActiveLevel] = useState<string>(() => typeof window === 'undefined' ? 'HOME' : resolveRequestedLevel(window.location.search));
 
   const handleReturnHome = () => {
     setActiveLevel('HOME');
+    if (typeof window !== 'undefined') window.history.replaceState(null, '', window.location.pathname);
   };
 
   if (isLoading) {
@@ -172,6 +180,13 @@ function SessionGameShell() {
     return <A04Experience onReturnLobby={handleReturnHome} />;
   }
 
+  if (activeLevel === 'B01') return <B01Experience onReturnLobby={handleReturnHome} />;
+  if (activeLevel === 'B02') return <B02Experience onReturnLobby={handleReturnHome} />;
+  if (activeLevel === 'B03') return <B03Experience onReturnLobby={handleReturnHome} />;
+  if (activeLevel === 'B04') return <B04Experience onReturnLobby={handleReturnHome} />;
+  if (activeLevel === 'B05') return <B05Experience onReturnLobby={handleReturnHome} />;
+  if (activeLevel === 'B06') return <B06Experience onReturnLobby={handleReturnHome} />;
+
   if (activeLevel === 'LEVEL_02' || activeLevel === 'A01') {
     return <Level02Experience onReturnLobby={handleReturnHome} />;
   }
@@ -193,6 +208,7 @@ function SessionGameShell() {
     <CourseMapLobby
       onSelectLevel={(levelId) => {
         setActiveLevel(levelId);
+        if (typeof window !== 'undefined') window.history.pushState(null, '', `${window.location.pathname}?level=${encodeURIComponent(levelId)}`);
       }}
     />
   );

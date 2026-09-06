@@ -9,6 +9,7 @@ import {
   checkLevelPrerequisites,
   getLevelsByChapter,
 } from '@/src/courses/registry';
+import { CANONICAL_COURSE_MAP } from '@/src/stores/userProgressStore';
 
 describe('Canonical Course Registry (P1)', () => {
   it('defines all 28 canonical levels across 7 chapters', () => {
@@ -26,12 +27,12 @@ describe('Canonical Course Registry (P1)', () => {
     expect(chapters.has('chapter_f')).toBe(true);
   });
 
-  it('strictly isolates publication status: P2 published O00, O01, A01, A02, A03, A04; rest UNDER_CONSTRUCTION', () => {
+  it('publishes P3 B01-B06 alongside the six completed P2 levels', () => {
     const published = CANONICAL_COURSE_REGISTRY.filter((l) => l.publicationStatus === 'PUBLISHED');
-    expect(published.length).toBe(6);
+    expect(published.length).toBe(12);
 
     const publishedIds = published.map((l) => l.canonicalId).sort();
-    expect(publishedIds).toEqual(['A01', 'A02', 'A03', 'A04', 'O00', 'O01']);
+    expect(publishedIds).toEqual(['A01', 'A02', 'A03', 'A04', 'B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'O00', 'O01']);
 
     expect(isLevelPublished('O00')).toBe(true);
     expect(isLevelPublished('LEVEL_00')).toBe(true);
@@ -45,8 +46,13 @@ describe('Canonical Course Registry (P1)', () => {
     expect(isLevelPublished('A04')).toBe(true);
     expect(isLevelPublished('LEVEL_04')).toBe(true);
 
-    // All other levels are UNDER_CONSTRUCTION
-    expect(isLevelPublished('B01')).toBe(false);
+    for (const id of ['B01', 'B02', 'B03', 'B04', 'B05', 'B06']) {
+      expect(isLevelPublished(id)).toBe(true);
+      expect(getCourseLevel(id)?.implemented).toBe(true);
+      expect(getCourseLevel(id)?.contentVersion).toBe('1.0.0');
+    }
+
+    // Later chapters remain UNDER_CONSTRUCTION
     expect(isLevelPublished('LEVEL_05')).toBe(false);
     expect(isLevelPublished('C01')).toBe(false);
     expect(isLevelPublished('D01')).toBe(false);
@@ -109,5 +115,10 @@ describe('Canonical Course Registry (P1)', () => {
     expect(chapters[0].levels.length).toBe(2);
     expect(chapters[1].chapter.id).toBe('chapter_a');
     expect(chapters[1].levels.length).toBe(4);
+  });
+
+  it('exposes every published B-level to the training-lobby course map', () => {
+    expect(CANONICAL_COURSE_MAP.filter((level) => level.id.startsWith('B')).map((level) => level.id)).toEqual(['B01', 'B02', 'B03', 'B04', 'B05', 'B06']);
+    expect(CANONICAL_COURSE_MAP.find((level) => level.id === 'B01')?.implemented).toBe(true);
   });
 });

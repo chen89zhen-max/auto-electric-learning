@@ -32,9 +32,14 @@ const PREREQUISITE: Partial<Record<LevelId, LevelId>> = {
   LEVEL_09: 'LEVEL_08',
 };
 
-const IMPLEMENTED_NEXT: Partial<Record<LevelId, LevelId>> = {
+const IMPLEMENTED_NEXT: Partial<Record<string, string>> = {
   LEVEL_00: 'LEVEL_01',
   LEVEL_01: 'LEVEL_02',
+  B01: 'B02',
+  B02: 'B03',
+  B03: 'B04',
+  B04: 'B05',
+  B05: 'B06',
 };
 
 export class LearningTransitionError extends Error {
@@ -79,15 +84,28 @@ export function applyLearningEvent(
   }
 
   // Resolve legacy key for progress dictionary
-  const legacyId = (toLegacyLevelId(canonical) || input.levelId) as LevelId;
+  const legacyId = toLegacyLevelId(canonical) || input.levelId;
 
   // Prerequisite check
-  const prereq = PREREQUISITE[legacyId];
-  if (prereq && base.levels[prereq]?.status !== 'completed') {
-    throw new LearningTransitionError('LEVEL_LOCKED', `前置关卡 ${prereq} 尚未完成`);
-  }
-  if (base.levels[legacyId]?.status === 'locked') {
-    throw new LearningTransitionError('LEVEL_LOCKED', `关卡 ${legacyId} 尚未解锁`);
+  const isCanonicalRequest = input.levelId.trim().toUpperCase() === canonical;
+  if (isCanonicalRequest) {
+    const completed = new Set(
+      Object.entries(base.levels)
+        .filter(([, progress]) => progress.status === 'completed')
+        .map(([levelId]) => normalizeLevelId(levelId))
+    );
+    const missing = courseLevel.prerequisiteLevelIds.filter((levelId) => !completed.has(normalizeLevelId(levelId)));
+    if (missing.length > 0) {
+      throw new LearningTransitionError('LEVEL_LOCKED', `关卡 ${courseLevel.num} 尚未完成前置任务：${missing.join('、')}`);
+    }
+  } else {
+    const prereq = PREREQUISITE[legacyId as LevelId];
+    if (prereq && base.levels[prereq]?.status !== 'completed') {
+      throw new LearningTransitionError('LEVEL_LOCKED', `前置关卡 ${prereq} 尚未完成`);
+    }
+    if (base.levels[legacyId]?.status === 'locked') {
+      throw new LearningTransitionError('LEVEL_LOCKED', `关卡 ${legacyId} 尚未解锁`);
+    }
   }
 
   if (input.eventType !== 'LEVEL_COMPLETE') {
@@ -153,15 +171,15 @@ export function applyLearningEvent(
 
   // Unlock next implemented level ONLY on initial completion (not replay)
   const nextLevel = IMPLEMENTED_NEXT[legacyId];
-  if (!isReplay && nextLevel && levels[nextLevel].status === 'locked') {
-    levels[nextLevel] = { ...levels[nextLevel], status: 'unlocked' };
+  if (!isReplay && nextLevel && levels[nextLevel]?.status !== 'completed') {
+    levels[nextLevel] = { ...(levels[nextLevel] ?? { status: 'locked' }), status: 'unlocked' };
   }
 
   return {
     projection: {
       version: 1,
       traineeName,
-      currentActiveLevel: nextLevel || legacyId,
+        currentActiveLevel: nextLevel || legacyId,
       teacherMode: false,
       lastUpdated: Date.now(),
       levels,

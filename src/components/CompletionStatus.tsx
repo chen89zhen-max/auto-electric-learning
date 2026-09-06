@@ -5,18 +5,19 @@ import { CheckCircle2, CloudUpload, RotateCcw } from 'lucide-react';
 import { getUserProgress, submitLevelCompletion } from '@/src/stores/userProgressStore';
 import type { AbilityReportData } from '@/src/abilities/AbilityTracker';
 import { scoreFromDimensions } from '@/src/abilities/reportScore';
+import type { EvidenceDimensionId, EvidenceStatus, PracticeMode } from '@/src/types/evidence';
 
-export function CompletionStatus({ levelId, report, metrics, nextTask }: {
-  levelId: string; report?: AbilityReportData; metrics?: object; nextTask?: string;
+export function CompletionStatus({ levelId, report, metrics, evidence, mode, nextTask }: {
+  levelId: string; report?: AbilityReportData; metrics?: object; evidence?: Partial<Record<EvidenceDimensionId, EvidenceStatus>>; mode?: PracticeMode; nextTask?: string;
 }) {
   const [status, setStatus] = useState<'saving' | 'saved' | 'error'>('saving');
   const [message, setMessage] = useState('');
-  const initial = useRef({ report, metrics, replay: getUserProgress().levels[levelId]?.status === 'completed' });
+  const initial = useRef({ report, metrics, evidence, mode, replay: getUserProgress().levels[levelId]?.status === 'completed' });
   const alive = useRef(false);
   const save = useCallback(async () => {
     setStatus('saving');
     try {
-      const { report: result, metrics: processMetrics, replay } = initial.current;
+      const { report: result, metrics: processMetrics, evidence: suppliedEvidence, mode: practiceMode, replay } = initial.current;
       const defaultEvidence: Record<string, string> =
         levelId === 'LEVEL_00' || levelId === 'O00' ? { SAFETY_SPECIFICATION: 'GUIDED_COMPLETE', CIRCUIT_READING: 'GUIDED_COMPLETE' }
         : levelId === 'LEVEL_01' || levelId === 'O01' ? { SAFETY_SPECIFICATION: 'INDEPENDENT_COMPLETE', DIAGNOSTIC_STRATEGY: 'GUIDED_COMPLETE', EVIDENCE_EXPRESSION: 'GUIDED_COMPLETE' }
@@ -24,13 +25,14 @@ export function CompletionStatus({ levelId, report, metrics, nextTask }: {
         : levelId === 'A03' || levelId === 'LEVEL_03' ? { TOOL_MEASUREMENT: 'INDEPENDENT_COMPLETE', CIRCUIT_READING: 'INDEPENDENT_COMPLETE' }
         : levelId === 'A04' || levelId === 'LEVEL_04' ? { TOOL_MEASUREMENT: 'INDEPENDENT_COMPLETE', SAFETY_SPECIFICATION: 'INDEPENDENT_COMPLETE' }
         : { CIRCUIT_READING: 'INDEPENDENT_COMPLETE', SAFETY_SPECIFICATION: 'INDEPENDENT_COMPLETE', TOOL_MEASUREMENT: 'GUIDED_COMPLETE' };
+      const completionEvidence = suppliedEvidence ?? defaultEvidence;
 
-      const projection = await submitLevelCompletion(levelId, result ? scoreFromDimensions(result.dimensions) : 100, {
-        source: levelId,
-        evidence: defaultEvidence,
-        ...(result ? { dimensions: result.dimensions } : {}),
-        ...(processMetrics ? { metrics: processMetrics } : {}),
-      }, { allowReplay: true });
+      const projection = await submitLevelCompletion(
+        levelId,
+        result ? scoreFromDimensions(result.dimensions) : 100,
+        completionEvidence,
+        { allowReplay: true, ...(practiceMode ? { mode: practiceMode } : {}), ...(processMetrics ? { metrics: processMetrics } : {}) }
+      );
       if (!alive.current) return;
       setMessage(replay ? `本次为重复练习，保留首次成绩 ${projection.levels[levelId].score ?? '—'} 分` : `学习结果已保存 · ${projection.levels[levelId].score ?? '—'} 分`);
       setStatus('saved');

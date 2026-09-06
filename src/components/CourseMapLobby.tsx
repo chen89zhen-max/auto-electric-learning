@@ -21,9 +21,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
-  COURSE_MAP,
-  LevelId,
-  LevelMeta,
+  CANONICAL_COURSE_MAP,
+  CanonicalLevelMeta,
   CHAPTER_LIST,
   getCourseLevel,
   isLevelUnlocked,
@@ -37,7 +36,7 @@ import { AuthDialog } from '@/src/components/auth/AuthDialog';
 import { AdminDashboard } from '@/src/components/admin/AdminDashboard';
 
 interface CourseMapLobbyProps {
-  onSelectLevel: (levelId: LevelId) => void;
+  onSelectLevel: (levelId: string) => void;
 }
 
 export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
@@ -52,7 +51,7 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
 
   // Calculate statistics
   const completedCount = Object.values(progress.levels).filter((l) => l.status === 'completed').length;
-  const totalTasks = COURSE_MAP.length;
+  const totalTasks = CANONICAL_COURSE_MAP.length;
   const progressPercent = Math.round((completedCount / totalTasks) * 100);
 
   // Admin / Teacher Dashboard view
@@ -61,9 +60,9 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
   }
 
   // Determine current active level
-  const activeLevelMeta = COURSE_MAP.find((m) => m.id === progress.currentActiveLevel) || COURSE_MAP[0];
+  const activeLevelMeta = CANONICAL_COURSE_MAP.find((m) => m.id === progress.currentActiveLevel) || CANONICAL_COURSE_MAP[0];
 
-  const handleCardClick = (meta: LevelMeta) => {
+  const handleCardClick = (meta: CanonicalLevelMeta) => {
     if (!user) {
       setShowAuthDialog(true);
       return;
@@ -358,7 +357,7 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5">
-          {COURSE_MAP.map((meta) => {
+          {CANONICAL_COURSE_MAP.map((meta) => {
             const levelProg = progress.levels[meta.id] || { status: 'locked' };
             const unlocked = isLevelUnlocked(meta.id, progress);
             const isCompleted = levelProg.status === 'completed';
