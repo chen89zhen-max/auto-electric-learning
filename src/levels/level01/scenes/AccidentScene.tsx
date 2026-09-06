@@ -134,8 +134,8 @@ export function AccidentScene() {
               }`}
               onClick={handleTouchPerson}
             >
-              {/* Lying victim SVG illustration - Enlarged */}
-              <div className="relative w-48 h-32 flex items-center justify-center">
+              {/* Lying victim SVG illustration - Enlarged for high-detail view */}
+              <div className="relative w-64 sm:w-80 md:w-[380px] h-32 sm:h-40 flex items-center justify-center">
                 <TrainingPerson pose="lying" />
               </div>
 

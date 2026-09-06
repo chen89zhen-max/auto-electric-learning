@@ -28,16 +28,16 @@
 .circuit-switch-blade { transition: transform 280ms cubic-bezier(.2,.7,.3,1); }
 .flow-tracer { stroke-dasharray: 3 15; animation: training-current 850ms linear infinite; pointer-events: none; }
 .training-person { display: block; width: 100%; height: 100%; overflow: visible; }
-.person-idle { transform-origin: 90px 218px; animation: person-breathe 4.5s ease-in-out infinite; }
+.person-idle { transform-origin: 80px 246px; animation: person-breathe 4.5s ease-in-out infinite; }
 .person-wave { animation: person-wave 2.2s ease-in-out 3; }
 .person-blink { animation: person-blink 5.8s ease-in-out infinite; }
 .chen-avatar { transform-origin: 50% 90%; }
 .chen-praise { animation: chen-nod 700ms ease-in-out 2; }
 .chen-warning { animation: chen-attention 480ms ease-in-out 2; }
 .chen-thinking { transform: rotate(-5deg); transition: transform 350ms ease; }
-.workshop-trainee { position: absolute; bottom: 7%; left: 2%; width: clamp(95px, 15%, 170px); z-index: 2; pointer-events: none; }
+.workshop-trainee { position: absolute; bottom: 7%; left: 2%; width: clamp(100px, 16%, 180px); z-index: 2; pointer-events: none; }
 .cpr-practice-row { display: flex; align-items: center; justify-content: center; gap: 28px; width: 100%; margin: auto 0; }
-.cpr-model { width: min(45%, 320px); color: #94a3b8; font-size: 11px; text-align: center; }
+.cpr-model { width: min(48%, 380px); color: #94a3b8; font-size: 11px; text-align: center; }
 .cpr-model span { display: block; margin-top: 8px; }
 [role="button"][tabindex="0"]:focus-visible { outline: 3px solid #fbbf24; outline-offset: 5px; }
 @keyframes training-current { to { stroke-dashoffset: -36; } }
