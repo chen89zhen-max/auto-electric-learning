@@ -9,11 +9,14 @@ import {
   HelpCircle,
   LogOut,
   RotateCcw,
+  Volume2,
   Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FullscreenButton } from '@/src/components/FullscreenButton';
 import { CompletionStatus } from '@/src/components/CompletionStatus';
+import { MasterChenAvatar, type MasterChenEmotion } from '@/src/components/visuals/MasterChenAvatar';
+import { sounds } from '@/src/components/visuals/SoundEffects';
 import { getStudentDisplayName } from '@/src/stores/authStore';
 import { A02VoltageScene, A02Step } from './scenes/A02VoltageScene';
 import type { EvidenceDimensionId, EvidenceStatus } from '@/src/types/evidence';
@@ -27,6 +30,7 @@ interface A02StageGuidance {
   objective: string;
   mentorPrompt: string;
   hint: string;
+  mentorEmotion: MasterChenEmotion;
 }
 
 /**
@@ -40,24 +44,28 @@ const A02_STAGE_GUIDANCE: Record<A02Step, A02StageGuidance> = {
     objective: '使用 COM/VΩ 插孔测量蓄电池两端，并观察调换表笔后读数正负号的变化。',
     mentorPrompt: '先确认红表笔接 VΩ 插孔、黑表笔接 COM。读数有方向，调换表笔不是接错，而是在改变测量方向。',
     hint: '保持电压挡，红笔选蓄电池正极、黑笔选负极；记录后再点击“调换红黑表笔位置”。',
+    mentorEmotion: 'NORMAL',
   },
   SWITCH_AND_LOAD: {
     task: '实训步骤 2：比较断路与带载时的两点电压',
     objective: '分别记录开关断开时开关两端电压，以及开关闭合时检修灯两端电压。',
     mentorPrompt: '不要只看灯亮不亮。把表笔跨接在同一个元件两端，才是在测该元件的电压。',
     hint: '先断开开关并测 SW_IN—SW_OUT；再闭合开关，测 LAMP_POS—LAMP_NEG。',
+    mentorEmotion: 'THINKING',
   },
   CONTACT_RESISTANCE_DROP: {
     task: '实训步骤 3：测量供电接点与搭铁压降',
     objective: '在带载状态测灯端电压和接点压降，验证回路各部分压降之和。',
     mentorPrompt: '接触不良时，灯“还能亮”不等于电路正常。带载跨接测量才能看出压降落在哪里。',
     hint: '开关闭合后，先测灯两端；再测 BAT_POS—SW_IN 或 LAMP_NEG—CHASSIS_GND。',
+    mentorEmotion: 'WARNING',
   },
   TRANSFER_DIAGNOSIS: {
     task: '实训步骤 4：依据本次测量作出维修判断',
     objective: '用灯端电压和接点压降证据，判断应处理的供电侧故障。',
     mentorPrompt: '结论必须指向本次测得的异常压降，不能只凭“灯暗”就更换蓄电池或灯泡。',
     hint: '比较供电侧 0.91V 异常压降与搭铁侧 0.18V；优先处理产生异常压降的连接点。',
+    mentorEmotion: 'THINKING',
   },
 };
 
@@ -205,16 +213,29 @@ export function A02Experience({ onReturnLobby }: A02ExperienceProps) {
             </div>
 
             <aside className="tutor-panel" aria-label="陈师傅实训指导">
-              <div className="tutor-title">
-                <span className="avatar bg-teal-800">陈</span>
+              <div className="tutor-title flex items-center gap-3.5 pb-3 border-b border-slate-200">
+                <MasterChenAvatar emotion={guidance.mentorEmotion} size={58} />
                 <div>
-                  <strong>陈师傅 <small className="inline-block ml-1 px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">带教技师</small></strong>
-                  <small>车间高级电工技师</small>
+                  <div className="flex items-center gap-1.5">
+                    <strong className="text-base font-bold text-slate-800">陈师傅</strong>
+                    <span className="text-[10px] bg-amber-100 text-amber-800 font-semibold px-1.5 py-0.5 rounded">带教技师</span>
+                  </div>
+                  <small className="text-xs text-slate-500 font-medium">车间高级电工技师</small>
                 </div>
               </div>
 
-              <div className="message-card">
-                <p>{hintRequested ? guidance.hint : `“${guidance.mentorPrompt}”`}</p>
+              <div className="message-card relative my-4 p-4 rounded-xl border-l-4 border-amber-400 bg-amber-50/90 text-slate-800 shadow-xs" aria-live="polite">
+                <div className="flex items-start gap-2">
+                  <p className="text-sm font-semibold leading-relaxed m-0 flex-1">{hintRequested ? guidance.hint : `“${guidance.mentorPrompt}”`}</p>
+                  <button
+                    type="button"
+                    className="text-amber-700/60 hover:text-amber-800 transition-colors p-1"
+                    title="播报提示音"
+                    onClick={() => sounds.click()}
+                  >
+                    <Volume2 size={16} />
+                  </button>
+                </div>
               </div>
 
               <div className="mt-5 rounded-xl border border-teal-100 bg-teal-50 p-3 text-sm text-teal-950">
