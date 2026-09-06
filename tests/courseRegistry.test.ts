@@ -29,10 +29,10 @@ describe('Canonical Course Registry (P1)', () => {
 
   it('publishes P3 B01-B06 alongside the six completed P2 levels', () => {
     const published = CANONICAL_COURSE_REGISTRY.filter((l) => l.publicationStatus === 'PUBLISHED');
-    expect(published.length).toBe(14);
+    expect(published.length).toBe(15);
 
     const publishedIds = published.map((l) => l.canonicalId).sort();
-    expect(publishedIds).toEqual(['A01', 'A02', 'A03', 'A04', 'B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'C01', 'C02', 'O00', 'O01']);
+    expect(publishedIds).toEqual(['A01', 'A02', 'A03', 'A04', 'B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'C01', 'C02', 'C03', 'O00', 'O01']);
 
     expect(isLevelPublished('O00')).toBe(true);
     expect(isLevelPublished('LEVEL_00')).toBe(true);
@@ -52,7 +52,7 @@ describe('Canonical Course Registry (P1)', () => {
       expect(getCourseLevel(id)?.contentVersion).toBe('1.0.0');
     }
 
-    // C01 and C02 are published
+    // C01, C02, and C03 (Chapter C complete) are published
     expect(isLevelPublished('C01')).toBe(true);
     expect(getCourseLevel('C01')?.implemented).toBe(true);
     expect(getCourseLevel('C01')?.contentVersion).toBe('1.0.0');
@@ -62,10 +62,15 @@ describe('Canonical Course Registry (P1)', () => {
     expect(getCourseLevel('C02')?.implemented).toBe(true);
     expect(getCourseLevel('C02')?.contentVersion).toBe('1.0.0');
 
+    expect(isLevelPublished('C03')).toBe(true);
+    expect(isLevelPublished('LEVEL_09')).toBe(true);
+    expect(getCourseLevel('C03')?.implemented).toBe(true);
+    expect(getCourseLevel('C03')?.contentVersion).toBe('1.0.0');
+
     // Later chapters remain UNDER_CONSTRUCTION
     expect(isLevelPublished('LEVEL_05')).toBe(false);
-    expect(isLevelPublished('C03')).toBe(false);
     expect(isLevelPublished('D01')).toBe(false);
+    expect(isLevelPublished('D02')).toBe(false);
     expect(isLevelPublished('E01')).toBe(false);
     expect(isLevelPublished('F01')).toBe(false);
   });

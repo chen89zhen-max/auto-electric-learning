@@ -395,10 +395,10 @@ export const CANONICAL_COURSE_REGISTRY: CourseLevelDefinition[] = [
     prerequisiteLevelIds: ['C02'],
     prerequisiteCapabilities: ['T09-FAULT-CLASSIFY'],
     requiredModels: ['comprehensive_dc_diagnostic'],
-    publicationStatus: 'UNDER_CONSTRUCTION',
-    contentVersion: '0.1.0',
+    publicationStatus: 'PUBLISHED',
+    contentVersion: '1.0.0',
     rubricVersion: 'v1',
-    implemented: false,
+    implemented: true,
   },
 
   // --- 篇章四：让电和磁配合工作 ---

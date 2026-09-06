@@ -24,6 +24,7 @@ import { B05Experience } from '@/src/levels/b05/B05Experience';
 import { B06Experience } from '@/src/levels/b06/B06Experience';
 import { C01Experience } from '@/src/levels/c01/C01Experience';
 import { C02Experience } from '@/src/levels/c02/C02Experience';
+import { C03Experience } from '@/src/levels/c03/C03Experience';
 import { AbilityReport } from '@/src/components/AbilityReport';
 import { CourseMapLobby } from '@/src/components/CourseMapLobby';
 import { FullscreenButton } from '@/src/components/FullscreenButton';
@@ -194,6 +195,7 @@ function SessionGameShell() {
   if (activeLevel === 'B06') return <B06Experience onReturnLobby={handleReturnHome} />;
   if (activeLevel === 'C01') return <C01Experience onReturnLobby={handleReturnHome} />;
   if (activeLevel === 'C02' || activeLevel === 'LEVEL_08') return <C02Experience onReturnLobby={handleReturnHome} />;
+  if (activeLevel === 'C03' || activeLevel === 'LEVEL_09') return <C03Experience onReturnLobby={handleReturnHome} />;
 
   if (activeLevel === 'LEVEL_02' || activeLevel === 'A01') {
     return <Level02Experience onReturnLobby={handleReturnHome} />;
