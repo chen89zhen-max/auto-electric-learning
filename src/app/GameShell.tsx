@@ -30,6 +30,13 @@ import { D02Experience } from '@/src/levels/d02/D02Experience';
 import { D03Experience } from '@/src/levels/d03/D03Experience';
 import { D04Experience } from '@/src/levels/d04/D04Experience';
 import { D05Experience } from '@/src/levels/d05/D05Experience';
+import { E01Experience } from '@/src/levels/e01/E01Experience';
+import { E02Experience } from '@/src/levels/e02/E02Experience';
+import { E03Experience } from '@/src/levels/e03/E03Experience';
+import { E04Experience } from '@/src/levels/e04/E04Experience';
+import { E05Experience } from '@/src/levels/e05/E05Experience';
+import { E06Experience } from '@/src/levels/e06/E06Experience';
+import { E07Experience } from '@/src/levels/e07/E07Experience';
 import { AbilityReport } from '@/src/components/AbilityReport';
 import { CourseMapLobby } from '@/src/components/CourseMapLobby';
 import { FullscreenButton } from '@/src/components/FullscreenButton';
@@ -206,6 +213,13 @@ function SessionGameShell() {
   if (activeLevel === 'D03') return <D03Experience onReturnLobby={handleReturnHome} />;
   if (activeLevel === 'D04') return <D04Experience onReturnLobby={handleReturnHome} />;
   if (activeLevel === 'D05') return <D05Experience onReturnLobby={handleReturnHome} />;
+  if (activeLevel === 'E01') return <E01Experience onReturnLobby={handleReturnHome} />;
+  if (activeLevel === 'E02') return <E02Experience onReturnLobby={handleReturnHome} />;
+  if (activeLevel === 'E03') return <E03Experience onReturnLobby={handleReturnHome} />;
+  if (activeLevel === 'E04' || activeLevel === 'LEVEL_07') return <E04Experience onReturnLobby={handleReturnHome} />;
+  if (activeLevel === 'E05' || activeLevel === 'LEVEL_06') return <E05Experience onReturnLobby={handleReturnHome} />;
+  if (activeLevel === 'E06') return <E06Experience onReturnLobby={handleReturnHome} />;
+  if (activeLevel === 'E07') return <E07Experience onReturnLobby={handleReturnHome} />;
 
   if (activeLevel === 'LEVEL_02' || activeLevel === 'A01') {
     return <Level02Experience onReturnLobby={handleReturnHome} />;

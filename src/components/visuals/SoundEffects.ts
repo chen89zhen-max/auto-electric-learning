@@ -186,6 +186,19 @@ class SoundEngine {
       osc.stop(ctx.currentTime + 0.12);
     } catch {}
   }
+
+  // Alias methods used by interactive test benches
+  playToggleSound() {
+    this.click();
+  }
+
+  playSuccessSound() {
+    this.success();
+  }
+
+  playFailureSound() {
+    this.warningBuzz();
+  }
 }
 
 export const sounds = new SoundEngine();
