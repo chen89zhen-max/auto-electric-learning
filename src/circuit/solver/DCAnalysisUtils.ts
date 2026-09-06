@@ -292,3 +292,169 @@ export function calculateVoltageDropCircuit(params: VoltageDropCircuitParams): V
     groundPotential: 0,
   };
 }
+
+export type DiagnosticFaultType = 'NORMAL' | 'OPEN_CIRCUIT' | 'SHORT_TO_GROUND' | 'HIGH_RESISTANCE';
+
+export interface FaultDiagnosticCircuitParams {
+  sourceVoltage: number; // 12.0V
+  loadResistance: number; // 6.0Ω
+  faultType: DiagnosticFaultType;
+  faultLocation: 'HARNESS_SUPPLY' | 'SWITCH' | 'HARNESS_GROUND';
+  faultResistance?: number; // e.g. 50Ω for high resistance
+  fuseIntact: boolean; // false if fuse is blown
+}
+
+export interface FaultDiagnosticCircuitResult {
+  circuitCurrent: number;
+  lampVoltage: number;
+  lampGlow: 'BRIGHT' | 'DIM' | 'DARK';
+  fuseBlown: boolean;
+  nodeVoltages: {
+    batPos: number;
+    fuseIn: number;
+    fuseOut: number;
+    switchIn: number;
+    switchOut: number;
+    lampPos: number;
+    lampNeg: number;
+    gndStud: number;
+  };
+}
+
+/**
+ * Deterministic circuit model for C02: Three Classic Faults (Open, Short, High Resistance)
+ */
+export function calculateFaultClassificationCircuit(params: FaultDiagnosticCircuitParams): FaultDiagnosticCircuitResult {
+  const { sourceVoltage, loadResistance, faultType, faultLocation, faultResistance = 50.0, fuseIntact } = params;
+
+  if (!fuseIntact) {
+    // Blown fuse halts all power downstream
+    return {
+      circuitCurrent: 0,
+      lampVoltage: 0,
+      lampGlow: 'DARK',
+      fuseBlown: true,
+      nodeVoltages: {
+        batPos: sourceVoltage,
+        fuseIn: sourceVoltage,
+        fuseOut: 0,
+        switchIn: 0,
+        switchOut: 0,
+        lampPos: 0,
+        lampNeg: 0,
+        gndStud: 0,
+      },
+    };
+  }
+
+  if (faultType === 'NORMAL') {
+    const current = sourceVoltage / loadResistance;
+    return {
+      circuitCurrent: current,
+      lampVoltage: sourceVoltage,
+      lampGlow: 'BRIGHT',
+      fuseBlown: false,
+      nodeVoltages: {
+        batPos: sourceVoltage,
+        fuseIn: sourceVoltage,
+        fuseOut: sourceVoltage,
+        switchIn: sourceVoltage,
+        switchOut: sourceVoltage,
+        lampPos: sourceVoltage,
+        lampNeg: 0,
+        gndStud: 0,
+      },
+    };
+  }
+
+  if (faultType === 'SHORT_TO_GROUND') {
+    // Short circuit upstream of lamp draws massive current that blows the fuse immediately
+    return {
+      circuitCurrent: 0,
+      lampVoltage: 0,
+      lampGlow: 'DARK',
+      fuseBlown: true,
+      nodeVoltages: {
+        batPos: sourceVoltage,
+        fuseIn: sourceVoltage,
+        fuseOut: 0,
+        switchIn: 0,
+        switchOut: 0,
+        lampPos: 0,
+        lampNeg: 0,
+        gndStud: 0,
+      },
+    };
+  }
+
+  if (faultType === 'OPEN_CIRCUIT') {
+    // Circuit is broken at faultLocation, current = 0A
+    let switchIn = sourceVoltage;
+    let switchOut = sourceVoltage;
+    let lampPos = sourceVoltage;
+    let lampNeg = 0;
+
+    if (faultLocation === 'HARNESS_SUPPLY') {
+      switchIn = 0;
+      switchOut = 0;
+      lampPos = 0;
+    } else if (faultLocation === 'SWITCH') {
+      switchIn = sourceVoltage;
+      switchOut = 0;
+      lampPos = 0;
+    } else if (faultLocation === 'HARNESS_GROUND') {
+      // Floating ground: upstream side of open ground float to 12V!
+      lampNeg = sourceVoltage;
+    }
+
+    return {
+      circuitCurrent: 0,
+      lampVoltage: 0,
+      lampGlow: 'DARK',
+      fuseBlown: false,
+      nodeVoltages: {
+        batPos: sourceVoltage,
+        fuseIn: sourceVoltage,
+        fuseOut: sourceVoltage,
+        switchIn,
+        switchOut,
+        lampPos,
+        lampNeg,
+        gndStud: 0,
+      },
+    };
+  }
+
+  // HIGH_RESISTANCE (e.g. 50Ω corroded pin)
+  const totalR = loadResistance + faultResistance;
+  const current = sourceVoltage / totalR;
+  const lampVoltage = current * loadResistance; // e.g. 12 * 6 / 56 ≈ 1.28V (too low to light bulb)
+
+  let lampPos = lampVoltage;
+  let lampNeg = 0;
+
+  if (faultLocation === 'HARNESS_SUPPLY' || faultLocation === 'SWITCH') {
+    lampPos = lampVoltage;
+    lampNeg = 0;
+  } else if (faultLocation === 'HARNESS_GROUND') {
+    lampPos = sourceVoltage;
+    lampNeg = current * faultResistance; // floating ground drop
+  }
+
+  return {
+    circuitCurrent: current,
+    lampVoltage,
+    lampGlow: lampVoltage > 8.0 ? 'BRIGHT' : lampVoltage > 2.0 ? 'DIM' : 'DARK',
+    fuseBlown: false,
+    nodeVoltages: {
+      batPos: sourceVoltage,
+      fuseIn: sourceVoltage,
+      fuseOut: sourceVoltage,
+      switchIn: sourceVoltage,
+      switchOut: sourceVoltage,
+      lampPos,
+      lampNeg,
+      gndStud: 0,
+    },
+  };
+}

@@ -374,10 +374,10 @@ export const CANONICAL_COURSE_REGISTRY: CourseLevelDefinition[] = [
     prerequisiteLevelIds: ['C01'],
     prerequisiteCapabilities: ['T08-VOLTAGE-DROP'],
     requiredModels: ['fault_seed_generator'],
-    publicationStatus: 'UNDER_CONSTRUCTION',
-    contentVersion: '0.1.0',
+    publicationStatus: 'PUBLISHED',
+    contentVersion: '1.0.0',
     rubricVersion: 'v1',
-    implemented: false,
+    implemented: true,
   },
   {
     canonicalId: 'C03',
