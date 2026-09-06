@@ -241,4 +241,81 @@ describe('Attempt Tracking, Replay & Evidence Framework (P1)', () => {
       db.prepare<{ count: number }>("SELECT COUNT(*) count FROM learning_attempts WHERE student_id='teacher'").get()?.count
     ).toBe(0);
   });
+
+  it('rejects C01 completion when assessment payload is missing (HTTP 422)', async () => {
+    // Complete prerequisites up to C01
+    const chain = ['LEVEL_00', 'LEVEL_01', 'LEVEL_02', 'A02', 'A03', 'A04', 'B01', 'B02', 'B03', 'B04', 'B05', 'B06'];
+    for (const lvl of chain) {
+      await eventPost(request(studentToken, makeEvent(`evt-p4pre-${lvl}`, lvl, 90)));
+    }
+
+    // Submit C01 without assessment
+    const res = await eventPost(request(studentToken, makeEvent('evt-c01-no-ast', 'C01', 100)));
+    expect(res.status).toBe(422);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toContain('必须提交包含真实过程的量规评测数据');
+  });
+
+  it('enforces server-authoritative score and rubric_version v2 for C01, ignoring client score', async () => {
+    const chain = ['LEVEL_00', 'LEVEL_01', 'LEVEL_02', 'A02', 'A03', 'A04', 'B01', 'B02', 'B03', 'B04', 'B05', 'B06'];
+    for (const lvl of chain) {
+      await eventPost(request(studentToken, makeEvent(`evt-c01auth-${lvl}`, lvl, 90)));
+    }
+
+    const now = Date.now();
+    const stageIds = ['cognition', 'standard', 'calculation', 'blind_test', 'transfer'] as const;
+    // Assessment with wrongAttempts and hints -> real score should be less than 100
+    const assessment = {
+      schemaVersion: 1,
+      levelId: 'C01',
+      rubricVersion: 'v2',
+      startedAt: now - 60_000,
+      completedAt: now,
+      stages: stageIds.map((stageId) => ({
+        stageId,
+        mode: stageId === 'transfer' ? 'transfer' : stageId === 'blind_test' ? 'independent' : 'guided',
+        startedAt: now - 50_000,
+        completedAt: now,
+        wrongAttempts: 2,
+        hintRequests: 1,
+        meterGuardBlocks: 1,
+        unsafeActions: 0,
+        retries: 0,
+        completed: true,
+      })),
+    };
+
+    // Client attempts to claim 100 points
+    const evt = {
+      eventId: 'evt-c01-authoritative',
+      levelId: 'C01',
+      eventType: 'LEVEL_COMPLETE',
+      payload: {
+        score: 100, // Client tampered score
+        mode: 'transfer',
+        assessment,
+      },
+      occurredAt: now,
+    };
+
+    const res = await eventPost(request(studentToken, evt));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { projection: UserProgressData };
+
+    // Server recalculated score, strictly less than client's 100
+    const c01Progress = body.projection.levels.C01;
+    expect(c01Progress.score).toBeLessThan(100);
+    expect(c01Progress.score).toBeGreaterThan(0);
+    // Because hints were used, mode must be 'guided' not 'transfer'
+    expect(c01Progress.recentRecord?.mode).toBe('guided');
+
+    // Verify DB stored rubric_version = 'v2'
+    const attemptRow = db.prepare<{ score: number; rubric_version: string; mode: string }>(
+      "SELECT score, rubric_version, mode FROM learning_attempts WHERE student_id='student' AND level_id='C01' ORDER BY started_at DESC LIMIT 1"
+    ).get();
+    expect(attemptRow?.rubric_version).toBe('v2');
+    expect(attemptRow?.score).toBe(c01Progress.score);
+    expect(attemptRow?.mode).toBe('guided');
+  });
 });
+

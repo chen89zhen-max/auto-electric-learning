@@ -4,6 +4,8 @@ import {
   type UserProgressData,
   type AttemptSummaryRecord,
   type PracticeMode,
+  type EvidenceDimensionId,
+  type EvidenceStatus,
   mergeEvidenceState,
   createInitialEvidenceState,
 } from '@/src/types/progress';
@@ -14,6 +16,19 @@ import {
   isLevelPublished,
   CANONICAL_COURSE_REGISTRY,
 } from '@/src/courses/registry';
+import { scoreAssessment } from '@/src/assessment/scoreAssessment';
+import type { LevelAssessmentResult, ScoredAssessment } from '@/src/assessment/assessmentTypes';
+
+export const P4_P5_P6_LEVELS = new Set([
+  'C01', 'C02', 'C03',
+  'D01', 'D02', 'D03', 'D04', 'D05',
+  'E01', 'E02', 'E03', 'E04', 'E05', 'E06', 'E07',
+]);
+
+export function isAssessmentRequiredLevel(levelId: string): boolean {
+  const norm = normalizeLevelId(levelId);
+  return P4_P5_P6_LEVELS.has(norm);
+}
 
 export const LEVEL_IDS: LevelId[] = [
   'LEVEL_00', 'LEVEL_01', 'LEVEL_02', 'LEVEL_03', 'LEVEL_04',
@@ -69,6 +84,8 @@ export function applyLearningEvent(
   completed: boolean;
   isReplay?: boolean;
   attemptRecord?: AttemptSummaryRecord;
+  scoredAssessment?: ScoredAssessment;
+  rubricVersion?: 'v1' | 'v2';
 } {
   const base = current || createBaseUserProgress(traineeName);
   const canonical = normalizeLevelId(input.levelId);
@@ -122,9 +139,47 @@ export function applyLearningEvent(
     };
   }
 
-  const score = readScore(input.payload);
+  const isP4P5P6 = isAssessmentRequiredLevel(canonical);
+  const rawAssessment = payloadHasAssessment(input.payload);
+
+  let score: number;
+  let mode: PracticeMode;
+  let incomingEvidence: Partial<Record<EvidenceDimensionId, EvidenceStatus>> | undefined;
+  let scoredAssessment: ScoredAssessment | undefined;
+  let rubricVersion: 'v1' | 'v2' = 'v1';
+
+  if (isP4P5P6) {
+    if (!rawAssessment) {
+      throw new LearningTransitionError('INVALID_SCORE', `关卡 ${canonical} 必须提交包含真实过程的量规评测数据 (assessment)`);
+    }
+    try {
+      scoredAssessment = scoreAssessment(rawAssessment);
+    } catch (err) {
+      throw new LearningTransitionError('INVALID_SCORE', `关卡 ${canonical} 评测数据无效：${err instanceof Error ? err.message : '解析失败'}`);
+    }
+    score = scoredAssessment.score;
+    mode = scoredAssessment.mode;
+    incomingEvidence = scoredAssessment.evidence;
+    rubricVersion = 'v2';
+  } else if (rawAssessment) {
+    try {
+      scoredAssessment = scoreAssessment(rawAssessment);
+      score = scoredAssessment.score;
+      mode = scoredAssessment.mode;
+      incomingEvidence = scoredAssessment.evidence;
+      rubricVersion = 'v2';
+    } catch {
+      score = readScore(input.payload);
+      mode = readPracticeMode(input.payload);
+      incomingEvidence = readEvidence(input.payload);
+    }
+  } else {
+    score = readScore(input.payload);
+    mode = readPracticeMode(input.payload);
+    incomingEvidence = readEvidence(input.payload);
+  }
+
   const isReplay = base.levels[legacyId]?.status === 'completed';
-  const mode = readPracticeMode(input.payload);
   const maxHintLevel = readHintLevel(input.payload);
 
   const attemptRecord: AttemptSummaryRecord = {
@@ -133,6 +188,8 @@ export function applyLearningEvent(
     score,
     mode,
     maxHintLevel,
+    counters: scoredAssessment?.counters,
+    rubricVersion,
   };
 
   const existingLevel = base.levels[legacyId] || { status: 'locked' };
@@ -140,7 +197,6 @@ export function applyLearningEvent(
   const newCount = currentCount + 1;
 
   // Evidence merging
-  const incomingEvidence = readEvidence(input.payload);
   const existingEvidence = existingLevel.evidence ?? createInitialEvidenceState();
   const updatedEvidence = mergeEvidenceState(existingEvidence, incomingEvidence);
 
@@ -188,7 +244,19 @@ export function applyLearningEvent(
     completed: true,
     isReplay,
     attemptRecord,
+    scoredAssessment,
+    rubricVersion,
   };
+}
+
+function payloadHasAssessment(payload: unknown): LevelAssessmentResult | null {
+  if (payload && typeof payload === 'object' && 'assessment' in payload) {
+    const candidate = (payload as { assessment?: unknown }).assessment;
+    if (candidate && typeof candidate === 'object') {
+      return candidate as LevelAssessmentResult;
+    }
+  }
+  return null;
 }
 
 function readScore(payload: unknown): number {

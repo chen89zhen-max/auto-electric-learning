@@ -107,9 +107,20 @@ export function submitLearningEvent(
       throw error;
     }
 
-    const attemptMode = extractMode(input.payload);
+    const attemptMode = transition.attemptRecord?.mode ?? extractMode(input.payload);
     const attemptSeed = extractSeed(input.payload);
-    const attemptEvidence = extractEvidenceString(input.payload);
+    let attemptEvidence: string | null = null;
+    if (transition.scoredAssessment) {
+      attemptEvidence = JSON.stringify({
+        evidence: transition.scoredAssessment.evidence,
+        dimensions: transition.scoredAssessment.dimensions,
+        counters: transition.scoredAssessment.counters,
+        durationMs: transition.scoredAssessment.durationMs,
+      });
+    } else {
+      attemptEvidence = extractEvidenceString(input.payload);
+    }
+    const rubricVersion = transition.rubricVersion ?? 'v1';
 
     let attempt = db.prepare<{ id: string }>(
       `SELECT id FROM learning_attempts
@@ -122,7 +133,7 @@ export function submitLearningEvent(
       db.prepare(
         `INSERT INTO learning_attempts
           (id,student_id,class_id,course_version_id,level_id,started_at,completed_at,score,status,mode,seed,evidence_data,rubric_version)
-         VALUES (?,?,?,?,?,?,?,?,?,'${attemptMode}',?,?,'v1')`
+         VALUES (?,?,?,?,?,?,?,?,?,'${attemptMode}',?,?,?)`
       ).run(
         attempt.id,
         user.id,
@@ -134,14 +145,15 @@ export function submitLearningEvent(
         transition.completed ? transition.score : null,
         transition.completed ? 'completed' : 'in_progress',
         attemptSeed,
-        attemptEvidence
+        attemptEvidence,
+        rubricVersion
       );
     } else if (transition.completed) {
       db.prepare(
         `UPDATE learning_attempts
-         SET status='completed',completed_at=?,score=?,mode='${attemptMode}',seed=?,evidence_data=?
+         SET status='completed',completed_at=?,score=?,mode='${attemptMode}',seed=?,evidence_data=?,rubric_version=?
          WHERE id=? AND status='in_progress'`
-      ).run(input.occurredAt, transition.score, attemptSeed, attemptEvidence, attempt.id);
+      ).run(input.occurredAt, transition.score, attemptSeed, attemptEvidence, rubricVersion, attempt.id);
     }
 
     const envelope: StoredEnvelope = { eventPayload: input.payload, projection: transition.projection };

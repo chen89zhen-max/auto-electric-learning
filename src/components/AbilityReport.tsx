@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import type { AbilityReportData } from '@/src/abilities/AbilityTracker';
 import type { Level01Metrics } from '@/src/levels/level01/level01Types';
 import type { EvidenceDimensionId, EvidenceStatus, PracticeMode } from '@/src/types/evidence';
+import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
+import { scoreAssessment } from '@/src/assessment/scoreAssessment';
 
 export interface AbilityDimensionItem {
   id: string;
@@ -28,6 +30,7 @@ export interface AbilityReportProps {
   evidence?: Partial<Record<EvidenceDimensionId, EvidenceStatus>>;
   mode?: PracticeMode;
   nextTask?: string;
+  assessment?: LevelAssessmentResult;
   onRestart?: () => void;
   onReturn: () => void;
 }
@@ -43,6 +46,7 @@ export function AbilityReport({
   evidence,
   mode,
   nextTask,
+  assessment,
   onRestart,
   onReturn,
 }: AbilityReportProps) {
@@ -53,19 +57,44 @@ export function AbilityReport({
   const resolvedTitle =
     title || (isDefaultLevel01 ? '安全作业能力报告' : `${levelId} 能力报告`);
 
+  const scored = assessment ? scoreAssessment(assessment) : null;
+
   const resolvedDimensions: AbilityDimensionItem[] =
     dimensions ||
-    report?.dimensions || [
-      { id: 'SAFETY_SPECIFICATION', label: '规范操作', stars: 5 },
-      { id: 'CIRCUIT_READING', label: '原理认知', stars: 5 },
-      { id: 'TOOL_MEASUREMENT', label: '工具运用', stars: 5 },
-      { id: 'DIAGNOSTIC_STRATEGY', label: '排故策略', stars: 5 },
-      { id: 'EVIDENCE_EXPRESSION', label: '数据表达', stars: 5 },
-    ];
+    (scored
+      ? scored.dimensions.map((d) => ({ id: d.id, label: d.label, stars: d.stars }))
+      : report?.dimensions || []);
 
   let resolvedSummary: AbilitySummaryItem[];
   if (summaryItems && summaryItems.length > 0) {
     resolvedSummary = summaryItems;
+  } else if (scored) {
+    resolvedSummary = [
+      {
+        label: '过程答错记录',
+        value: `${scored.counters.wrongAttempts} 次`,
+      },
+      {
+        label: '教学提示使用',
+        value: `${scored.counters.hintRequests} 次`,
+      },
+      {
+        label: '仪表安全拦截',
+        value: `${scored.counters.meterGuardBlocks} 次`,
+      },
+      {
+        label: '安全违规操作',
+        value: `${scored.counters.unsafeActions} 次`,
+      },
+      {
+        label: '阶段重试次数',
+        value: `${scored.counters.retries} 次`,
+      },
+      {
+        label: '实际实训耗时',
+        value: `${Math.max(1, Math.round(scored.durationMs / 60_000))} 分钟`,
+      },
+    ];
   } else if (report && report.summary) {
     const m = metrics as Level01Metrics | undefined;
     const duration = m?.levelDuration
@@ -99,16 +128,12 @@ export function AbilityReport({
     ];
   } else {
     resolvedSummary = [
-      { label: '规范操作核验', value: '合格' },
-      { label: '主动安全防护', value: '是' },
-      { label: '工单目标达成', value: '100%' },
-      { label: '提示使用', value: '0 次' },
-      { label: '实训评测结果', value: '优秀' },
-      { label: '本关用时', value: '1 分钟' },
+      { label: '实训评测状态', value: '待评定' },
+      { label: '过程数据记录', value: '无过程记录' },
     ];
   }
 
-  const reportForCompletion = report || {
+  const reportForCompletion = report || (resolvedDimensions.length > 0 ? {
     dimensions: resolvedDimensions.map((d) => ({
       id: d.id,
       label: d.label,
@@ -116,11 +141,14 @@ export function AbilityReport({
       score: d.stars * 20,
     })),
     summary: {} as AbilityReportData['summary'],
-  };
+  } : undefined);
 
   const resolvedNextTask =
     nextTask ||
     (isDefaultLevel01 ? '学习任务2《点亮第一盏检修灯》' : undefined);
+
+  const resolvedMode = mode || scored?.mode;
+  const resolvedEvidence = evidence || scored?.evidence;
 
   return (
     <section className="ability-report">
@@ -134,23 +162,29 @@ export function AbilityReport({
         </div>
       </div>
 
-      <div className="ability-grid">
-        {resolvedDimensions.map((dimension) => (
-          <div className="ability-row" key={dimension.id}>
-            <strong>{dimension.label}</strong>
-            <span aria-label={`${dimension.stars}星`}>
-              {Array.from({ length: 5 }, (_, index) => (
-                <Star
-                  key={index}
-                  size={19}
-                  fill={index < dimension.stars ? 'currentColor' : 'none'}
-                  className={index < dimension.stars ? 'filled' : ''}
-                />
-              ))}
-            </span>
-          </div>
-        ))}
-      </div>
+      {resolvedDimensions.length > 0 ? (
+        <div className="ability-grid">
+          {resolvedDimensions.map((dimension) => (
+            <div className="ability-row" key={dimension.id}>
+              <strong>{dimension.label}</strong>
+              <span aria-label={`${dimension.stars}星`}>
+                {Array.from({ length: 5 }, (_, index) => (
+                  <Star
+                    key={index}
+                    size={19}
+                    fill={index < dimension.stars ? 'currentColor' : 'none'}
+                    className={index < dimension.stars ? 'filled' : ''}
+                  />
+                ))}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="p-4 text-center text-slate-400 text-sm">
+          暂无评测维度数据
+        </div>
+      )}
 
       <dl className="process-summary">
         {resolvedSummary.map((item, idx) => (
@@ -165,9 +199,10 @@ export function AbilityReport({
         levelId={levelId}
         report={reportForCompletion}
         metrics={metrics}
-        evidence={evidence}
-        mode={mode}
+        evidence={resolvedEvidence}
+        mode={resolvedMode}
         nextTask={resolvedNextTask}
+        assessment={assessment}
       />
 
       <div className="report-actions">

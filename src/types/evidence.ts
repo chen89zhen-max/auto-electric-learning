@@ -67,6 +67,14 @@ export interface AttemptSummaryRecord {
   mode: PracticeMode;
   maxHintLevel?: number;
   seed?: string;
+  counters?: {
+    wrongAttempts: number;
+    hintRequests: number;
+    meterGuardBlocks: number;
+    unsafeActions: number;
+    retries: number;
+  };
+  rubricVersion?: string;
 }
 
 export function createInitialEvidenceState(): EvidenceState {

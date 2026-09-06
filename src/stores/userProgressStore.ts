@@ -8,6 +8,7 @@ import {
   type UserProgressData,
   type AttemptSummaryRecord,
 } from '@/src/types/progress';
+import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
 import {
   CANONICAL_COURSE_REGISTRY,
   getCourseLevel,
@@ -294,7 +295,12 @@ export async function submitLevelCompletion(
   levelId: string,
   score = 100,
   evidence: Record<string, unknown> = {},
-  options: { allowReplay?: boolean; mode?: 'guided' | 'independent' | 'transfer'; metrics?: object } = {}
+  options: {
+    allowReplay?: boolean;
+    mode?: 'guided' | 'independent' | 'transfer';
+    metrics?: object;
+    assessment?: LevelAssessmentResult;
+  } = {}
 ): Promise<UserProgressData> {
   const current = getUserProgress();
   // If in teacher demo mode, do not write to student records
@@ -314,7 +320,13 @@ export async function submitLevelCompletion(
       eventId,
       levelId,
       eventType: 'LEVEL_COMPLETE',
-      payload: { score, evidence, ...(options.mode ? { mode: options.mode } : {}), ...(options.metrics ? { metrics: options.metrics } : {}) },
+      payload: {
+        score,
+        evidence,
+        ...(options.mode ? { mode: options.mode } : {}),
+        ...(options.metrics ? { metrics: options.metrics } : {}),
+        ...(options.assessment ? { assessment: options.assessment } : {}),
+      },
       occurredAt: Date.now(),
     }) };
     pendingCompletions.set(levelId, pending);
