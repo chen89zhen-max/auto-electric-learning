@@ -216,3 +216,79 @@ export function verifyKVL(voltagesAlongLoop: number[], tolerance = 1e-5): boolea
   const sum = voltagesAlongLoop.reduce((acc, v) => acc + v, 0);
   return Math.abs(sum) < tolerance;
 }
+
+export interface VoltageDropCircuitParams {
+  sourceVoltage: number; // e.g. 12.0V
+  loadResistance: number; // e.g. 6.0Ω (headlamp)
+  supplyDropResistance: number; // e.g. 0.5Ω (fault/contact resistance on supply harness)
+  groundDropResistance: number; // e.g. 0.1Ω (contact resistance on ground harness)
+  isLoaded: boolean; // true = switch closed & loaded, false = switch open / unloaded
+}
+
+export interface VoltageDropCircuitResult {
+  sourceVoltage: number;
+  isLoaded: boolean;
+  totalResistance: number;
+  circuitCurrent: number;
+  lampVoltage: number;
+  lampPower: number;
+  supplyVoltageDrop: number;
+  groundVoltageDrop: number;
+  batteryPositivePotential: number;
+  fuseOutPotential: number;
+  lampPositivePotential: number;
+  lampNegativePotential: number;
+  groundPotential: number;
+}
+
+/**
+ * Calculates deterministic loaded and unloaded voltage drop diagnostic circuit
+ * Corresponds to C01 Mid-term Diagnostic Benchmark (Learning Task 8, 9 pages)
+ */
+export function calculateVoltageDropCircuit(params: VoltageDropCircuitParams): VoltageDropCircuitResult {
+  const { sourceVoltage, loadResistance, supplyDropResistance, groundDropResistance, isLoaded } = params;
+
+  if (!isLoaded) {
+    // Unloaded (switch open or circuit broken): circuit current is 0A!
+    // No current -> No voltage drop across resistors (V_drop = I * R = 0).
+    // Open circuit node potential upstream stays at full source voltage (12.0V), downstream stays at 0.0V.
+    return {
+      sourceVoltage,
+      isLoaded: false,
+      totalResistance: Infinity,
+      circuitCurrent: 0,
+      lampVoltage: 0,
+      lampPower: 0,
+      supplyVoltageDrop: 0,
+      groundVoltageDrop: 0,
+      batteryPositivePotential: sourceVoltage,
+      fuseOutPotential: sourceVoltage,
+      lampPositivePotential: sourceVoltage, // pin measures 12.0V false positive!
+      lampNegativePotential: 0,
+      groundPotential: 0,
+    };
+  }
+
+  const totalResistance = supplyDropResistance + loadResistance + groundDropResistance;
+  const circuitCurrent = totalResistance > 0 ? sourceVoltage / totalResistance : 0;
+  const supplyVoltageDrop = circuitCurrent * supplyDropResistance;
+  const groundVoltageDrop = circuitCurrent * groundDropResistance;
+  const lampVoltage = circuitCurrent * loadResistance;
+  const lampPower = lampVoltage * circuitCurrent;
+
+  return {
+    sourceVoltage,
+    isLoaded: true,
+    totalResistance,
+    circuitCurrent,
+    lampVoltage,
+    lampPower,
+    supplyVoltageDrop,
+    groundVoltageDrop,
+    batteryPositivePotential: sourceVoltage,
+    fuseOutPotential: sourceVoltage - (supplyVoltageDrop * 0.2), // minor drop across fuse
+    lampPositivePotential: sourceVoltage - supplyVoltageDrop,
+    lampNegativePotential: groundVoltageDrop,
+    groundPotential: 0,
+  };
+}

@@ -353,10 +353,10 @@ export const CANONICAL_COURSE_REGISTRY: CourseLevelDefinition[] = [
     prerequisiteLevelIds: ['B05'],
     prerequisiteCapabilities: ['T05-INTERNAL-RESISTANCE'],
     requiredModels: ['voltage_drop_diagnostic'],
-    publicationStatus: 'UNDER_CONSTRUCTION',
-    contentVersion: '0.1.0',
+    publicationStatus: 'PUBLISHED',
+    contentVersion: '1.0.0',
     rubricVersion: 'v1',
-    implemented: false,
+    implemented: true,
   },
   {
     canonicalId: 'C02',
