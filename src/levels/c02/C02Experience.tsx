@@ -125,7 +125,7 @@ export function C02Experience({ onReturnLobby }: C02ExperienceProps) {
               <AbilityReport
                 levelId="C02"
                 domainLabel="技能领域 · 直流电路故障排查"
-                title="电路断路、短路与虚接综合排查能力报告"
+                title="电路断路、短路、虚接与短路到电源综合排查能力报告"
                 assessment={assessmentResult ?? undefined}
                 metrics={stepEvidences}
                 nextTask="学习任务9《C03 第一次独立交车——综合直流诊断与修复复检》"
@@ -136,7 +136,7 @@ export function C02Experience({ onReturnLobby }: C02ExperienceProps) {
             <div className="objective-strip">
               <span>当前任务</span>
               <strong>查看断路、短路与虚接综合排查能力报告</strong>
-              <output className="feedback">实训评测已通过，断路/短路/高阻三类故障机理与防磨整改工艺已熟练掌握。</output>
+              <output className="feedback">实训评测已通过，断路/短路/高阻/短路到电源四类典型故障机理与防磨整改工艺已熟练掌握。</output>
             </div>
           </div>
         ) : (
@@ -145,7 +145,7 @@ export function C02Experience({ onReturnLobby }: C02ExperienceProps) {
             <div className="scene-panel">
               <div className="scene-heading">
                 <span className="status-dot bg-rose-500 shadow-rose-500/20" />
-                <span>10号实训工位 · 汽车电气三类故障综合诊断台</span>
+                <span>10号实训工位 · 汽车电气四类典型故障综合诊断台</span>
                 <span className="scene-meta">5阶段综合实训</span>
               </div>
               <div className="scene-content" key={sceneRevision}>

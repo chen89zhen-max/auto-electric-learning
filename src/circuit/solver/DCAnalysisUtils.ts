@@ -293,7 +293,7 @@ export function calculateVoltageDropCircuit(params: VoltageDropCircuitParams): V
   };
 }
 
-export type DiagnosticFaultType = 'NORMAL' | 'OPEN_CIRCUIT' | 'SHORT_TO_GROUND' | 'HIGH_RESISTANCE';
+export type DiagnosticFaultType = 'NORMAL' | 'OPEN_CIRCUIT' | 'SHORT_TO_GROUND' | 'HIGH_RESISTANCE' | 'SHORT_TO_POWER';
 
 export interface FaultDiagnosticCircuitParams {
   sourceVoltage: number; // 12.0V
@@ -322,7 +322,7 @@ export interface FaultDiagnosticCircuitResult {
 }
 
 /**
- * Deterministic circuit model for C02: Three Classic Faults (Open, Short, High Resistance)
+ * Deterministic circuit model for C02: Four Classic Faults (Open, Short-to-Ground, High Resistance, Short-to-Power)
  */
 export function calculateFaultClassificationCircuit(params: FaultDiagnosticCircuitParams): FaultDiagnosticCircuitResult {
   const { sourceVoltage, loadResistance, faultType, faultLocation, faultResistance = 50.0, fuseIntact } = params;
@@ -348,6 +348,28 @@ export function calculateFaultClassificationCircuit(params: FaultDiagnosticCircu
   }
 
   if (faultType === 'NORMAL') {
+    const current = sourceVoltage / loadResistance;
+    return {
+      circuitCurrent: current,
+      lampVoltage: sourceVoltage,
+      lampGlow: 'BRIGHT',
+      fuseBlown: false,
+      nodeVoltages: {
+        batPos: sourceVoltage,
+        fuseIn: sourceVoltage,
+        fuseOut: sourceVoltage,
+        switchIn: sourceVoltage,
+        switchOut: sourceVoltage,
+        lampPos: sourceVoltage,
+        lampNeg: 0,
+        gndStud: 0,
+      },
+    };
+  }
+
+  if (faultType === 'SHORT_TO_POWER') {
+    // Harness touching external B+ supply line downstream of switch:
+    // Downstream stays energized (12.0V) even when switch is open. Lamp is bright. Fuse remains intact.
     const current = sourceVoltage / loadResistance;
     return {
       circuitCurrent: current,

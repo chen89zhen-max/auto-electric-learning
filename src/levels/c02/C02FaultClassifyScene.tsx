@@ -27,7 +27,7 @@ interface C02FaultClassifySceneProps {
   hintRequested?: boolean;
 }
 
-interface BlindCaseC02 {
+export interface BlindCaseC02 {
   id: string;
   vehicleName: string;
   description: string;
@@ -46,7 +46,7 @@ interface BlindCaseC02 {
   fuseState: 'INTACT' | 'BLOWN';
 }
 
-const C02_BLIND_CASES: BlindCaseC02[] = [
+export const C02_BLIND_CASES: BlindCaseC02[] = [
   {
     id: 'CASE_OPEN',
     vehicleName: '盲测案例 1 (试验车 #108)',
@@ -99,6 +99,24 @@ const C02_BLIND_CASES: BlindCaseC02[] = [
       lampNeg: 10.72,
     },
     resistanceToGround: 56.0,
+    fuseState: 'INTACT',
+  },
+  {
+    id: 'CASE_SHORT_TO_POWER',
+    vehicleName: '盲测案例 4 (试验车 #412)',
+    description: '控制开关处于断开位置，但前照灯依然持续常亮不灭，严重漏电跑电。',
+    actualFaultType: 'SHORT_TO_POWER',
+    faultLocationText: '车灯下游供电线与同线束常电 B+ 导线绝缘层粘连搭接（短路到电源）',
+    faultExplanation: '开关断开时开关输出端与灯具正极仍测得 12.00V 常电倒灌；对地电阻正常，确诊为短路到外部电源常电！',
+    nodeVoltages: {
+      fuseIn: 12.0,
+      fuseOut: 12.0,
+      switchIn: 12.0,
+      switchOut: 12.0,
+      lampPos: 12.0,
+      lampNeg: 0.0,
+    },
+    resistanceToGround: 6.0,
     fuseState: 'INTACT',
   },
 ];
@@ -451,13 +469,15 @@ export function C02FaultClassifyScene({
                   y1="28"
                   x2={
                     currentStep === 'OPEN_CIRCUIT_ISOLATION' ||
-                    (currentStep === 'BLIND_THREE_FAULT_ISOLATION' && activeBlind.actualFaultType === 'OPEN_CIRCUIT')
+                    (currentStep === 'BLIND_THREE_FAULT_ISOLATION' &&
+                      (activeBlind.actualFaultType === 'OPEN_CIRCUIT' || activeBlind.actualFaultType === 'SHORT_TO_POWER'))
                       ? '35'
                       : '45'
                   }
                   y2={
                     currentStep === 'OPEN_CIRCUIT_ISOLATION' ||
-                    (currentStep === 'BLIND_THREE_FAULT_ISOLATION' && activeBlind.actualFaultType === 'OPEN_CIRCUIT')
+                    (currentStep === 'BLIND_THREE_FAULT_ISOLATION' &&
+                      (activeBlind.actualFaultType === 'OPEN_CIRCUIT' || activeBlind.actualFaultType === 'SHORT_TO_POWER'))
                       ? '18'
                       : '28'
                   }
@@ -465,6 +485,8 @@ export function C02FaultClassifyScene({
                     currentStep === 'OPEN_CIRCUIT_ISOLATION' ||
                     (currentStep === 'BLIND_THREE_FAULT_ISOLATION' && activeBlind.actualFaultType === 'OPEN_CIRCUIT')
                       ? '#f43f5e'
+                      : currentStep === 'BLIND_THREE_FAULT_ISOLATION' && activeBlind.actualFaultType === 'SHORT_TO_POWER'
+                      ? '#94a3b8'
                       : '#10b981'
                   }
                   strokeWidth="3"
@@ -480,27 +502,31 @@ export function C02FaultClassifyScene({
                 <circle
                   cx="30"
                   cy="35"
-                  r={retestDone ? 36 : 0}
+                  r={retestDone || (currentStep === 'BLIND_THREE_FAULT_ISOLATION' && activeBlind.actualFaultType === 'SHORT_TO_POWER') ? 36 : 0}
                   fill="#fef08a"
-                  opacity={retestDone ? '0.6' : '0'}
+                  opacity={retestDone || (currentStep === 'BLIND_THREE_FAULT_ISOLATION' && activeBlind.actualFaultType === 'SHORT_TO_POWER') ? '0.6' : '0'}
                   filter="url(#c02Glow)"
                 />
                 <circle
                   cx="30"
                   cy="35"
                   r="24"
-                  fill={retestDone ? '#ffffff' : '#475569'}
+                  fill={retestDone || (currentStep === 'BLIND_THREE_FAULT_ISOLATION' && activeBlind.actualFaultType === 'SHORT_TO_POWER') ? '#ffffff' : '#475569'}
                   stroke="#cbd5e1"
                   strokeWidth="2.5"
                 />
                 <path
                   d="M 22 45 L 26 28 L 30 40 L 34 28 L 38 45"
                   fill="none"
-                  stroke={retestDone ? '#eab308' : '#64748b'}
+                  stroke={retestDone || (currentStep === 'BLIND_THREE_FAULT_ISOLATION' && activeBlind.actualFaultType === 'SHORT_TO_POWER') ? '#eab308' : '#64748b'}
                   strokeWidth="2.5"
                 />
                 <text x="30" y="72" fill="#e2e8f0" fontSize="11" fontWeight="bold" textAnchor="middle">
-                  {retestDone ? '24W 工作灯 (点亮正常)' : '24W 工作灯 (不亮)'}
+                  {retestDone
+                    ? '24W 工作灯 (点亮正常)'
+                    : currentStep === 'BLIND_THREE_FAULT_ISOLATION' && activeBlind.actualFaultType === 'SHORT_TO_POWER'
+                    ? '24W 工作灯 (开关断开仍常亮!)'
+                    : '24W 工作灯 (不亮)'}
                 </text>
               </g>
 
@@ -990,7 +1016,7 @@ export function C02FaultClassifyScene({
             <div className="flex items-center justify-between">
               <div>
                 <span className="text-xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
-                  独立实车盲测 · 三类典型故障定位
+                  独立实车盲测 · 四类典型故障定位
                 </span>
                 <h3 className="text-base font-black text-slate-900 mt-1">
                   步骤 4：当前排查对象【{activeBlind.vehicleName}】，自主测验并判定故障本质
@@ -998,11 +1024,12 @@ export function C02FaultClassifyScene({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
               {[
                 { key: 'OPEN_CIRCUIT', text: '故障 A：回路断路（导线断脱/开关开路，开路点吃全压）' },
                 { key: 'SHORT_TO_GROUND', text: '故障 B：供电线对地短路（蹭破搭铁，保险丝反复烧毁）' },
                 { key: 'HIGH_RESISTANCE', text: '故障 C：接触不良高阻虚接（氧化锈蚀吃掉电压，灯光极暗）' },
+                { key: 'SHORT_TO_POWER', text: '故障 D：短路到电源（绝缘层粘连串入常电B+，开关断开负载仍常通）' },
               ].map((opt) => {
                 const isSelected = s4Decision === opt.key;
                 const isCorrect = opt.key === activeBlind.actualFaultType;

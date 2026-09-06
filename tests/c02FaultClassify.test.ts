@@ -3,6 +3,7 @@ import { calculateFaultClassificationCircuit } from '@/src/circuit/solver/DCAnal
 import { C02_STAGE_CONTENT, type C02Step } from '@/src/levels/c02/c02Training';
 import { getCourseLevel, isLevelPublished } from '@/src/courses/registry';
 import { resolveRequestedLevel } from '@/src/app/levelRoute';
+import { C02_BLIND_CASES } from '@/src/levels/c02/C02FaultClassifyScene';
 
 describe('C02 同样不亮，原因不同 · 电路断路与短路综合排查', () => {
   it('correctly calculates deterministic parameters for normal, open, short, and high resistance circuits', () => {
@@ -57,6 +58,21 @@ describe('C02 同样不亮，原因不同 · 电路断路与短路综合排查',
     expect(highR.circuitCurrent).toBeCloseTo(12.0 / 56.0, 4);
     expect(highR.lampVoltage).toBeCloseTo((12.0 / 56.0) * 6.0, 4); // ~1.2857V
     expect(highR.lampGlow).toBe('DARK');
+
+    // 5. Short to power (accidental contact with B+ line downstream of switch)
+    const shortToPower = calculateFaultClassificationCircuit({
+      sourceVoltage: 12.0,
+      loadResistance: 6.0,
+      faultType: 'SHORT_TO_POWER',
+      faultLocation: 'HARNESS_SUPPLY',
+      fuseIntact: true,
+    });
+    expect(shortToPower.fuseBlown).toBe(false);
+    expect(shortToPower.lampVoltage).toBe(12.0);
+    expect(shortToPower.circuitCurrent).toBe(2.0);
+    expect(shortToPower.nodeVoltages.switchOut).toBe(12.0);
+    expect(shortToPower.nodeVoltages.lampPos).toBe(12.0);
+    expect(shortToPower.lampGlow).toBe('BRIGHT');
   });
 
   it('provides complete 5-stage progressive training curriculum and mentor dialogues', () => {
@@ -88,5 +104,21 @@ describe('C02 同样不亮，原因不同 · 电路断路与短路综合排查',
     expect(c02Level?.contentVersion).toBe('1.0.0');
     expect(c02Level?.chapterId).toBe('chapter_c');
     expect(resolveRequestedLevel('?level=C02')).toBe('C02');
+  });
+
+  it('covers all four classic fault signatures (OPEN_CIRCUIT, SHORT_TO_GROUND, HIGH_RESISTANCE, SHORT_TO_POWER) in blind cases', () => {
+    expect(C02_BLIND_CASES.length).toBeGreaterThanOrEqual(4);
+    const faultTypes = C02_BLIND_CASES.map((c) => c.actualFaultType);
+    expect(faultTypes).toContain('OPEN_CIRCUIT');
+    expect(faultTypes).toContain('SHORT_TO_GROUND');
+    expect(faultTypes).toContain('HIGH_RESISTANCE');
+    expect(faultTypes).toContain('SHORT_TO_POWER');
+
+    const shortToPowerCase = C02_BLIND_CASES.find((c) => c.actualFaultType === 'SHORT_TO_POWER')!;
+    expect(shortToPowerCase).toBeDefined();
+    expect(shortToPowerCase.nodeVoltages.switchOut).toBeCloseTo(12.0, 1);
+    expect(shortToPowerCase.nodeVoltages.lampPos).toBeCloseTo(12.0, 1);
+    expect(shortToPowerCase.fuseState).toBe('INTACT');
+    expect(shortToPowerCase.resistanceToGround).toBeGreaterThan(1.0);
   });
 });
