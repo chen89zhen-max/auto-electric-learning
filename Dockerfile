@@ -18,7 +18,7 @@ RUN apt-get update \
 WORKDIR /app
 COPY --from=builder --chown=app:app /app/dist/standalone /app
 COPY --from=builder --chown=app:app /app/src/server/db/migrations /app/migrations
-COPY --chown=app:app scripts/container-entrypoint.mjs /app/scripts/container-entrypoint.mjs
+COPY --chown=app:app scripts /app/scripts
 RUN mkdir -p /app/data /app/backups && chown -R app:app /app/data /app/backups
 ENV NODE_ENV=production \
     APP_DATA_DIR=/app/data \

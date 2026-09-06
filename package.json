@@ -13,7 +13,10 @@
     "test": "vitest run --config vitest.config.ts --configLoader runner",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint app src tests vitest.config.ts",
-    "format": "oxfmt"
+    "format": "oxfmt",
+    "db:backup": "node scripts/backup-sqlite.mjs",
+    "db:verify-backup": "node scripts/verify-sqlite-backup.mjs",
+    "db:restore": "node scripts/restore-sqlite.mjs"
   },
   "dependencies": {
     "@base-ui/react": "1.7.0",
