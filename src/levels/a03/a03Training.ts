@@ -4,6 +4,158 @@ export type A03Step =
   | 'POTENTIOMETER_TEST'
   | 'TRANSFER_SORTING';
 
+export interface ColorBandInfo {
+  name: string;
+  color: string;
+  textColor: string;
+  bgColor: string;
+  borderColor: string;
+  value: number;
+}
+
+export interface StandardResistor {
+  id: string;
+  name: string;
+  bands: [ColorBandInfo, ColorBandInfo, ColorBandInfo, ColorBandInfo];
+  nominal: number;
+  tolerance: number; // 5 or 10
+  expectedMin: number;
+  expectedMax: number;
+  sampleAValue: number;
+  sampleBValue: number;
+}
+
+export const STANDARD_RESISTOR_POOL: readonly StandardResistor[] = [
+  {
+    id: 'RES_220_G',
+    name: '红·红·棕·金 (标称 220Ω ±5%)',
+    bands: [
+      { name: '红', color: '#dc2626', textColor: 'text-red-700', bgColor: 'bg-red-50', borderColor: 'border-red-300', value: 2 },
+      { name: '红', color: '#dc2626', textColor: 'text-red-700', bgColor: 'bg-red-50', borderColor: 'border-red-300', value: 2 },
+      { name: '棕', color: '#78350f', textColor: 'text-amber-900', bgColor: 'bg-amber-100', borderColor: 'border-amber-300', value: 1 },
+      { name: '金', color: '#eab308', textColor: 'text-amber-800', bgColor: 'bg-amber-50', borderColor: 'border-amber-300', value: 5 },
+    ],
+    nominal: 220,
+    tolerance: 5,
+    expectedMin: 209,
+    expectedMax: 231,
+    sampleAValue: 224.0,
+    sampleBValue: 330.0,
+  },
+  {
+    id: 'RES_330_S',
+    name: '橙·橙·棕·银 (标称 330Ω ±10%)',
+    bands: [
+      { name: '橙', color: '#ea580c', textColor: 'text-orange-700', bgColor: 'bg-orange-50', borderColor: 'border-orange-300', value: 3 },
+      { name: '橙', color: '#ea580c', textColor: 'text-orange-700', bgColor: 'bg-orange-50', borderColor: 'border-orange-300', value: 3 },
+      { name: '棕', color: '#78350f', textColor: 'text-amber-900', bgColor: 'bg-amber-100', borderColor: 'border-amber-300', value: 1 },
+      { name: '银', color: '#94a3b8', textColor: 'text-slate-700', bgColor: 'bg-slate-100', borderColor: 'border-slate-300', value: 10 },
+    ],
+    nominal: 330,
+    tolerance: 10,
+    expectedMin: 297,
+    expectedMax: 363,
+    sampleAValue: 338.0,
+    sampleBValue: 490.0,
+  },
+  {
+    id: 'RES_100_G',
+    name: '棕·黑·棕·金 (标称 100Ω ±5%)',
+    bands: [
+      { name: '棕', color: '#78350f', textColor: 'text-amber-900', bgColor: 'bg-amber-100', borderColor: 'border-amber-300', value: 1 },
+      { name: '黑', color: '#0f172a', textColor: 'text-slate-800', bgColor: 'bg-slate-100', borderColor: 'border-slate-300', value: 0 },
+      { name: '棕', color: '#78350f', textColor: 'text-amber-900', bgColor: 'bg-amber-100', borderColor: 'border-amber-300', value: 1 },
+      { name: '金', color: '#eab308', textColor: 'text-amber-800', bgColor: 'bg-amber-50', borderColor: 'border-amber-300', value: 5 },
+    ],
+    nominal: 100,
+    tolerance: 5,
+    expectedMin: 95,
+    expectedMax: 105,
+    sampleAValue: 99.0,
+    sampleBValue: 155.0,
+  },
+  {
+    id: 'RES_470_S',
+    name: '黄·紫·棕·银 (标称 470Ω ±10%)',
+    bands: [
+      { name: '黄', color: '#ca8a04', textColor: 'text-yellow-800', bgColor: 'bg-yellow-50', borderColor: 'border-yellow-300', value: 4 },
+      { name: '紫', color: '#7c3aed', textColor: 'text-purple-700', bgColor: 'bg-purple-50', borderColor: 'border-purple-300', value: 7 },
+      { name: '棕', color: '#78350f', textColor: 'text-amber-900', bgColor: 'bg-amber-100', borderColor: 'border-amber-300', value: 1 },
+      { name: '银', color: '#94a3b8', textColor: 'text-slate-700', bgColor: 'bg-slate-100', borderColor: 'border-slate-300', value: 10 },
+    ],
+    nominal: 470,
+    tolerance: 10,
+    expectedMin: 423,
+    expectedMax: 517,
+    sampleAValue: 480.0,
+    sampleBValue: 680.0,
+  },
+  {
+    id: 'RES_1000_G',
+    name: '棕·黑·红·金 (标称 1000Ω ±5%)',
+    bands: [
+      { name: '棕', color: '#78350f', textColor: 'text-amber-900', bgColor: 'bg-amber-100', borderColor: 'border-amber-300', value: 1 },
+      { name: '黑', color: '#0f172a', textColor: 'text-slate-800', bgColor: 'bg-slate-100', borderColor: 'border-slate-300', value: 0 },
+      { name: '红', color: '#dc2626', textColor: 'text-red-700', bgColor: 'bg-red-50', borderColor: 'border-red-300', value: 2 },
+      { name: '金', color: '#eab308', textColor: 'text-amber-800', bgColor: 'bg-amber-50', borderColor: 'border-amber-300', value: 5 },
+    ],
+    nominal: 1000,
+    tolerance: 5,
+    expectedMin: 950,
+    expectedMax: 1050,
+    sampleAValue: 1015.0,
+    sampleBValue: 1450.0,
+  },
+  {
+    id: 'RES_680_G',
+    name: '蓝·灰·棕·金 (标称 680Ω ±5%)',
+    bands: [
+      { name: '蓝', color: '#2563eb', textColor: 'text-blue-700', bgColor: 'bg-blue-50', borderColor: 'border-blue-300', value: 6 },
+      { name: '灰', color: '#64748b', textColor: 'text-slate-700', bgColor: 'bg-slate-100', borderColor: 'border-slate-300', value: 8 },
+      { name: '棕', color: '#78350f', textColor: 'text-amber-900', bgColor: 'bg-amber-100', borderColor: 'border-amber-300', value: 1 },
+      { name: '金', color: '#eab308', textColor: 'text-amber-800', bgColor: 'bg-amber-50', borderColor: 'border-amber-300', value: 5 },
+    ],
+    nominal: 680,
+    tolerance: 5,
+    expectedMin: 646,
+    expectedMax: 714,
+    sampleAValue: 688.0,
+    sampleBValue: 950.0,
+  },
+  {
+    id: 'RES_240_G',
+    name: '红·黄·棕·金 (标称 240Ω ±5%)',
+    bands: [
+      { name: '红', color: '#dc2626', textColor: 'text-red-700', bgColor: 'bg-red-50', borderColor: 'border-red-300', value: 2 },
+      { name: '黄', color: '#ca8a04', textColor: 'text-yellow-800', bgColor: 'bg-yellow-50', borderColor: 'border-yellow-300', value: 4 },
+      { name: '棕', color: '#78350f', textColor: 'text-amber-900', bgColor: 'bg-amber-100', borderColor: 'border-amber-300', value: 1 },
+      { name: '金', color: '#eab308', textColor: 'text-amber-800', bgColor: 'bg-amber-50', borderColor: 'border-amber-300', value: 5 },
+    ],
+    nominal: 240,
+    tolerance: 5,
+    expectedMin: 228,
+    expectedMax: 252,
+    sampleAValue: 243.0,
+    sampleBValue: 360.0,
+  },
+  {
+    id: 'RES_1000_S',
+    name: '棕·黑·红·银 (标称 1000Ω ±10%)',
+    bands: [
+      { name: '棕', color: '#78350f', textColor: 'text-amber-900', bgColor: 'bg-amber-100', borderColor: 'border-amber-300', value: 1 },
+      { name: '黑', color: '#0f172a', textColor: 'text-slate-800', bgColor: 'bg-slate-100', borderColor: 'border-slate-300', value: 0 },
+      { name: '红', color: '#dc2626', textColor: 'text-red-700', bgColor: 'bg-red-50', borderColor: 'border-red-300', value: 2 },
+      { name: '银', color: '#94a3b8', textColor: 'text-slate-700', bgColor: 'bg-slate-100', borderColor: 'border-slate-300', value: 10 },
+    ],
+    nominal: 1000,
+    tolerance: 10,
+    expectedMin: 900,
+    expectedMax: 1100,
+    sampleAValue: 1040.0,
+    sampleBValue: 1550.0,
+  },
+];
+
 export interface A03StageContent {
   title: string;
   objective: string;

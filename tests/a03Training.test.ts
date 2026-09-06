@@ -1,5 +1,5 @@
-﻿import { describe, expect, it } from 'vitest';
-import { STANDARD_RESISTOR_POOL } from '@/src/levels/a03/scenes/A03ResistanceScene';
+import { describe, expect, it } from 'vitest';
+import { STANDARD_RESISTOR_POOL } from '@/src/levels/a03/a03Training';
 
 describe('A03 色环电阻规格池与公差规则验证', () => {
   it('色环电阻池包含多种规格且涵盖金色 (±5%) 与银色 (±10%) 公差', () => {
