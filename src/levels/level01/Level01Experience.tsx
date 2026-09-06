@@ -70,6 +70,19 @@ function Level01Game({ onReturnLevel00 }: { onReturnLevel00: () => void }) {
   );
 }
 
-export function Level01Experience({ onReturnLevel00 }: { onReturnLevel00: () => void }) {
-  return <Level01StoreProvider><Level01Game onReturnLevel00={onReturnLevel00} /></Level01StoreProvider>;
+export function Level01Experience({
+  onReturnLevel00,
+  onReturnLobby,
+}: {
+  onReturnLevel00?: () => void;
+  onReturnLobby?: () => void;
+}) {
+  const handleReturn = onReturnLobby ?? onReturnLevel00 ?? (() => {});
+  return (
+    <Level01StoreProvider>
+      <Level01Game onReturnLevel00={handleReturn} />
+    </Level01StoreProvider>
+  );
 }
+
+export default Level01Experience;
