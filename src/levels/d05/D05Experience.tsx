@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { FullscreenButton } from '@/src/components/FullscreenButton';
 import { AbilityReport } from '@/src/components/AbilityReport';
+import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
 import { MasterChenAvatar } from '@/src/components/visuals/MasterChenAvatar';
 import { sounds } from '@/src/components/visuals/SoundEffects';
 import { speakText, stopSpeaking } from '@/src/components/visuals/SpeechTts';
@@ -26,6 +27,7 @@ interface D05ExperienceProps {
 export function D05Experience({ onReturnLobby }: D05ExperienceProps) {
   const [currentStep, setCurrentStep] = useState<D05Step>('STRUCTURE_AND_MAGNETIC_FLUX');
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
+  const [assessmentResult, setAssessmentResult] = useState<LevelAssessmentResult | null>(null);
   const [stepEvidences, setStepEvidences] = useState<Record<string, unknown>>({});
   const [sceneRevision, setSceneRevision] = useState(0);
   const [showWorkOrder, setShowWorkOrder] = useState(false);
@@ -75,6 +77,7 @@ export function D05Experience({ onReturnLobby }: D05ExperienceProps) {
     setStepEvidences({});
     setHintRequested(false);
     setShowWorkOrder(false);
+    setAssessmentResult(null);
     setSceneRevision((r) => r + 1);
   };
 
@@ -216,6 +219,11 @@ export function D05Experience({ onReturnLobby }: D05ExperienceProps) {
           currentStep={currentStep}
           onStepComplete={handleStepComplete}
           onAdvanceStep={handleAdvanceStep}
+          hintRequested={hintRequested}
+          onComplete={(result) => {
+            setAssessmentResult(result);
+            setIsCompleted(true);
+          }}
         />
 
         {/* Completed Ability Report */}
@@ -225,22 +233,8 @@ export function D05Experience({ onReturnLobby }: D05ExperienceProps) {
               levelId="D05"
               domainLabel="技能领域 · 变压器与车载逆变 (⭐ 选学)"
               title="D05 变压器实验室选学能力报告"
-              dimensions={[
-                { id: 'FLUX_COUPLING', label: '闭合铁芯交变磁通耦合', stars: 5 },
-                { id: 'TURNS_RATIO', label: '变压比与变流比功率守恒', stars: 5 },
-                { id: 'DC_COUNTEREXAMPLE', label: '直流短路灾难反例辨析', stars: 5 },
-                { id: 'POLARITY_SAME_NAME', label: '同名端交流加减极性测试', stars: 5 },
-                { id: 'INVERTER_STEP_UP', label: '车载220V逆变升压交付', stars: 5 },
-              ]}
-              summaryItems={[
-                { label: '降压变压比', value: '1100:60 (220V:12V)' },
-                { label: '降压变流比', value: '0.27A : 5.0A (副边粗线)' },
-                { label: '直流短路电流', value: '40.0 A (严重过流)' },
-                { label: '车载逆变输出', value: '220.5 V~ (50Hz)' },
-                { label: '本关用时', value: '2 分钟' },
-              ]}
               metrics={stepEvidences}
-              mode="guided"
+              assessment={assessmentResult ?? undefined}
               nextTask="篇章五《E01 电流的单向通道——二极管及其应用》"
               onRestart={handleRestart}
               onReturn={onReturnLobby}

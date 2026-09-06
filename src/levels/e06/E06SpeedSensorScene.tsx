@@ -16,18 +16,25 @@ import {
   E06_SAMPLES,
   calculateSpeedFrequency,
 } from './e06Training';
+import { useLevelAssessment } from '@/src/assessment/useLevelAssessment';
+import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
 
 interface E06SpeedSensorSceneProps {
   currentStep: E06Step;
   onStepComplete: (step: E06Step, evidence: Record<string, unknown>) => void;
   onAdvanceStep: () => void;
+  onComplete?: (result: LevelAssessmentResult) => void;
+  hintRequested?: boolean;
 }
 
 export function E06SpeedSensorScene({
   currentStep,
   onStepComplete,
   onAdvanceStep,
+  onComplete,
+  hintRequested = false,
 }: E06SpeedSensorSceneProps) {
+  const assessment = useLevelAssessment('E06');
   // Multimeter knob: 'OFF' | 'OHM_2K' | 'DCV_20' | 'OSCILLOSCOPE'
   const [meterKnob, setMeterKnob] = useState<'OFF' | 'OHM_2K' | 'DCV_20' | 'OSCILLOSCOPE'>('OFF');
   const [meterWarning, setMeterWarning] = useState<string | null>(null);
@@ -61,13 +68,35 @@ export function E06SpeedSensorScene({
   const [s5Signed, setS5Signed] = useState<boolean>(false);
   const [s5Submitted, setS5Submitted] = useState<boolean>(false);
 
+  React.useEffect(() => {
+    if (hintRequested) {
+      const stageMap: Record<E06Step, 'cognition' | 'standard' | 'calculation' | 'blind_test' | 'transfer'> = {
+        MAGNETO_VS_HALL_COGNITION: 'cognition',
+        MULTIMETER_AND_OSCILLOSCOPE_TEST: 'standard',
+        SPEED_FREQUENCY_AND_GAP_CALC: 'calculation',
+        BLIND_SPEED_SENSOR_FAULT_DIAGNOSIS: 'blind_test',
+        ENGINEERING_REPAIR_AND_DELIVERY: 'transfer',
+      };
+      assessment.requestHint(stageMap[currentStep]);
+    }
+  }, [hintRequested, currentStep, assessment]);
+
   const requireMeterKnob = (required: 'OHM_2K' | 'DCV_20' | 'OSCILLOSCOPE'): boolean => {
+    const stageMap: Record<E06Step, 'cognition' | 'standard' | 'calculation' | 'blind_test' | 'transfer'> = {
+      MAGNETO_VS_HALL_COGNITION: 'cognition',
+      MULTIMETER_AND_OSCILLOSCOPE_TEST: 'standard',
+      SPEED_FREQUENCY_AND_GAP_CALC: 'calculation',
+      BLIND_SPEED_SENSOR_FAULT_DIAGNOSIS: 'blind_test',
+      ENGINEERING_REPAIR_AND_DELIVERY: 'transfer',
+    };
     if (meterKnob === 'OFF') {
+      assessment.recordMeterBlocked(stageMap[currentStep]);
       setMeterWarning('⚠️ 测试仪表未开机！请先切至对应挡位！');
       sounds.playFailureSound?.();
       return false;
     }
     if (meterKnob !== required) {
+      assessment.recordMeterBlocked(stageMap[currentStep]);
       setMeterWarning(`⚠️ 挡位错误！当前需要切到 [${required}] 挡位！`);
       sounds.playFailureSound?.();
       return false;
@@ -265,6 +294,7 @@ export function E06SpeedSensorScene({
                         sounds.playSuccessSound?.();
                         onStepComplete('MAGNETO_VS_HALL_COGNITION', { s1Choice, s1SensorType });
                       } else {
+                        assessment.recordWrong('cognition');
                         sounds.playFailureSound?.();
                         alert('结论有误，磁电式为两线无源正弦波，霍尔式为三线有源数字方波！');
                       }
@@ -280,7 +310,11 @@ export function E06SpeedSensorScene({
                       <span>判定正确！牢固掌握无源磁电与有源霍尔的本质区别。</span>
                     </div>
                     <Button
-                      onClick={onAdvanceStep}
+                      onClick={() => {
+                        assessment.completeStage('cognition');
+                        assessment.startStage('standard');
+                        onAdvanceStep();
+                      }}
                       className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
                     >
                       进入步骤 2：万用表与示波器实测 <ArrowRight className="w-3.5 h-3.5" />
@@ -389,6 +423,7 @@ export function E06SpeedSensorScene({
                         sounds.playSuccessSound?.();
                         onStepComplete('MULTIMETER_AND_OSCILLOSCOPE_TEST', { s2Choice, s2Rpm });
                       } else {
+                        assessment.recordWrong('standard');
                         sounds.playFailureSound?.();
                         alert('判别有误！缺齿是专门用于 TDC 上止点同步基准的物理特征！');
                       }
@@ -404,7 +439,11 @@ export function E06SpeedSensorScene({
                       <span>分析准确！60-2 齿形是发动机点火与喷油同步的心脏基准！</span>
                     </div>
                     <Button
-                      onClick={onAdvanceStep}
+                      onClick={() => {
+                        assessment.completeStage('standard');
+                        assessment.startStage('calculation');
+                        onAdvanceStep();
+                      }}
                       className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
                     >
                       进入步骤 3：频率与气隙定量分析 <ArrowRight className="w-3.5 h-3.5" />
@@ -542,6 +581,7 @@ export function E06SpeedSensorScene({
                         sounds.playSuccessSound?.();
                         onStepComplete('SPEED_FREQUENCY_AND_GAP_CALC', { s3Choice, s3Freq });
                       } else {
+                        assessment.recordWrong('calculation');
                         sounds.playFailureSound?.();
                         alert('计算有误！f = (n × Z) / 60 = (3000 × 58) / 60 = 2900 Hz！');
                       }
@@ -557,7 +597,11 @@ export function E06SpeedSensorScene({
                       <span>换算精准！2900Hz 对应 3000rpm，装配气隙必须严格把控！</span>
                     </div>
                     <Button
-                      onClick={onAdvanceStep}
+                      onClick={() => {
+                        assessment.completeStage('calculation');
+                        assessment.startStage('blind_test');
+                        onAdvanceStep();
+                      }}
                       className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
                     >
                       进入步骤 4：转速传感器盲测 <ArrowRight className="w-3.5 h-3.5" />
@@ -691,6 +735,7 @@ export function E06SpeedSensorScene({
                         sounds.playSuccessSound?.();
                         onStepComplete('BLIND_SPEED_SENSOR_FAULT_DIAGNOSIS', { s4Diagnoses });
                       } else {
+                        assessment.recordWrong('blind_test');
                         sounds.playFailureSound?.();
                         alert('诊断存在错误，请核对幅值与屏蔽层杂波特征！');
                       }
@@ -706,7 +751,11 @@ export function E06SpeedSensorScene({
                       <span>全组盲测分类 100% 正确！具备转速传感器高级诊断技能！</span>
                     </div>
                     <Button
-                      onClick={onAdvanceStep}
+                      onClick={() => {
+                        assessment.completeStage('blind_test');
+                        assessment.startStage('transfer', 'transfer');
+                        onAdvanceStep();
+                      }}
                       className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
                     >
                       进入步骤 5：实车工程修复与交付 <ArrowRight className="w-3.5 h-3.5" />
@@ -883,6 +932,9 @@ export function E06SpeedSensorScene({
                     onClick={() => {
                       setS5Submitted(true);
                       sounds.playSuccessSound?.();
+                      assessment.completeStage('transfer');
+                      const finalResult = assessment.completeLevel();
+                      onComplete?.(finalResult);
                       onStepComplete('ENGINEERING_REPAIR_AND_DELIVERY', {
                         s5Repaired,
                         s5GapAdjusted,

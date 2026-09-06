@@ -12,11 +12,15 @@ import {
 import { Button } from '@/components/ui/button';
 import { sounds } from '@/src/components/visuals/SoundEffects';
 import { type D01Step } from './d01Training';
+import { useLevelAssessment } from '@/src/assessment/useLevelAssessment';
+import type { LevelAssessmentResult, TrainingStageId } from '@/src/assessment/assessmentTypes';
 
 interface D01RelayControlSceneProps {
   currentStep: D01Step;
   onStepComplete: (step: D01Step, evidence: Record<string, unknown>) => void;
   onAdvanceStep: () => void;
+  onComplete?: (result: LevelAssessmentResult) => void;
+  hintRequested?: boolean;
 }
 
 interface RelayBlindCase {
@@ -59,7 +63,7 @@ const BLIND_CASES: RelayBlindCase[] = [
     vehicleName: '环卫作业车 #308 (大灯暗淡黄光)',
     symptom: '按下开关听到吸合声，但工作灯发光昏暗微弱，带载发热严重。',
     faultType: 'CONTACT_OXIDIZED',
-    faultName: '继电器内部触点严重氧化烧蚀碳化',
+    faultName: '继电器动静触点表面严重电弧烧蚀碳化',
     coilResistance: 80,
     contactResistance: 2.5, // high resistance
     contactDrop: 3.8, // 3.8V drop!
@@ -71,7 +75,24 @@ export function D01RelayControlScene({
   currentStep,
   onStepComplete,
   onAdvanceStep,
+  onComplete,
+  hintRequested,
 }: D01RelayControlSceneProps) {
+  const assessment = useLevelAssessment('D01');
+
+  React.useEffect(() => {
+    if (hintRequested) {
+      const stageMap: Record<D01Step, TrainingStageId> = {
+        COIL_CONTACT_ISOLATION: 'cognition',
+        MULTIMETER_PIN_IDENTIFICATION: 'standard',
+        RELAY_ENERGIZATION_AND_SWITCH: 'calculation',
+        BLIND_RELAY_FAULT_DIAGNOSIS: 'blind_test',
+        ENGINEERING_REPAIR_AND_DELIVERY: 'transfer',
+      };
+      assessment.requestHint(stageMap[currentStep]);
+    }
+  }, [hintRequested, currentStep, assessment]);
+
   // Multimeter knob: 'OFF' | 'DCV_20' | 'OHM_200'
   const [meterKnob, setMeterKnob] = useState<'OFF' | 'DCV_20' | 'OHM_200'>('OFF');
   const [meterWarning, setMeterWarning] = useState<string | null>(null);
@@ -108,13 +129,22 @@ export function D01RelayControlScene({
 
   // Multimeter Anti-misoperation guard
   const requireMeterPowered = (expected: 'DCV_20' | 'OHM_200'): boolean => {
+    const stageMap: Record<D01Step, TrainingStageId> = {
+      COIL_CONTACT_ISOLATION: 'cognition',
+      MULTIMETER_PIN_IDENTIFICATION: 'standard',
+      RELAY_ENERGIZATION_AND_SWITCH: 'calculation',
+      BLIND_RELAY_FAULT_DIAGNOSIS: 'blind_test',
+      ENGINEERING_REPAIR_AND_DELIVERY: 'transfer',
+    };
     if (meterKnob === 'OFF') {
       sounds.warningBuzz();
+      assessment.recordMeterBlocked(stageMap[currentStep]);
       setMeterWarning('⚠️ 万用表处于关机 OFF 状态！请先拨动旋钮开机再进行打表测量。');
       return false;
     }
     if (meterKnob !== expected) {
       sounds.warningBuzz();
+      assessment.recordMeterBlocked(stageMap[currentStep]);
       setMeterWarning(`⚠️ 当前量程不匹配！请将万用表拨至 ${expected === 'DCV_20' ? '直流电压 (DCV 20V)' : '电阻挡 (Ω 200Ω)'}。`);
       return false;
     }
@@ -669,6 +699,7 @@ export function D01RelayControlScene({
                         onStepComplete('COIL_CONTACT_ISOLATION', { choice: s1Choice, correct: true });
                       } else {
                         sounds.warningBuzz();
+                        assessment.recordWrong('cognition');
                         setS1Submitted(true);
                       }
                     }}
@@ -677,7 +708,14 @@ export function D01RelayControlScene({
                     提交判别分析
                   </Button>
                 ) : s1Choice === 'A' ? (
-                  <Button onClick={onAdvanceStep} className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2">
+                  <Button
+                    onClick={() => {
+                      assessment.completeStage('cognition');
+                      assessment.startStage('standard');
+                      onAdvanceStep();
+                    }}
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                  >
                     通过！进入引脚万用表辨识 <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
                 ) : (
@@ -743,6 +781,7 @@ export function D01RelayControlScene({
                         onStepComplete('MULTIMETER_PIN_IDENTIFICATION', { answer: s2Answer, pins: s2SelectedPins });
                       } else {
                         sounds.warningBuzz();
+                        assessment.recordWrong('standard');
                         setS2Submitted(true);
                       }
                     }}
@@ -751,7 +790,14 @@ export function D01RelayControlScene({
                     核验引脚测试数据
                   </Button>
                 ) : s2Answer === 'A' ? (
-                  <Button onClick={onAdvanceStep} className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2">
+                  <Button
+                    onClick={() => {
+                      assessment.completeStage('standard');
+                      assessment.startStage('calculation');
+                      onAdvanceStep();
+                    }}
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                  >
                     判定准确！进入电磁吸合规律测试 <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
                 ) : (
@@ -816,6 +862,7 @@ export function D01RelayControlScene({
                         onStepComplete('RELAY_ENERGIZATION_AND_SWITCH', { choice: s3Choice });
                       } else {
                         sounds.warningBuzz();
+                        assessment.recordWrong('calculation');
                         setS3Submitted(true);
                       }
                     }}
@@ -824,7 +871,14 @@ export function D01RelayControlScene({
                     {!s3Observed ? '请先在左侧闭合开关通电观察' : '提交动作机理分析'}
                   </Button>
                 ) : s3Choice === 'A' ? (
-                  <Button onClick={onAdvanceStep} className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2">
+                  <Button
+                    onClick={() => {
+                      assessment.completeStage('calculation');
+                      assessment.startStage('blind_test');
+                      onAdvanceStep();
+                    }}
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                  >
                     非常透彻！进入独立盲测排故实战 <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
                 ) : (
@@ -893,6 +947,7 @@ export function D01RelayControlScene({
                         onStepComplete('BLIND_RELAY_FAULT_DIAGNOSIS', { caseId: activeBlind.id, choice: s4Choice });
                       } else {
                         sounds.warningBuzz();
+                        assessment.recordWrong('blind_test');
                         setS4Submitted(true);
                       }
                     }}
@@ -908,6 +963,8 @@ export function D01RelayControlScene({
                         setS4Choice(null);
                         setS4Submitted(false);
                       } else {
+                        assessment.completeStage('blind_test');
+                        assessment.startStage('transfer', 'transfer');
                         onAdvanceStep();
                       }
                     }}
@@ -972,6 +1029,10 @@ export function D01RelayControlScene({
                         voltageDrop: 0.03,
                         workOrderSigned: true,
                       });
+                      assessment.completeStage('transfer');
+                      const finalResult = assessment.completeLevel();
+                      onComplete?.(finalResult);
+                      onAdvanceStep();
                     }}
                     className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
                   >

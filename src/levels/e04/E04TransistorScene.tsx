@@ -16,18 +16,25 @@ import {
   E04_SAMPLES,
   calculateBjtOperatingPoint,
 } from './e04Training';
+import { useLevelAssessment } from '@/src/assessment/useLevelAssessment';
+import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
 
 interface E04TransistorSceneProps {
   currentStep: E04Step;
   onStepComplete: (step: E04Step, evidence: Record<string, unknown>) => void;
   onAdvanceStep: () => void;
+  onComplete?: (result: LevelAssessmentResult) => void;
+  hintRequested?: boolean;
 }
 
 export function E04TransistorScene({
   currentStep,
   onStepComplete,
   onAdvanceStep,
+  onComplete,
+  hintRequested = false,
 }: E04TransistorSceneProps) {
+  const assessment = useLevelAssessment('E04');
   // Multimeter knob: 'OFF' | 'DIODE' | 'HFE' | 'DCV_20'
   const [meterKnob, setMeterKnob] = useState<'OFF' | 'DIODE' | 'HFE' | 'DCV_20'>('OFF');
   const [meterWarning, setMeterWarning] = useState<string | null>(null);
@@ -61,13 +68,35 @@ export function E04TransistorScene({
   const [s5Signed, setS5Signed] = useState<boolean>(false);
   const [s5Submitted, setS5Submitted] = useState<boolean>(false);
 
+  React.useEffect(() => {
+    if (hintRequested) {
+      const stageMap: Record<E04Step, 'cognition' | 'standard' | 'calculation' | 'blind_test' | 'transfer'> = {
+        TRANSISTOR_PRINCIPLE_COGNITION: 'cognition',
+        MULTIMETER_PIN_AND_BETA_TEST: 'standard',
+        THREE_OPERATION_STATES_CALC: 'calculation',
+        BLIND_TRANSISTOR_FAULT_DIAGNOSIS: 'blind_test',
+        ENGINEERING_REPAIR_AND_DELIVERY: 'transfer',
+      };
+      assessment.requestHint(stageMap[currentStep]);
+    }
+  }, [hintRequested, currentStep, assessment]);
+
   const requireMeterKnob = (required: 'DIODE' | 'HFE' | 'DCV_20'): boolean => {
+    const stageMap: Record<E04Step, 'cognition' | 'standard' | 'calculation' | 'blind_test' | 'transfer'> = {
+      TRANSISTOR_PRINCIPLE_COGNITION: 'cognition',
+      MULTIMETER_PIN_AND_BETA_TEST: 'standard',
+      THREE_OPERATION_STATES_CALC: 'calculation',
+      BLIND_TRANSISTOR_FAULT_DIAGNOSIS: 'blind_test',
+      ENGINEERING_REPAIR_AND_DELIVERY: 'transfer',
+    };
     if (meterKnob === 'OFF') {
+      assessment.recordMeterBlocked(stageMap[currentStep]);
       setMeterWarning('⚠️ 万用表电源未开！请先切至所需挡位！');
       sounds.playFailureSound?.();
       return false;
     }
     if (meterKnob !== required) {
+      assessment.recordMeterBlocked(stageMap[currentStep]);
       setMeterWarning(`⚠️ 挡位错误！当前需要打到 [${required}] 挡位！`);
       sounds.playFailureSound?.();
       return false;
@@ -273,6 +302,7 @@ export function E04TransistorScene({
                         sounds.playSuccessSound?.();
                         onStepComplete('TRANSISTOR_PRINCIPLE_COGNITION', { s1Choice, s1Triggered });
                       } else {
+                        assessment.recordWrong('cognition');
                         sounds.playFailureSound?.();
                         alert('结论有误，三极管在开关电路中是以微弱基极信号驱动大电流负载！');
                       }
@@ -288,7 +318,11 @@ export function E04TransistorScene({
                       <span>判定正确！三极管实现弱电对强电的电子开关精准放大驱动！</span>
                     </div>
                     <Button
-                      onClick={onAdvanceStep}
+                      onClick={() => {
+                        assessment.completeStage('cognition');
+                        assessment.startStage('standard');
+                        onAdvanceStep();
+                      }}
                       className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
                     >
                       进入步骤 2：引脚识别与 β 测量 <ArrowRight className="w-3.5 h-3.5" />
@@ -416,6 +450,7 @@ export function E04TransistorScene({
                         sounds.playSuccessSound?.();
                         onStepComplete('MULTIMETER_PIN_AND_BETA_TEST', { s2Choice, s2Target });
                       } else {
+                        assessment.recordWrong('standard');
                         sounds.playFailureSound?.();
                         alert('判别有误，发射区重掺杂使得 B-E 压降略大于 B-C 压降！');
                       }
@@ -431,7 +466,11 @@ export function E04TransistorScene({
                       <span>检测规范掌握精准！引脚与 β 参数全部厘清。</span>
                     </div>
                     <Button
-                      onClick={onAdvanceStep}
+                      onClick={() => {
+                        assessment.completeStage('standard');
+                        assessment.startStage('calculation');
+                        onAdvanceStep();
+                      }}
                       className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
                     >
                       进入步骤 3：三态定量切换计算 <ArrowRight className="w-3.5 h-3.5" />
@@ -565,6 +604,7 @@ export function E04TransistorScene({
                         sounds.playSuccessSound?.();
                         onStepComplete('THREE_OPERATION_STATES_CALC', { s3Choice, s3Point });
                       } else {
+                        assessment.recordWrong('calculation');
                         sounds.playFailureSound?.();
                         alert('结论有误！开关应用必须确保饱和导通 Uce ≤ 0.3V！');
                       }
@@ -580,7 +620,11 @@ export function E04TransistorScene({
                       <span>计算与设计完全达标！深度饱和保证开关驱动零功耗！</span>
                     </div>
                     <Button
-                      onClick={onAdvanceStep}
+                      onClick={() => {
+                        assessment.completeStage('calculation');
+                        assessment.startStage('blind_test');
+                        onAdvanceStep();
+                      }}
                       className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
                     >
                       进入步骤 4：典型故障盲测 <ArrowRight className="w-3.5 h-3.5" />
@@ -729,6 +773,7 @@ export function E04TransistorScene({
                         sounds.playSuccessSound?.();
                         onStepComplete('BLIND_TRANSISTOR_FAULT_DIAGNOSIS', { s4Diagnoses });
                       } else {
+                        assessment.recordWrong('blind_test');
                         sounds.playFailureSound?.();
                         alert('诊断存在错误，请结合触发前后的 Uce 状态重新推敲！');
                       }
@@ -744,7 +789,11 @@ export function E04TransistorScene({
                       <span>全组盲测分类 100% 正确！具备板级三极管排故硬功夫！</span>
                     </div>
                     <Button
-                      onClick={onAdvanceStep}
+                      onClick={() => {
+                        assessment.completeStage('blind_test');
+                        assessment.startStage('transfer', 'transfer');
+                        onAdvanceStep();
+                      }}
                       className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
                     >
                       进入步骤 5：实车工程修复与交付 <ArrowRight className="w-3.5 h-3.5" />
@@ -903,6 +952,9 @@ export function E04TransistorScene({
                     onClick={() => {
                       setS5Submitted(true);
                       sounds.playSuccessSound?.();
+                      assessment.completeStage('transfer');
+                      const finalResult = assessment.completeLevel();
+                      onComplete?.(finalResult);
                       onStepComplete('ENGINEERING_REPAIR_AND_DELIVERY', {
                         s5Repaired,
                         s5SimTemp,

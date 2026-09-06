@@ -18,6 +18,7 @@ import { speakText, stopSpeaking } from '@/src/components/visuals/SpeechTts';
 import { getStudentDisplayName } from '@/src/stores/authStore';
 import { D01RelayControlScene } from './D01RelayControlScene';
 import { D01_STAGE_CONTENT, type D01Step } from './d01Training';
+import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
 
 interface D01ExperienceProps {
   onReturnLobby: () => void;
@@ -26,6 +27,7 @@ interface D01ExperienceProps {
 export function D01Experience({ onReturnLobby }: D01ExperienceProps) {
   const [currentStep, setCurrentStep] = useState<D01Step>('COIL_CONTACT_ISOLATION');
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
+  const [assessmentResult, setAssessmentResult] = useState<LevelAssessmentResult | null>(null);
   const [stepEvidences, setStepEvidences] = useState<Record<string, unknown>>({});
   const [sceneRevision, setSceneRevision] = useState(0);
   const [showWorkOrder, setShowWorkOrder] = useState(false);
@@ -72,6 +74,7 @@ export function D01Experience({ onReturnLobby }: D01ExperienceProps) {
 
   const handleRestart = () => {
     setIsCompleted(false);
+    setAssessmentResult(null);
     setCurrentStep('COIL_CONTACT_ISOLATION');
     setStepEvidences({});
     setHintRequested(false);
@@ -80,33 +83,34 @@ export function D01Experience({ onReturnLobby }: D01ExperienceProps) {
   };
 
   return (
-    <main className="app-shell level03-shell d01-shell">
-      {/* Top Navigation Bar */}
-      <header className="topbar">
-        <div className="brand-lockup">
-          <span className="brand-mark safety-mark bg-amber-600 shadow-amber-600/20 text-white">
-            <Zap size={22} />
-          </span>
+    <main className="app-shell level03-shell d01-shell bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-amber-500/30 selection:text-amber-200">
+      {/* Header Topbar */}
+      <header className="topbar bg-slate-900 border-b border-slate-800 px-6 py-3 flex items-center justify-between sticky top-0 z-40 shadow-lg">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-400">
+            <Zap size={20} />
+          </div>
           <div>
-            <p className="eyebrow">篇章四：让电和磁配合工作 · 电磁控制基石</p>
-            <h1>D01 小开关控制工作灯——继电器与电磁控制</h1>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono px-1.5 py-0.5 bg-slate-800 text-slate-300 rounded border border-slate-700">
+                篇章四 · 电磁与电机
+              </span>
+              <span className="text-xs text-amber-400 font-semibold">学习任务 11</span>
+            </div>
+            <h1 className="text-base font-bold text-slate-100 mt-0.5">
+              D01 小开关控制工作灯——继电器与电磁控制
+            </h1>
           </div>
         </div>
 
-        <div className="trainee-badge">
-          <GraduationCap size={18} />
-          <span>见习电工 · {getStudentDisplayName('见习学员')} ({isCompleted ? '已通过验收' : '实训推进中'})</span>
-        </div>
-
-        <div className="flex items-center gap-2 ml-auto">
-          <FullscreenButton />
+        <div className="flex items-center gap-3">
           <button
             onClick={() => setShowWorkOrder(!showWorkOrder)}
-            className="action-btn secondary"
-            title="查看任务工单"
+            className={`action-btn ${showWorkOrder ? 'active text-amber-400 border-amber-500/50' : 'secondary'}`}
+            title="查看实训工单详情"
           >
             <ClipboardList size={16} />
-            <span>工单卡</span>
+            <span>实训工单</span>
           </button>
           <button
             onClick={handleRestart}
@@ -116,6 +120,7 @@ export function D01Experience({ onReturnLobby }: D01ExperienceProps) {
             <RotateCcw size={16} />
             <span>重新开始</span>
           </button>
+          <FullscreenButton />
           <button
             onClick={onReturnLobby}
             className="action-btn secondary text-rose-300 hover:text-rose-200"
@@ -212,6 +217,11 @@ export function D01Experience({ onReturnLobby }: D01ExperienceProps) {
           currentStep={currentStep}
           onStepComplete={handleStepComplete}
           onAdvanceStep={handleAdvanceStep}
+          onComplete={(result) => {
+            setAssessmentResult(result);
+            setIsCompleted(true);
+          }}
+          hintRequested={hintRequested}
         />
 
         {/* Completed Ability Report */}
@@ -221,22 +231,8 @@ export function D01Experience({ onReturnLobby }: D01ExperienceProps) {
               levelId="D01"
               domainLabel="技能领域 · 继电器与电磁控制"
               title="D01 小开关控制工作灯能力报告"
-              dimensions={[
-                { id: 'COIL_CONTACT', label: '弱电控强电回路分离', stars: 5 },
-                { id: 'PIN_ID', label: '85/86与30/87引脚识读', stars: 5 },
-                { id: 'SWITCH_ACTION', label: '电磁吸合规律动作测试', stars: 5 },
-                { id: 'BLIND_DIAG', label: '未知继电器典型故障排查', stars: 5 },
-                { id: 'REPAIR_ACCEPT', label: '原厂换件与带载压降验收', stars: 5 },
-              ]}
-              summaryItems={[
-                { label: '线圈控制电流', value: '0.15 A (弱电)' },
-                { label: '大灯额定电流', value: '4.58 A (强电)' },
-                { label: '电流放大倍率', value: '> 30 倍' },
-                { label: '换新触点压降', value: '0.03 V (≤0.1V合格)' },
-                { label: '本关用时', value: '2 分钟' },
-              ]}
+              assessment={assessmentResult ?? undefined}
               metrics={stepEvidences}
-              mode="guided"
               nextTask="学习任务12《D02 让电机转起来——直流电动机认知》"
               onRestart={handleRestart}
               onReturn={onReturnLobby}

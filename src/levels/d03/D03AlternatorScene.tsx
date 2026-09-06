@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Activity,
   AlertTriangle,
@@ -10,12 +10,16 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { sounds } from '@/src/components/visuals/SoundEffects';
+import { useLevelAssessment } from '@/src/assessment/useLevelAssessment';
+import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
 import { type D03Step } from './d03Training';
 
 interface D03AlternatorSceneProps {
   currentStep: D03Step;
   onStepComplete: (step: D03Step, evidence: Record<string, unknown>) => void;
   onAdvanceStep: () => void;
+  onComplete?: (result: LevelAssessmentResult) => void;
+  hintRequested?: boolean;
 }
 
 interface AlternatorBlindCase {
@@ -70,7 +74,24 @@ export function D03AlternatorScene({
   currentStep,
   onStepComplete,
   onAdvanceStep,
+  onComplete,
+  hintRequested,
 }: D03AlternatorSceneProps) {
+  const assessment = useLevelAssessment('D03');
+
+  useEffect(() => {
+    if (hintRequested) {
+      const stageMap: Record<D03Step, 'cognition' | 'standard' | 'calculation' | 'blind_test' | 'transfer'> = {
+        FARADAY_INDUCTION_AND_RIGHT_HAND_RULE: 'cognition',
+        SINE_AC_WAVEFORM_AND_THREE_ELEMENTS: 'standard',
+        SPEED_CHARACTERISTIC_AND_ROTATION: 'calculation',
+        BLIND_ALTERNATOR_FAULT_DIAGNOSIS: 'blind_test',
+        ENGINEERING_REPAIR_AND_CHARGING_ACCEPTANCE: 'transfer',
+      };
+      assessment.requestHint(stageMap[currentStep]);
+    }
+  }, [hintRequested, currentStep, assessment]);
+
   // Multimeter Knob: 'OFF' | 'DCV_20' | 'ACV_200' | 'OHM_200'
   const [meterKnob, setMeterKnob] = useState<'OFF' | 'DCV_20' | 'ACV_200' | 'OHM_200'>('OFF');
   const [meterWarning, setMeterWarning] = useState<string | null>(null);
@@ -110,14 +131,23 @@ export function D03AlternatorScene({
 
   // Guard
   const requireMeterPowered = (expected: 'DCV_20' | 'ACV_200' | 'OHM_200'): boolean => {
+    const stageMap: Record<D03Step, 'cognition' | 'standard' | 'calculation' | 'blind_test' | 'transfer'> = {
+      FARADAY_INDUCTION_AND_RIGHT_HAND_RULE: 'cognition',
+      SINE_AC_WAVEFORM_AND_THREE_ELEMENTS: 'standard',
+      SPEED_CHARACTERISTIC_AND_ROTATION: 'calculation',
+      BLIND_ALTERNATOR_FAULT_DIAGNOSIS: 'blind_test',
+      ENGINEERING_REPAIR_AND_CHARGING_ACCEPTANCE: 'transfer',
+    };
     if (meterKnob === 'OFF') {
       sounds.warningBuzz();
       setMeterWarning('⚠️ 万用表处于关机 OFF 状态！请先拨动旋钮开机再进行测量。');
+      assessment.recordMeterBlocked(stageMap[currentStep]);
       return false;
     }
     if (meterKnob !== expected) {
       sounds.warningBuzz();
       setMeterWarning(`⚠️ 量程不匹配！当前测量需使用 ${expected} 挡位。`);
+      assessment.recordMeterBlocked(stageMap[currentStep]);
       return false;
     }
     setMeterWarning(null);
@@ -755,6 +785,7 @@ export function D03AlternatorScene({
                       } else {
                         sounds.warningBuzz();
                         setS1Submitted(true);
+                        assessment.recordWrong('cognition');
                       }
                     }}
                     className="w-full bg-teal-600 hover:bg-teal-500 text-xs font-semibold py-2"
@@ -762,7 +793,14 @@ export function D03AlternatorScene({
                     提交感应电流方向判定
                   </Button>
                 ) : s1Choice === 'OUT' ? (
-                  <Button onClick={onAdvanceStep} className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2">
+                  <Button
+                    onClick={() => {
+                      assessment.completeStage('cognition');
+                      assessment.startStage('standard');
+                      onAdvanceStep();
+                    }}
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                  >
                     完全正确！进入正弦交流电三要素实训 <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
                 ) : (
@@ -828,6 +866,7 @@ export function D03AlternatorScene({
                       } else {
                         sounds.warningBuzz();
                         setS2Submitted(true);
+                        assessment.recordWrong('standard');
                       }
                     }}
                     className="w-full bg-teal-600 hover:bg-teal-500 text-xs font-semibold py-2"
@@ -835,7 +874,14 @@ export function D03AlternatorScene({
                     {!s2MeterTested ? '请先在左下方对比 DCV 与 ACV 挡位显示' : '提交有效值原理分析'}
                   </Button>
                 ) : s2Choice === 'A' ? (
-                  <Button onClick={onAdvanceStep} className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2">
+                  <Button
+                    onClick={() => {
+                      assessment.completeStage('standard');
+                      assessment.startStage('calculation');
+                      onAdvanceStep();
+                    }}
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                  >
                     深刻破除仪表误区！进入转速特性实验 <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
                 ) : (
@@ -901,6 +947,7 @@ export function D03AlternatorScene({
                       } else {
                         sounds.warningBuzz();
                         setS3Submitted(true);
+                        assessment.recordWrong('calculation');
                       }
                     }}
                     className="w-full bg-teal-600 hover:bg-teal-500 text-xs font-semibold py-2"
@@ -908,7 +955,14 @@ export function D03AlternatorScene({
                     提交转速特性总结
                   </Button>
                 ) : s3Choice === 'A' ? (
-                  <Button onClick={onAdvanceStep} className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2">
+                  <Button
+                    onClick={() => {
+                      assessment.completeStage('calculation');
+                      assessment.startStage('blind_test');
+                      onAdvanceStep();
+                    }}
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                  >
                     规律准确！进入独立盲测排故 <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
                 ) : (
@@ -982,6 +1036,7 @@ export function D03AlternatorScene({
                       } else {
                         sounds.warningBuzz();
                         setS4Submitted(true);
+                        assessment.recordWrong('blind_test');
                       }
                     }}
                     className="w-full bg-teal-600 hover:bg-teal-500 text-xs font-semibold py-2"
@@ -996,6 +1051,8 @@ export function D03AlternatorScene({
                         setS4Choice(null);
                         setS4Submitted(false);
                       } else {
+                        assessment.completeStage('blind_test');
+                        assessment.startStage('transfer', 'transfer');
                         onAdvanceStep();
                       }
                     }}
@@ -1060,6 +1117,9 @@ export function D03AlternatorScene({
                         idleVoltage: 14.22,
                         signed: true,
                       });
+                      assessment.completeStage('transfer');
+                      const finalResult = assessment.completeLevel();
+                      onComplete?.(finalResult);
                     }}
                     className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
                   >

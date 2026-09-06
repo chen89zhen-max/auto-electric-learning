@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   AlertTriangle,
   ArrowRight,
@@ -11,12 +11,16 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { sounds } from '@/src/components/visuals/SoundEffects';
+import { useLevelAssessment } from '@/src/assessment/useLevelAssessment';
+import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
 import { type D04Step } from './d04Training';
 
 interface D04InductanceSceneProps {
   currentStep: D04Step;
   onStepComplete: (step: D04Step, evidence: Record<string, unknown>) => void;
   onAdvanceStep: () => void;
+  onComplete?: (result: LevelAssessmentResult) => void;
+  hintRequested?: boolean;
 }
 
 interface IgnitionBlindCase {
@@ -71,7 +75,24 @@ export function D04InductanceScene({
   currentStep,
   onStepComplete,
   onAdvanceStep,
+  onComplete,
+  hintRequested,
 }: D04InductanceSceneProps) {
+  const assessment = useLevelAssessment('D04');
+
+  useEffect(() => {
+    if (hintRequested) {
+      const stageMap: Record<D04Step, 'cognition' | 'standard' | 'calculation' | 'blind_test' | 'transfer'> = {
+        SELF_INDUCTANCE_AND_TRANSIENT_SPARK: 'cognition',
+        FREEWHEELING_DIODE_PROTECTION: 'standard',
+        MUTUAL_INDUCTANCE_IGNITION_COIL: 'calculation',
+        BLIND_IGNITION_FAULT_ISOLATION: 'blind_test',
+        ENGINEERING_REPAIR_AND_SPARK_ACCEPTANCE: 'transfer',
+      };
+      assessment.requestHint(stageMap[currentStep]);
+    }
+  }, [hintRequested, currentStep, assessment]);
+
   // Multimeter Knob: 'OFF' | 'DCV_20' | 'OHM_200' | 'OHM_20K'
   const [meterKnob, setMeterKnob] = useState<'OFF' | 'DCV_20' | 'OHM_200' | 'OHM_20K'>('OFF');
   const [meterWarning, setMeterWarning] = useState<string | null>(null);
@@ -110,14 +131,23 @@ export function D04InductanceScene({
 
   // Guard
   const requireMeterPowered = (expected: 'DCV_20' | 'OHM_200' | 'OHM_20K'): boolean => {
+    const stageMap: Record<D04Step, 'cognition' | 'standard' | 'calculation' | 'blind_test' | 'transfer'> = {
+      SELF_INDUCTANCE_AND_TRANSIENT_SPARK: 'cognition',
+      FREEWHEELING_DIODE_PROTECTION: 'standard',
+      MUTUAL_INDUCTANCE_IGNITION_COIL: 'calculation',
+      BLIND_IGNITION_FAULT_ISOLATION: 'blind_test',
+      ENGINEERING_REPAIR_AND_SPARK_ACCEPTANCE: 'transfer',
+    };
     if (meterKnob === 'OFF') {
       sounds.warningBuzz();
       setMeterWarning('⚠️ 万用表处于关机 OFF 状态！请先拨动旋钮开机再进行打表。');
+      assessment.recordMeterBlocked(stageMap[currentStep]);
       return false;
     }
     if (meterKnob !== expected) {
       sounds.warningBuzz();
       setMeterWarning(`⚠️ 量程不匹配！当前测试需打到 ${expected} 挡。`);
+      assessment.recordMeterBlocked(stageMap[currentStep]);
       return false;
     }
     setMeterWarning(null);
@@ -678,6 +708,7 @@ export function D04InductanceScene({
                       } else {
                         sounds.warningBuzz();
                         setS1Submitted(true);
+                        assessment.recordWrong('cognition');
                       }
                     }}
                     className="w-full bg-orange-600 hover:bg-orange-500 text-xs font-semibold py-2"
@@ -685,7 +716,14 @@ export function D04InductanceScene({
                     {!s1SparkOccurred ? '请先在左侧断开开关观察打火' : '提交自感反峰分析'}
                   </Button>
                 ) : s1Choice === 'A' ? (
-                  <Button onClick={onAdvanceStep} className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2">
+                  <Button
+                    onClick={() => {
+                      assessment.completeStage('cognition');
+                      assessment.startStage('standard');
+                      onAdvanceStep();
+                    }}
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                  >
                     深刻洞察！进入续流二极管消弧实训 <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
                 ) : (
@@ -751,6 +789,7 @@ export function D04InductanceScene({
                       } else {
                         sounds.warningBuzz();
                         setS2Submitted(true);
+                        assessment.recordWrong('standard');
                       }
                     }}
                     className="w-full bg-orange-600 hover:bg-orange-500 text-xs font-semibold py-2"
@@ -758,7 +797,14 @@ export function D04InductanceScene({
                     {!s2Observed ? '请先在左侧加装二极管测试消弧' : '提交续流钳位原理分析'}
                   </Button>
                 ) : s2Choice === 'A' ? (
-                  <Button onClick={onAdvanceStep} className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2">
+                  <Button
+                    onClick={() => {
+                      assessment.completeStage('standard');
+                      assessment.startStage('calculation');
+                      onAdvanceStep();
+                    }}
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                  >
                     原理透彻！进入汽车点火互感升压实训 <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
                 ) : (
@@ -824,6 +870,7 @@ export function D04InductanceScene({
                       } else {
                         sounds.warningBuzz();
                         setS3Submitted(true);
+                        assessment.recordWrong('calculation');
                       }
                     }}
                     className="w-full bg-orange-600 hover:bg-orange-500 text-xs font-semibold py-2"
@@ -831,7 +878,14 @@ export function D04InductanceScene({
                     {!s3IgnitionTriggered ? '请先在左侧点击触发跳火' : '提交点火互感原理分析'}
                   </Button>
                 ) : s3Choice === 'A' ? (
-                  <Button onClick={onAdvanceStep} className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2">
+                  <Button
+                    onClick={() => {
+                      assessment.completeStage('calculation');
+                      assessment.startStage('blind_test');
+                      onAdvanceStep();
+                    }}
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                  >
                     完全正确！进入独立盲测排故 <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
                 ) : (
@@ -905,6 +959,7 @@ export function D04InductanceScene({
                       } else {
                         sounds.warningBuzz();
                         setS4Submitted(true);
+                        assessment.recordWrong('blind_test');
                       }
                     }}
                     className="w-full bg-orange-600 hover:bg-orange-500 text-xs font-semibold py-2"
@@ -919,6 +974,8 @@ export function D04InductanceScene({
                         setS4Choice(null);
                         setS4Submitted(false);
                       } else {
+                        assessment.completeStage('blind_test');
+                        assessment.startStage('transfer', 'transfer');
                         onAdvanceStep();
                       }
                     }}
@@ -984,6 +1041,9 @@ export function D04InductanceScene({
                         secondaryR: 9.5,
                         signed: true,
                       });
+                      assessment.completeStage('transfer');
+                      const finalResult = assessment.completeLevel();
+                      onComplete?.(finalResult);
                     }}
                     className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
                   >

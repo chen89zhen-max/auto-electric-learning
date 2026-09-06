@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { FullscreenButton } from '@/src/components/FullscreenButton';
 import { AbilityReport } from '@/src/components/AbilityReport';
+import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
 import { MasterChenAvatar } from '@/src/components/visuals/MasterChenAvatar';
 import { sounds } from '@/src/components/visuals/SoundEffects';
 import { speakText, stopSpeaking } from '@/src/components/visuals/SpeechTts';
@@ -26,6 +27,7 @@ interface D04ExperienceProps {
 export function D04Experience({ onReturnLobby }: D04ExperienceProps) {
   const [currentStep, setCurrentStep] = useState<D04Step>('SELF_INDUCTANCE_AND_TRANSIENT_SPARK');
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
+  const [assessmentResult, setAssessmentResult] = useState<LevelAssessmentResult | null>(null);
   const [stepEvidences, setStepEvidences] = useState<Record<string, unknown>>({});
   const [sceneRevision, setSceneRevision] = useState(0);
   const [showWorkOrder, setShowWorkOrder] = useState(false);
@@ -75,6 +77,7 @@ export function D04Experience({ onReturnLobby }: D04ExperienceProps) {
     setStepEvidences({});
     setHintRequested(false);
     setShowWorkOrder(false);
+    setAssessmentResult(null);
     setSceneRevision((r) => r + 1);
   };
 
@@ -211,6 +214,11 @@ export function D04Experience({ onReturnLobby }: D04ExperienceProps) {
           currentStep={currentStep}
           onStepComplete={handleStepComplete}
           onAdvanceStep={handleAdvanceStep}
+          hintRequested={hintRequested}
+          onComplete={(result) => {
+            setAssessmentResult(result);
+            setIsCompleted(true);
+          }}
         />
 
         {/* Completed Ability Report */}
@@ -220,22 +228,8 @@ export function D04Experience({ onReturnLobby }: D04ExperienceProps) {
               levelId="D04"
               domainLabel="技能领域 · 自感互感与高压点火"
               title="D04 断开开关后的现象能力报告"
-              dimensions={[
-                { id: 'SELF_INDUCTANCE', label: '自感反峰与电离电弧机理', stars: 5 },
-                { id: 'FREEWHEEL_DIODE', label: '续流二极管0.7V钳位消弧', stars: 5 },
-                { id: 'IGNITION_STEP_UP', label: '互感20kV高压升压与跳火', stars: 5 },
-                { id: 'COIL_BLIND', label: '点火线圈初次级绕组盲测', stars: 5 },
-                { id: 'SPARK_ACCEPT', label: '原厂换件与0.9mm间隙复验', stars: 5 },
-              ]}
-              summaryItems={[
-                { label: '自感反峰电压', value: '450 V (未加保护)' },
-                { label: '续流钳位电压', value: '0.70 V (平稳消弧)' },
-                { label: '初级线圈阻值', value: '1.0 Ω (标称)' },
-                { label: '次级线圈阻值', value: '9.50 kΩ (标称)' },
-                { label: '本关用时', value: '2 分钟' },
-              ]}
               metrics={stepEvidences}
-              mode="guided"
+              assessment={assessmentResult ?? undefined}
               nextTask="学习任务19《D05 变压器实验室——变压器认知与测试 (⭐ 选学)》"
               onRestart={handleRestart}
               onReturn={onReturnLobby}

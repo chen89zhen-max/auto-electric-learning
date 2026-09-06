@@ -15,11 +15,15 @@ import { Button } from '@/components/ui/button';
 import { calculateVoltageDropCircuit } from '@/src/circuit/solver/DCAnalysisUtils';
 import { sounds } from '@/src/components/visuals/SoundEffects';
 import { type C01Step } from './c01Training';
+import { useLevelAssessment } from '@/src/assessment/useLevelAssessment';
+import type { LevelAssessmentResult, TrainingStageId } from '@/src/assessment/assessmentTypes';
 
 interface C01VoltageDropSceneProps {
   currentStep: C01Step;
   onStepComplete: (step: C01Step, evidence: Record<string, unknown>) => void;
   onAdvanceStep: () => void;
+  onComplete?: (result: LevelAssessmentResult) => void;
+  hintRequested?: boolean;
 }
 
 // Stage 4 Blind Cases
@@ -79,7 +83,24 @@ export function C01VoltageDropScene({
   currentStep,
   onStepComplete,
   onAdvanceStep,
+  onComplete,
+  hintRequested,
 }: C01VoltageDropSceneProps) {
+  const assessment = useLevelAssessment('C01');
+
+  React.useEffect(() => {
+    if (hintRequested) {
+      const stageMap: Record<C01Step, TrainingStageId> = {
+        SYMPTOM_AND_HYPOTHESIS: 'cognition',
+        LOADED_VOLTAGE_DROP_TEST: 'standard',
+        UNLOADED_COUNTEREXAMPLE: 'calculation',
+        BLIND_FAULT_ISOLATION: 'blind_test',
+        REPAIR_AND_CLOSED_LOOP: 'transfer',
+      };
+      assessment.requestHint(stageMap[currentStep]);
+    }
+  }, [hintRequested, currentStep, assessment]);
+
   // Multimeter global knob state: 'OFF' | 'DCV_20' | 'DCV_2' | 'OHM'
   const [meterKnob, setMeterKnob] = useState<'OFF' | 'DCV_20' | 'DCV_2' | 'OHM'>('OFF');
   const [meterWarning, setMeterWarning] = useState<string | null>(null);
@@ -123,6 +144,14 @@ export function C01VoltageDropScene({
   const requireMeterPowered = () => {
     if (meterKnob === 'OFF') {
       sounds.warningBuzz();
+      const stageMap: Record<C01Step, TrainingStageId> = {
+        SYMPTOM_AND_HYPOTHESIS: 'cognition',
+        LOADED_VOLTAGE_DROP_TEST: 'standard',
+        UNLOADED_COUNTEREXAMPLE: 'calculation',
+        BLIND_FAULT_ISOLATION: 'blind_test',
+        REPAIR_AND_CLOSED_LOOP: 'transfer',
+      };
+      assessment.recordMeterBlocked(stageMap[currentStep]);
       setMeterWarning('万用表尚未开机！请先将旋钮旋至直流电压挡 (DCV 20V)！');
       return false;
     }
@@ -859,6 +888,7 @@ export function C01VoltageDropScene({
                       sounds.success();
                     } else {
                       sounds.warningBuzz();
+                      assessment.recordWrong('cognition');
                     }
                     setS1Submitted(true);
                     onStepComplete('SYMPTOM_AND_HYPOTHESIS', {
@@ -875,7 +905,11 @@ export function C01VoltageDropScene({
               ) : (
                 <Button
                   className="bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
-                  onClick={onAdvanceStep}
+                  onClick={() => {
+                    assessment.completeStage('cognition');
+                    assessment.startStage('standard', 'guided');
+                    onAdvanceStep();
+                  }}
                 >
                   进入步骤 2：规范带载跨接测试 <ArrowRight size={16} className="ml-1" />
                 </Button>
@@ -956,6 +990,7 @@ export function C01VoltageDropScene({
                       sounds.success();
                     } else {
                       sounds.warningBuzz();
+                      assessment.recordWrong('standard');
                     }
                     setS2Submitted(true);
                     onStepComplete('LOADED_VOLTAGE_DROP_TEST', {
@@ -973,7 +1008,11 @@ export function C01VoltageDropScene({
               ) : (
                 <Button
                   className="bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
-                  onClick={onAdvanceStep}
+                  onClick={() => {
+                    assessment.completeStage('standard');
+                    assessment.startStage('calculation', 'guided');
+                    onAdvanceStep();
+                  }}
                 >
                   进入步骤 3：反例探究突破 <ArrowRight size={16} className="ml-1" />
                 </Button>
@@ -1053,6 +1092,7 @@ export function C01VoltageDropScene({
                       sounds.success();
                     } else {
                       sounds.warningBuzz();
+                      assessment.recordWrong('calculation');
                     }
                     setS3Submitted(true);
                     onStepComplete('UNLOADED_COUNTEREXAMPLE', {
@@ -1067,7 +1107,11 @@ export function C01VoltageDropScene({
               ) : (
                 <Button
                   className="bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
-                  onClick={onAdvanceStep}
+                  onClick={() => {
+                    assessment.completeStage('calculation');
+                    assessment.startStage('blind_test', 'independent');
+                    onAdvanceStep();
+                  }}
                 >
                   进入步骤 4：独立实车盲测 <ArrowRight size={16} className="ml-1" />
                 </Button>
@@ -1089,33 +1133,32 @@ export function C01VoltageDropScene({
                 </h3>
               </div>
               <span className="text-xs text-slate-500 font-mono">
-                当前读数：{dmmDisplay.value} V
+                标准：继电器触点压降≤0.1V / 保险丝≤0.05V / 车身搭铁≤0.1V
               </span>
             </div>
 
-            <p className="text-sm text-slate-600">
-              请在上方万用表面板自主调配红黑表笔位置，逐段测量电压降。找出压降超过 0.2V 标准的故障位置并填报工单：
-            </p>
+            <div className="p-3 bg-purple-50/50 rounded-xl border border-purple-100 text-xs text-purple-900">
+              <p className="font-semibold">{activeBlindCase.description}</p>
+            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
               {[
-                { key: 'RELAY', text: '位置 1：供电继电器内部触点氧化碳化导致高阻' },
-                { key: 'GROUND', text: '位置 2：车身搭铁点螺栓松旷锈蚀导致接地高阻' },
-                { key: 'FUSE', text: '位置 3：主保险丝插座簧片松脱氧化导致高阻' },
+                { id: 'RELAY', label: '继电器内部触点碳化高阻', desc: '触点氧化导致严重供电侧压降' },
+                { id: 'GROUND', label: '车身主搭铁螺栓生锈松动', desc: '搭铁不良导致搭铁侧压降超标' },
+                { id: 'FUSE', label: '主保险丝插座退火松旷', desc: '夹紧簧片氧化导致保险两端压降过大' },
               ].map((opt) => {
-                const isSelected = s4Decision === opt.key;
-                const isCorrect = opt.key === activeBlindCase.faultLocation;
+                const isSelected = s4Decision === opt.id;
+                const isCorrect = opt.id === activeBlindCase.faultLocation;
                 return (
                   <button
-                    key={opt.key}
+                    key={opt.id}
                     type="button"
+                    disabled={s4Submitted}
                     onClick={() => {
-                      if (!s4Submitted) {
-                        sounds.click();
-                        setS4Decision(opt.key);
-                      }
+                      sounds.click();
+                      setS4Decision(opt.id);
                     }}
-                    className={`p-3 rounded-xl text-left border transition-all cursor-pointer ${
+                    className={`p-3 text-left rounded-xl border transition-all cursor-pointer ${
                       s4Submitted
                         ? isCorrect
                           ? 'border-emerald-500 bg-emerald-50 text-emerald-950 font-bold'
@@ -1123,11 +1166,12 @@ export function C01VoltageDropScene({
                           ? 'border-rose-400 bg-rose-50 text-rose-900'
                           : 'border-slate-200 bg-slate-50 text-slate-400'
                         : isSelected
-                        ? 'border-amber-500 bg-amber-50 text-amber-950 font-bold shadow-xs'
+                        ? 'border-purple-500 bg-purple-50 text-purple-950 font-bold shadow-xs'
                         : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
                     }`}
                   >
-                    {opt.text}
+                    <strong className="block text-xs">{opt.label}</strong>
+                    <span className="text-[11px] text-slate-500">{opt.desc}</span>
                   </button>
                 );
               })}
@@ -1136,8 +1180,8 @@ export function C01VoltageDropScene({
             <div className="flex items-center justify-between pt-2 border-t border-slate-100">
               <span className="text-xs text-slate-500">
                 {s4Submitted
-                  ? `✓ 盲测定位正确！${activeBlindCase.explanation}`
-                  : '移动红黑表笔找到异常电压降后提交诊断结论'}
+                  ? `✓ 盲测定位结论已提交：${activeBlindCase.explanation}`
+                  : '在左侧移动红黑表笔进行跨接测量，选出损坏部件后提交'}
               </span>
               {!s4Submitted ? (
                 <Button
@@ -1150,6 +1194,7 @@ export function C01VoltageDropScene({
                       sounds.success();
                     } else {
                       sounds.warningBuzz();
+                      assessment.recordWrong('blind_test');
                     }
                     setS4Submitted(true);
                     onStepComplete('BLIND_FAULT_ISOLATION', {
@@ -1166,7 +1211,11 @@ export function C01VoltageDropScene({
               ) : (
                 <Button
                   className="bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
-                  onClick={onAdvanceStep}
+                  onClick={() => {
+                    assessment.completeStage('blind_test');
+                    assessment.startStage('transfer', 'transfer');
+                    onAdvanceStep();
+                  }}
                 >
                   进入步骤 5：接触面修复与交车 <ArrowRight size={16} className="ml-1" />
                 </Button>
@@ -1200,7 +1249,7 @@ export function C01VoltageDropScene({
               </div>
               <div className="flex items-center gap-2">
                 <span className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-white ${repairTightened ? 'bg-emerald-600' : 'bg-slate-400'}`}>3</span>
-                <span className={repairTightened ? 'text-emerald-800 font-bold' : 'text-slate-600'}>紧固插针弹片+导电脂</span>
+                <span className={repairTightened ? 'text-emerald-800 font-bold' : 'text-slate-600'}>针脚微变形校正夹紧</span>
               </div>
             </div>
 
@@ -1224,17 +1273,13 @@ export function C01VoltageDropScene({
             )}
 
             {retestPerformed && (
-              <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-sm flex flex-col gap-2">
-                <div className="flex items-center justify-between font-bold text-emerald-950">
-                  <span>复测结果报告单 (验收合格)：</span>
-                  <span className="text-xs bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded">符合汽车主机厂质量出厂标准</span>
+              <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-300 text-xs text-emerald-950 flex flex-col gap-2">
+                <div className="flex items-center gap-1.5 font-bold text-emerald-800">
+                  <Sparkles size={16} /> 修复后通电复验结果（带载闭环达成）：
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-slate-700">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <div className="bg-white p-2 rounded border border-emerald-200">
-                    供电侧压降：<strong className="text-emerald-700 text-sm">0.02 V</strong> (修复前 0.91V)
-                  </div>
-                  <div className="bg-white p-2 rounded border border-emerald-200">
-                    车灯工作电压：<strong className="text-emerald-700 text-sm">11.80 V</strong> (修复前 10.91V)
+                    供电侧跨接压降：<strong className="text-emerald-700 text-sm">0.02 V</strong> (符合 ≤0.2V 标准)
                   </div>
                   <div className="bg-white p-2 rounded border border-emerald-200">
                     回路工作电流：<strong className="text-emerald-700 text-sm">1.97 A</strong> (修复前 1.82A)
@@ -1266,6 +1311,9 @@ export function C01VoltageDropScene({
                     postRepairPower: 23.2,
                     passed: true,
                   });
+                  assessment.completeStage('transfer');
+                  const finalResult = assessment.completeLevel();
+                  onComplete?.(finalResult);
                   onAdvanceStep();
                 }}
               >

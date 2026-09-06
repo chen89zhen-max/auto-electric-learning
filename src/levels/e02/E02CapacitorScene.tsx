@@ -17,18 +17,25 @@ import {
   calculateTauSeconds,
   calculateVcCharging,
 } from './e02Training';
+import { useLevelAssessment } from '@/src/assessment/useLevelAssessment';
+import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
 
 interface E02CapacitorSceneProps {
   currentStep: E02Step;
   onStepComplete: (step: E02Step, evidence: Record<string, unknown>) => void;
   onAdvanceStep: () => void;
+  onComplete?: (result: LevelAssessmentResult) => void;
+  hintRequested?: boolean;
 }
 
 export function E02CapacitorScene({
   currentStep,
   onStepComplete,
   onAdvanceStep,
+  onComplete,
+  hintRequested = false,
 }: E02CapacitorSceneProps) {
+  const assessment = useLevelAssessment('E02');
   // Multimeter knob: 'OFF' | 'CAP_F' | 'OHM_20K' | 'DCV_20'
   const [meterKnob, setMeterKnob] = useState<'OFF' | 'CAP_F' | 'OHM_20K' | 'DCV_20'>('OFF');
   const [meterWarning, setMeterWarning] = useState<string | null>(null);
@@ -80,14 +87,36 @@ export function E02CapacitorScene({
     return () => clearInterval(timer);
   }, [s1PowerState]);
 
+  useEffect(() => {
+    if (hintRequested) {
+      const stageMap: Record<E02Step, 'cognition' | 'standard' | 'calculation' | 'blind_test' | 'transfer'> = {
+        CAPACITOR_STORAGE_COGNITION: 'cognition',
+        MULTIMETER_CAPACITANCE_TEST: 'standard',
+        RC_TIME_CONSTANT_CURVE: 'calculation',
+        BLIND_CAPACITOR_FAULT_DIAGNOSIS: 'blind_test',
+        ENGINEERING_REPAIR_AND_DELIVERY: 'transfer',
+      };
+      assessment.requestHint(stageMap[currentStep]);
+    }
+  }, [hintRequested, currentStep, assessment]);
+
   // Multimeter guard
   const requireMeterKnob = (required: 'CAP_F' | 'OHM_20K' | 'DCV_20'): boolean => {
+    const stageMap: Record<E02Step, 'cognition' | 'standard' | 'calculation' | 'blind_test' | 'transfer'> = {
+      CAPACITOR_STORAGE_COGNITION: 'cognition',
+      MULTIMETER_CAPACITANCE_TEST: 'standard',
+      RC_TIME_CONSTANT_CURVE: 'calculation',
+      BLIND_CAPACITOR_FAULT_DIAGNOSIS: 'blind_test',
+      ENGINEERING_REPAIR_AND_DELIVERY: 'transfer',
+    };
     if (meterKnob === 'OFF') {
+      assessment.recordMeterBlocked(stageMap[currentStep]);
       setMeterWarning('⚠️ 万用表未开机！请先切至对应挡位！');
       sounds.playFailureSound?.();
       return false;
     }
     if (meterKnob !== required) {
+      assessment.recordMeterBlocked(stageMap[currentStep]);
       setMeterWarning(`⚠️ 挡位错误！当前必须打到 [${required}] 挡位！`);
       sounds.playFailureSound?.();
       return false;
@@ -317,6 +346,7 @@ export function E02CapacitorScene({
                         sounds.playSuccessSound?.();
                         onStepComplete('CAPACITOR_STORAGE_COGNITION', { s1Choice, s1Voltage });
                       } else {
+                        assessment.recordWrong('cognition');
                         sounds.playFailureSound?.();
                         alert('判定不准确，这是典型的电容极板电荷存储与释放过程！');
                       }
@@ -332,7 +362,11 @@ export function E02CapacitorScene({
                       <span>判定正确！电容器通过电极板储存电荷，是汽车延时与平波的核心部件！</span>
                     </div>
                     <Button
-                      onClick={onAdvanceStep}
+                      onClick={() => {
+                        assessment.completeStage('cognition');
+                        assessment.startStage('standard');
+                        onAdvanceStep();
+                      }}
                       className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
                     >
                       进入步骤 2：万用表规范测试 <ArrowRight className="w-3.5 h-3.5" />
@@ -475,6 +509,7 @@ export function E02CapacitorScene({
                     disabled={!s2Choice}
                     onClick={() => {
                       if (!s2Discharged) {
+                        assessment.recordWrong('standard');
                         alert('请先点击上方按钮执行安全放电！');
                         return;
                       }
@@ -484,6 +519,7 @@ export function E02CapacitorScene({
                         sounds.playSuccessSound?.();
                         onStepComplete('MULTIMETER_CAPACITANCE_TEST', { s2Choice, s2Discharged });
                       } else {
+                        assessment.recordWrong('standard');
                         sounds.playFailureSound?.();
                         alert('判别有误！正常电容测阻时有阻值从低到高回弹至 OL 的动态过程！');
                       }
@@ -499,7 +535,11 @@ export function E02CapacitorScene({
                       <span>检测规范达标！放电严密，容量及充放电动态回弹判定准确无误。</span>
                     </div>
                     <Button
-                      onClick={onAdvanceStep}
+                      onClick={() => {
+                        assessment.completeStage('standard');
+                        assessment.startStage('calculation');
+                        onAdvanceStep();
+                      }}
                       className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
                     >
                       进入步骤 3：RC 时间常数分析 <ArrowRight className="w-3.5 h-3.5" />
@@ -659,6 +699,7 @@ export function E02CapacitorScene({
                         sounds.playSuccessSound?.();
                         onStepComplete('RC_TIME_CONSTANT_CURVE', { s3Choice, currentTau });
                       } else {
+                        assessment.recordWrong('calculation');
                         sounds.playFailureSound?.();
                         alert('计算有误！τ = 10000 × 0.00047 = 4.7 秒！');
                       }
@@ -674,7 +715,11 @@ export function E02CapacitorScene({
                       <span>计算准确！τ = 4.7s，1τ 拐点电压达到 63.2%，定量设计完成！</span>
                     </div>
                     <Button
-                      onClick={onAdvanceStep}
+                      onClick={() => {
+                        assessment.completeStage('calculation');
+                        assessment.startStage('blind_test');
+                        onAdvanceStep();
+                      }}
                       className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
                     >
                       进入步骤 4：典型故障盲测 <ArrowRight className="w-3.5 h-3.5" />
@@ -796,6 +841,7 @@ export function E02CapacitorScene({
                         sounds.playSuccessSound?.();
                         onStepComplete('BLIND_CAPACITOR_FAULT_DIAGNOSIS', { s4Diagnoses });
                       } else {
+                        assessment.recordWrong('blind_test');
                         sounds.playFailureSound?.();
                         alert('诊断有误！请仔细核对实测容量与漏电阻值！');
                       }
@@ -811,7 +857,11 @@ export function E02CapacitorScene({
                       <span>全组盲测分类 100% 正确！具备板级电容精确判别能力！</span>
                     </div>
                     <Button
-                      onClick={onAdvanceStep}
+                      onClick={() => {
+                        assessment.completeStage('blind_test');
+                        assessment.startStage('transfer', 'transfer');
+                        onAdvanceStep();
+                      }}
                       className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
                     >
                       进入步骤 5：实车工程修复与交付 <ArrowRight className="w-3.5 h-3.5" />
@@ -905,6 +955,7 @@ export function E02CapacitorScene({
                           setS5Repaired(true);
                           sounds.playSuccessSound?.();
                         } else {
+                          assessment.recordWrong('transfer');
                           sounds.playFailureSound?.();
                           alert('配件参数错误！必须选择 150μF/35V 规格！');
                         }
@@ -999,6 +1050,9 @@ export function E02CapacitorScene({
                     onClick={() => {
                       setS5Submitted(true);
                       sounds.playSuccessSound?.();
+                      assessment.completeStage('transfer');
+                      const finalResult = assessment.completeLevel();
+                      onComplete?.(finalResult);
                       onStepComplete('ENGINEERING_REPAIR_AND_DELIVERY', {
                         s5SelectedPart,
                         s5Tested,

@@ -18,6 +18,7 @@ import { speakText, stopSpeaking } from '@/src/components/visuals/SpeechTts';
 import { getStudentDisplayName } from '@/src/stores/authStore';
 import { E03RectifierScene } from './E03RectifierScene';
 import { E03_STAGE_CONTENT, type E03Step } from './e03Training';
+import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
 
 interface E03ExperienceProps {
   onReturnLobby: () => void;
@@ -26,6 +27,7 @@ interface E03ExperienceProps {
 export function E03Experience({ onReturnLobby }: E03ExperienceProps) {
   const [currentStep, setCurrentStep] = useState<E03Step>('RECTIFIER_TOPOLOGY_COGNITION');
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
+  const [assessmentResult, setAssessmentResult] = useState<LevelAssessmentResult | null>(null);
   const [stepEvidences, setStepEvidences] = useState<Record<string, unknown>>({});
   const [sceneRevision, setSceneRevision] = useState(0);
   const [showWorkOrder, setShowWorkOrder] = useState(false);
@@ -71,6 +73,7 @@ export function E03Experience({ onReturnLobby }: E03ExperienceProps) {
 
   const handleRestart = () => {
     setIsCompleted(false);
+    setAssessmentResult(null);
     setCurrentStep('RECTIFIER_TOPOLOGY_COGNITION');
     setStepEvidences({});
     setHintRequested(false);
@@ -208,23 +211,8 @@ export function E03Experience({ onReturnLobby }: E03ExperienceProps) {
             levelId="E03"
             domainLabel="电子器件与信号"
             title="E03 单相桥式整流与电容滤波实训报告"
-            dimensions={[
-              { id: 'RECTIFIER_TOPO', label: '整流拓扑分析', stars: 5 },
-              { id: 'BRIDGE_MEASURE', label: '整流桥打表规范', stars: 5 },
-              { id: 'FILTER_CAP_CALC', label: '滤波电容计算', stars: 5 },
-              { id: 'RIPPLE_OSCILLOSCOPE', label: '纹波示波器观测', stars: 5 },
-              { id: 'BLIND_FAULT_TEST', label: '发电机整流盲测', stars: 5 },
-              { id: 'VEHICLE_NOISE_REPAIR', label: '实车啸叫排故', stars: 5 },
-            ]}
-            summaryItems={[
-              { label: '整流输出平均电压', value: '14.3 V' },
-              { label: '交流纹波有效压制', value: '0.08 V (极优)' },
-              { label: '蓄电池充电状态', value: '正常饱和' },
-              { label: '五阶段实训评级', value: '优秀 (A+)' },
-              { label: '本关用时', value: '2 分钟' },
-            ]}
+            assessment={assessmentResult ?? undefined}
             metrics={stepEvidences}
-            mode="guided"
             nextTask="E04 小信号控制负载——三极管放大与开关"
             onRestart={handleRestart}
             onReturn={onReturnLobby}
@@ -235,6 +223,11 @@ export function E03Experience({ onReturnLobby }: E03ExperienceProps) {
             currentStep={currentStep}
             onStepComplete={handleStepComplete}
             onAdvanceStep={handleAdvanceStep}
+            hintRequested={hintRequested}
+            onComplete={(result) => {
+              setAssessmentResult(result);
+              setIsCompleted(true);
+            }}
           />
         )}
       </div>

@@ -18,6 +18,7 @@ import { speakText, stopSpeaking } from '@/src/components/visuals/SpeechTts';
 import { getStudentDisplayName } from '@/src/stores/authStore';
 import { E02CapacitorScene } from './E02CapacitorScene';
 import { E02_STAGE_CONTENT, type E02Step } from './e02Training';
+import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
 
 interface E02ExperienceProps {
   onReturnLobby: () => void;
@@ -26,6 +27,7 @@ interface E02ExperienceProps {
 export function E02Experience({ onReturnLobby }: E02ExperienceProps) {
   const [currentStep, setCurrentStep] = useState<E02Step>('CAPACITOR_STORAGE_COGNITION');
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
+  const [assessmentResult, setAssessmentResult] = useState<LevelAssessmentResult | null>(null);
   const [stepEvidences, setStepEvidences] = useState<Record<string, unknown>>({});
   const [sceneRevision, setSceneRevision] = useState(0);
   const [showWorkOrder, setShowWorkOrder] = useState(false);
@@ -71,6 +73,7 @@ export function E02Experience({ onReturnLobby }: E02ExperienceProps) {
 
   const handleRestart = () => {
     setIsCompleted(false);
+    setAssessmentResult(null);
     setCurrentStep('CAPACITOR_STORAGE_COGNITION');
     setStepEvidences({});
     setHintRequested(false);
@@ -208,23 +211,8 @@ export function E02Experience({ onReturnLobby }: E02ExperienceProps) {
             levelId="E02"
             domainLabel="电子器件与信号"
             title="E02 电容器储能与 RC 时间常数实训报告"
-            dimensions={[
-              { id: 'CAP_STORAGE', label: '电容储能机理', stars: 5 },
-              { id: 'SAFE_DISCHARGE', label: '规范安全放电', stars: 5 },
-              { id: 'CAP_METER_TEST', label: '万用表容量测试', stars: 5 },
-              { id: 'RC_TAU_CALC', label: 'RC常数τ分析', stars: 5 },
-              { id: 'BLIND_FAULT_TEST', label: '四类故障盲测', stars: 5 },
-              { id: 'VEHICLE_DELAY_REPAIR', label: '实车延时排故', stars: 5 },
-            ]}
-            summaryItems={[
-              { label: '放电安全校验', value: '100% 达标' },
-              { label: 'RC常数定量计算', value: 'τ = 4.7 s' },
-              { label: '实车渐隐延时', value: '14.8 s (合格)' },
-              { label: '五阶段实训评级', value: '优秀 (A+)' },
-              { label: '本关用时', value: '2 分钟' },
-            ]}
+            assessment={assessmentResult ?? undefined}
             metrics={stepEvidences}
-            mode="guided"
             nextTask="E03 从交流到直流——整流滤波电路"
             onRestart={handleRestart}
             onReturn={onReturnLobby}
@@ -235,6 +223,11 @@ export function E02Experience({ onReturnLobby }: E02ExperienceProps) {
             currentStep={currentStep}
             onStepComplete={handleStepComplete}
             onAdvanceStep={handleAdvanceStep}
+            hintRequested={hintRequested}
+            onComplete={(result) => {
+              setAssessmentResult(result);
+              setIsCompleted(true);
+            }}
           />
         )}
       </div>

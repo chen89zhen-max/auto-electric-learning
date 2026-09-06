@@ -16,6 +16,7 @@ import { MasterChenAvatar } from '@/src/components/visuals/MasterChenAvatar';
 import { sounds } from '@/src/components/visuals/SoundEffects';
 import { speakText, stopSpeaking } from '@/src/components/visuals/SpeechTts';
 import { getStudentDisplayName } from '@/src/stores/authStore';
+import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
 import { E06SpeedSensorScene } from './E06SpeedSensorScene';
 import { E06_STAGE_CONTENT, type E06Step } from './e06Training';
 
@@ -26,6 +27,7 @@ interface E06ExperienceProps {
 export function E06Experience({ onReturnLobby }: E06ExperienceProps) {
   const [currentStep, setCurrentStep] = useState<E06Step>('MAGNETO_VS_HALL_COGNITION');
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
+  const [assessmentResult, setAssessmentResult] = useState<LevelAssessmentResult | null>(null);
   const [stepEvidences, setStepEvidences] = useState<Record<string, unknown>>({});
   const [sceneRevision, setSceneRevision] = useState(0);
   const [showWorkOrder, setShowWorkOrder] = useState(false);
@@ -71,6 +73,7 @@ export function E06Experience({ onReturnLobby }: E06ExperienceProps) {
 
   const handleRestart = () => {
     setIsCompleted(false);
+    setAssessmentResult(null);
     setCurrentStep('MAGNETO_VS_HALL_COGNITION');
     setStepEvidences({});
     setHintRequested(false);
@@ -208,23 +211,8 @@ export function E06Experience({ onReturnLobby }: E06ExperienceProps) {
             levelId="E06"
             domainLabel="传感器与信号调理"
             title="E06 转速传感器与示波器信号调理实训报告"
-            dimensions={[
-              { id: 'MAG_VS_HALL', label: '磁电与霍尔对比', stars: 5 },
-              { id: 'SCOPE_WAVEFORM', label: '示波器波形抓取', stars: 5 },
-              { id: 'RPM_FREQ_CALC', label: '转速频率换算', stars: 5 },
-              { id: 'AIR_GAP_ADJUST', label: '安装气隙调校', stars: 5 },
-              { id: 'BLIND_SENSOR_TEST', label: '四类故障盲测', stars: 5 },
-              { id: 'HOT_STALL_REPAIR', label: '实车热车排故', stars: 5 },
-            ]}
-            summaryItems={[
-              { label: '3000rpm 对应频率', value: '2900 Hz' },
-              { label: '传感器空气间隙', value: '0.8 mm (合格)' },
-              { label: '热车路试监测', value: '40 分钟无熄火' },
-              { label: '五阶段实训评级', value: '优秀 (A+)' },
-              { label: '本关用时', value: '2 分钟' },
-            ]}
+            assessment={assessmentResult ?? undefined}
             metrics={stepEvidences}
-            mode="guided"
             nextTask="E07 装配一块训练板——PCB焊接工艺与检测"
             onRestart={handleRestart}
             onReturn={onReturnLobby}
@@ -235,6 +223,11 @@ export function E06Experience({ onReturnLobby }: E06ExperienceProps) {
             currentStep={currentStep}
             onStepComplete={handleStepComplete}
             onAdvanceStep={handleAdvanceStep}
+            hintRequested={hintRequested}
+            onComplete={(res) => {
+              setAssessmentResult(res);
+              setIsCompleted(true);
+            }}
           />
         )}
       </div>

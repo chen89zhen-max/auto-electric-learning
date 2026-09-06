@@ -17,18 +17,25 @@ import {
   E05_SAMPLES,
   evaluateLogicGate,
 } from './e05Training';
+import { useLevelAssessment } from '@/src/assessment/useLevelAssessment';
+import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
 
 interface E05LogicGatesSceneProps {
   currentStep: E05Step;
   onStepComplete: (step: E05Step, evidence: Record<string, unknown>) => void;
   onAdvanceStep: () => void;
+  onComplete?: (result: LevelAssessmentResult) => void;
+  hintRequested?: boolean;
 }
 
 export function E05LogicGatesScene({
   currentStep,
   onStepComplete,
   onAdvanceStep,
+  onComplete,
+  hintRequested = false,
 }: E05LogicGatesSceneProps) {
+  const assessment = useLevelAssessment('E05');
   // Multimeter knob: 'OFF' | 'DCV_20' | 'LOGIC_PROBE' | 'OHM_200'
   const [meterKnob, setMeterKnob] = useState<'OFF' | 'DCV_20' | 'LOGIC_PROBE' | 'OHM_200'>('OFF');
   const [meterWarning, setMeterWarning] = useState<string | null>(null);
@@ -68,13 +75,35 @@ export function E05LogicGatesScene({
   const [s5Signed, setS5Signed] = useState<boolean>(false);
   const [s5Submitted, setS5Submitted] = useState<boolean>(false);
 
+  React.useEffect(() => {
+    if (hintRequested) {
+      const stageMap: Record<E05Step, 'cognition' | 'standard' | 'calculation' | 'blind_test' | 'transfer'> = {
+        LOGIC_GATE_SYMBOLS_AND_TRUTH_TABLE: 'cognition',
+        EXPERIMENT_BOX_TRUTH_VERIFICATION: 'standard',
+        VEHICLE_SAFETY_INTERLOCK_LOGIC: 'calculation',
+        BLIND_LOGIC_IC_FAULT_DIAGNOSIS: 'blind_test',
+        ENGINEERING_REPAIR_AND_DELIVERY: 'transfer',
+      };
+      assessment.requestHint(stageMap[currentStep]);
+    }
+  }, [hintRequested, currentStep, assessment]);
+
   const requireMeterKnob = (required: 'DCV_20' | 'LOGIC_PROBE' | 'OHM_200'): boolean => {
+    const stageMap: Record<E05Step, 'cognition' | 'standard' | 'calculation' | 'blind_test' | 'transfer'> = {
+      LOGIC_GATE_SYMBOLS_AND_TRUTH_TABLE: 'cognition',
+      EXPERIMENT_BOX_TRUTH_VERIFICATION: 'standard',
+      VEHICLE_SAFETY_INTERLOCK_LOGIC: 'calculation',
+      BLIND_LOGIC_IC_FAULT_DIAGNOSIS: 'blind_test',
+      ENGINEERING_REPAIR_AND_DELIVERY: 'transfer',
+    };
     if (meterKnob === 'OFF') {
+      assessment.recordMeterBlocked(stageMap[currentStep]);
       setMeterWarning('⚠️ 万用表电源未开启！请先旋动旋钮开启！');
       sounds.playFailureSound?.();
       return false;
     }
     if (meterKnob !== required) {
+      assessment.recordMeterBlocked(stageMap[currentStep]);
       setMeterWarning(`⚠️ 挡位错误！当前必须处于 [${required}] 挡位！`);
       sounds.playFailureSound?.();
       return false;
@@ -303,6 +332,7 @@ export function E05LogicGatesScene({
                         sounds.playSuccessSound?.();
                         onStepComplete('LOGIC_GATE_SYMBOLS_AND_TRUTH_TABLE', { s1Choice, s1Gate });
                       } else {
+                        assessment.recordWrong('cognition');
                         sounds.playFailureSound?.();
                         alert('结论有误！与门是“全1出1”，或门是“有1出1”！');
                       }
@@ -318,7 +348,11 @@ export function E05LogicGatesScene({
                       <span>判定正确！牢固建立全1出1与有1出1的布尔真值模型。</span>
                     </div>
                     <Button
-                      onClick={onAdvanceStep}
+                      onClick={() => {
+                        assessment.completeStage('cognition');
+                        assessment.startStage('standard');
+                        onAdvanceStep();
+                      }}
                       className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
                     >
                       进入步骤 2：试验箱实测验证 <ArrowRight className="w-3.5 h-3.5" />
@@ -478,6 +512,7 @@ export function E05LogicGatesScene({
                         sounds.playSuccessSound?.();
                         onStepComplete('EXPERIMENT_BOX_TRUTH_VERIFICATION', { s2Choice, s2VerifiedRows });
                       } else {
+                        assessment.recordWrong('standard');
                         sounds.playFailureSound?.();
                         alert('结论有误，请先完成全部 4 组真值表实测记录！');
                       }
@@ -493,7 +528,11 @@ export function E05LogicGatesScene({
                       <span>真值表验证 100% 吻合！数字试验箱实操规范过关。</span>
                     </div>
                     <Button
-                      onClick={onAdvanceStep}
+                      onClick={() => {
+                        assessment.completeStage('standard');
+                        assessment.startStage('calculation');
+                        onAdvanceStep();
+                      }}
                       className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
                     >
                       进入步骤 3：汽车安全联锁设计 <ArrowRight className="w-3.5 h-3.5" />
@@ -631,6 +670,7 @@ export function E05LogicGatesScene({
                         sounds.playSuccessSound?.();
                         onStepComplete('VEHICLE_SAFETY_INTERLOCK_LOGIC', { s3Choice, s3AlarmTriggered });
                       } else {
+                        assessment.recordWrong('calculation');
                         sounds.playFailureSound?.();
                         alert('逻辑理解有误！与门要求全为1才输出1，C=0时不应触发蜂鸣！');
                       }
@@ -646,7 +686,11 @@ export function E05LogicGatesScene({
                       <span>设计分析完全正确！三条件与门联锁完全符合乘用车安全法规！</span>
                     </div>
                     <Button
-                      onClick={onAdvanceStep}
+                      onClick={() => {
+                        assessment.completeStage('calculation');
+                        assessment.startStage('blind_test');
+                        onAdvanceStep();
+                      }}
                       className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
                     >
                       进入步骤 4：逻辑芯片盲测 <ArrowRight className="w-3.5 h-3.5" />
@@ -787,6 +831,7 @@ export function E05LogicGatesScene({
                         sounds.playSuccessSound?.();
                         onStepComplete('BLIND_LOGIC_IC_FAULT_DIAGNOSIS', { s4Diagnoses });
                       } else {
+                        assessment.recordWrong('blind_test');
                         sounds.playFailureSound?.();
                         alert('诊断存在偏差，请通过改变输入组合再次校验！');
                       }
@@ -802,7 +847,11 @@ export function E05LogicGatesScene({
                       <span>全组盲测分类 100% 正确！具备板级数字逻辑精准排查能力！</span>
                     </div>
                     <Button
-                      onClick={onAdvanceStep}
+                      onClick={() => {
+                        assessment.completeStage('blind_test');
+                        assessment.startStage('transfer', 'transfer');
+                        onAdvanceStep();
+                      }}
                       className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
                     >
                       进入步骤 5：实车工程修复与交付 <ArrowRight className="w-3.5 h-3.5" />
@@ -963,6 +1012,9 @@ export function E05LogicGatesScene({
                     onClick={() => {
                       setS5Submitted(true);
                       sounds.playSuccessSound?.();
+                      assessment.completeStage('transfer');
+                      const finalResult = assessment.completeLevel();
+                      onComplete?.(finalResult);
                       onStepComplete('ENGINEERING_REPAIR_AND_DELIVERY', {
                         s5Repaired,
                         s5BuckleState,

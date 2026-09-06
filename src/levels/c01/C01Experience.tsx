@@ -18,6 +18,7 @@ import { speakText, stopSpeaking } from '@/src/components/visuals/SpeechTts';
 import { getStudentDisplayName } from '@/src/stores/authStore';
 import { C01VoltageDropScene } from './C01VoltageDropScene';
 import { C01_STAGE_CONTENT, type C01Step } from './c01Training';
+import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
 
 interface C01ExperienceProps {
   onReturnLobby: () => void;
@@ -26,6 +27,7 @@ interface C01ExperienceProps {
 export function C01Experience({ onReturnLobby }: C01ExperienceProps) {
   const [currentStep, setCurrentStep] = useState<C01Step>('SYMPTOM_AND_HYPOTHESIS');
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
+  const [assessmentResult, setAssessmentResult] = useState<LevelAssessmentResult | null>(null);
   const [stepEvidences, setStepEvidences] = useState<Record<string, unknown>>({});
   const [sceneRevision, setSceneRevision] = useState(0);
   const [showWorkOrder, setShowWorkOrder] = useState(false);
@@ -69,6 +71,7 @@ export function C01Experience({ onReturnLobby }: C01ExperienceProps) {
 
   const handleRestart = () => {
     setIsCompleted(false);
+    setAssessmentResult(null);
     setCurrentStep('SYMPTOM_AND_HYPOTHESIS');
     setStepEvidences({});
     setHintRequested(false);
@@ -123,23 +126,8 @@ export function C01Experience({ onReturnLobby }: C01ExperienceProps) {
                 levelId="C01"
                 domainLabel="技能领域 · 直流电路诊断闭环"
                 title="带载电压降排查与虚接诊断能力报告"
-                dimensions={[
-                  { id: 'VOLTAGE_DROP_LOADED', label: '带载跨接压降测量规范', stars: 5 },
-                  { id: 'HYPOTHESIS_ISOLATION', label: '故障假设建立与逻辑隔离', stars: 5 },
-                  { id: 'UNLOADED_FALLACY', label: '空载测压误区与反例辨析', stars: 5 },
-                  { id: 'BLIND_LOCALIZATION', label: '实车未知接触高阻盲测定位', stars: 5 },
-                  { id: 'REPAIR_AND_VERIFY', label: '接触面标准修复工艺与闭环验收', stars: 5 },
-                ]}
-                summaryItems={[
-                  { label: '供电侧故障压降', value: '0.91 V (超标 >0.2V)' },
-                  { label: '搭铁侧压降', value: '0.18 V (符合 ≤0.2V)' },
-                  { label: '空载误区本质', value: 'I=0 无压降假象 (V=I·R)' },
-                  { label: '修复后供电压降', value: '0.02 V (恢复新件水准)' },
-                  { label: '车灯实际功率', value: '23.2 W (恢复耀眼白光)' },
-                  { label: '本关用时', value: '2 分钟' },
-                ]}
+                assessment={assessmentResult ?? undefined}
                 metrics={stepEvidences}
-                mode="guided"
                 nextTask="学习任务9《C02 同样不亮，原因不同——电路断路与短路综合排查》"
                 onRestart={handleRestart}
                 onReturn={onReturnLobby}
@@ -165,6 +153,11 @@ export function C01Experience({ onReturnLobby }: C01ExperienceProps) {
                   currentStep={currentStep}
                   onStepComplete={handleStepComplete}
                   onAdvanceStep={handleAdvanceStep}
+                  onComplete={(result) => {
+                    setAssessmentResult(result);
+                    setIsCompleted(true);
+                  }}
+                  hintRequested={hintRequested}
                 />
               </div>
               <div className="objective-strip">

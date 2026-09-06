@@ -18,6 +18,7 @@ import { speakText, stopSpeaking } from '@/src/components/visuals/SpeechTts';
 import { getStudentDisplayName } from '@/src/stores/authStore';
 import { C02FaultClassifyScene } from './C02FaultClassifyScene';
 import { C02_STAGE_CONTENT, type C02Step } from './c02Training';
+import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
 
 interface C02ExperienceProps {
   onReturnLobby: () => void;
@@ -26,6 +27,7 @@ interface C02ExperienceProps {
 export function C02Experience({ onReturnLobby }: C02ExperienceProps) {
   const [currentStep, setCurrentStep] = useState<C02Step>('SYMPTOM_AND_TOOLS');
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
+  const [assessmentResult, setAssessmentResult] = useState<LevelAssessmentResult | null>(null);
   const [stepEvidences, setStepEvidences] = useState<Record<string, unknown>>({});
   const [sceneRevision, setSceneRevision] = useState(0);
   const [showWorkOrder, setShowWorkOrder] = useState(false);
@@ -69,6 +71,7 @@ export function C02Experience({ onReturnLobby }: C02ExperienceProps) {
 
   const handleRestart = () => {
     setIsCompleted(false);
+    setAssessmentResult(null);
     setCurrentStep('SYMPTOM_AND_TOOLS');
     setStepEvidences({});
     setHintRequested(false);
@@ -123,23 +126,8 @@ export function C02Experience({ onReturnLobby }: C02ExperienceProps) {
                 levelId="C02"
                 domainLabel="技能领域 · 直流电路故障排查"
                 title="电路断路、短路与虚接综合排查能力报告"
-                dimensions={[
-                  { id: 'TOOL_COMPLEMENT', label: '试灯与万用表工具互补应用', stars: 5 },
-                  { id: 'OPEN_CIRCUIT_KVL', label: '回路断路跨接测压证据链', stars: 5 },
-                  { id: 'SHORT_CIRCUIT_SAFETY', label: '对地短路阻抗与熔丝安全红线', stars: 5 },
-                  { id: 'BLIND_TRI_FAULT', label: '实车未知三类故障盲测定位', stars: 5 },
-                  { id: 'WIRING_SOP_REPAIR', label: '焊接绝缘与波纹管防磨工艺', stars: 5 },
-                ]}
-                summaryItems={[
-                  { label: '断路核心证据', value: '试灯熄灭临界点 + 跨接吃全压12V' },
-                  { label: '短路核心特征', value: '熔丝烧毁 + 供电线对地0.05Ω' },
-                  { label: '安全红线禁忌', value: '严禁盲换大号保险或铜丝短接' },
-                  { label: '修复工艺标准', value: '剥线焊接 + 带胶热缩 + 波纹管' },
-                  { label: '复测工作功率', value: '24.0 W (满额点亮)' },
-                  { label: '本关用时', value: '2 分钟' },
-                ]}
+                assessment={assessmentResult ?? undefined}
                 metrics={stepEvidences}
-                mode="guided"
                 nextTask="学习任务9《C03 第一次独立交车——综合直流诊断与修复复检》"
                 onRestart={handleRestart}
                 onReturn={onReturnLobby}
@@ -165,6 +153,11 @@ export function C02Experience({ onReturnLobby }: C02ExperienceProps) {
                   currentStep={currentStep}
                   onStepComplete={handleStepComplete}
                   onAdvanceStep={handleAdvanceStep}
+                  onComplete={(result) => {
+                    setAssessmentResult(result);
+                    setIsCompleted(true);
+                  }}
+                  hintRequested={hintRequested}
                 />
               </div>
               <div className="objective-strip">

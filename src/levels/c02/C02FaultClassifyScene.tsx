@@ -15,11 +15,15 @@ import { Button } from '@/components/ui/button';
 import { type DiagnosticFaultType } from '@/src/circuit/solver/DCAnalysisUtils';
 import { sounds } from '@/src/components/visuals/SoundEffects';
 import { type C02Step } from './c02Training';
+import { useLevelAssessment } from '@/src/assessment/useLevelAssessment';
+import type { LevelAssessmentResult, TrainingStageId } from '@/src/assessment/assessmentTypes';
 
 interface C02FaultClassifySceneProps {
   currentStep: C02Step;
   onStepComplete: (step: C02Step, evidence: Record<string, unknown>) => void;
   onAdvanceStep: () => void;
+  onComplete?: (result: LevelAssessmentResult) => void;
+  hintRequested?: boolean;
 }
 
 interface BlindCaseC02 {
@@ -102,7 +106,24 @@ export function C02FaultClassifyScene({
   currentStep,
   onStepComplete,
   onAdvanceStep,
+  onComplete,
+  hintRequested,
 }: C02FaultClassifySceneProps) {
+  const assessment = useLevelAssessment('C02');
+
+  React.useEffect(() => {
+    if (hintRequested) {
+      const stageMap: Record<C02Step, TrainingStageId> = {
+        SYMPTOM_AND_TOOLS: 'cognition',
+        OPEN_CIRCUIT_ISOLATION: 'standard',
+        SHORT_CIRCUIT_FUSE_BLOWN: 'calculation',
+        BLIND_THREE_FAULT_ISOLATION: 'blind_test',
+        FAULT_REPAIR_AND_PREVENTION: 'transfer',
+      };
+      assessment.requestHint(stageMap[currentStep]);
+    }
+  }, [hintRequested, currentStep, assessment]);
+
   // Selected diagnostic tool: 'TEST_LIGHT' or 'MULTIMETER'
   const [activeTool, setActiveTool] = useState<'TEST_LIGHT' | 'MULTIMETER'>('TEST_LIGHT');
 
@@ -149,6 +170,14 @@ export function C02FaultClassifyScene({
   const requireMeterPowered = () => {
     if (meterKnob === 'OFF') {
       sounds.warningBuzz();
+      const stageMap: Record<C02Step, TrainingStageId> = {
+        SYMPTOM_AND_TOOLS: 'cognition',
+        OPEN_CIRCUIT_ISOLATION: 'standard',
+        SHORT_CIRCUIT_FUSE_BLOWN: 'calculation',
+        BLIND_THREE_FAULT_ISOLATION: 'blind_test',
+        FAULT_REPAIR_AND_PREVENTION: 'transfer',
+      };
+      assessment.recordMeterBlocked(stageMap[currentStep]);
       setMeterWarning('万用表尚未开机！请先将功能旋钮旋转至正确挡位！');
       return false;
     }
@@ -733,6 +762,7 @@ export function C02FaultClassifyScene({
                       sounds.success();
                     } else {
                       sounds.warningBuzz();
+                      assessment.recordWrong('cognition');
                     }
                     setS1Submitted(true);
                     onStepComplete('SYMPTOM_AND_TOOLS', {
@@ -747,7 +777,11 @@ export function C02FaultClassifyScene({
               ) : (
                 <Button
                   className="bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
-                  onClick={onAdvanceStep}
+                  onClick={() => {
+                    assessment.completeStage('cognition');
+                    assessment.startStage('standard');
+                    onAdvanceStep();
+                  }}
                 >
                   进入步骤 2：断路故障排查 <ArrowRight size={16} className="ml-1" />
                 </Button>
@@ -821,6 +855,7 @@ export function C02FaultClassifyScene({
                       sounds.success();
                     } else {
                       sounds.warningBuzz();
+                      assessment.recordWrong('standard');
                     }
                     setS2Submitted(true);
                     onStepComplete('OPEN_CIRCUIT_ISOLATION', {
@@ -835,7 +870,11 @@ export function C02FaultClassifyScene({
               ) : (
                 <Button
                   className="bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
-                  onClick={onAdvanceStep}
+                  onClick={() => {
+                    assessment.completeStage('standard');
+                    assessment.startStage('calculation');
+                    onAdvanceStep();
+                  }}
                 >
                   进入步骤 3：短路烧保险排查 <ArrowRight size={16} className="ml-1" />
                 </Button>
@@ -909,6 +948,7 @@ export function C02FaultClassifyScene({
                       sounds.success();
                     } else {
                       sounds.warningBuzz();
+                      assessment.recordWrong('calculation');
                     }
                     setS3Submitted(true);
                     onStepComplete('SHORT_CIRCUIT_FUSE_BLOWN', {
@@ -923,7 +963,11 @@ export function C02FaultClassifyScene({
               ) : (
                 <Button
                   className="bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
-                  onClick={onAdvanceStep}
+                  onClick={() => {
+                    assessment.completeStage('calculation');
+                    assessment.startStage('blind_test');
+                    onAdvanceStep();
+                  }}
                 >
                   进入步骤 4：独立实车盲测 <ArrowRight size={16} className="ml-1" />
                 </Button>
@@ -997,6 +1041,7 @@ export function C02FaultClassifyScene({
                       sounds.success();
                     } else {
                       sounds.warningBuzz();
+                      assessment.recordWrong('blind_test');
                     }
                     setS4Submitted(true);
                     onStepComplete('BLIND_THREE_FAULT_ISOLATION', {
@@ -1013,7 +1058,11 @@ export function C02FaultClassifyScene({
               ) : (
                 <Button
                   className="bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
-                  onClick={onAdvanceStep}
+                  onClick={() => {
+                    assessment.completeStage('blind_test');
+                    assessment.startStage('transfer', 'transfer');
+                    onAdvanceStep();
+                  }}
                 >
                   进入步骤 5：修复整改与交车 <ArrowRight size={16} className="ml-1" />
                 </Button>
@@ -1131,6 +1180,9 @@ export function C02FaultClassifyScene({
                     fuseReplaced: repairFuseReplaced,
                     passed: true,
                   });
+                  assessment.completeStage('transfer');
+                  const finalResult = assessment.completeLevel();
+                  onComplete?.(finalResult);
                   onAdvanceStep();
                 }}
               >

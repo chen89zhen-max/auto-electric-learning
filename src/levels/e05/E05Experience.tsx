@@ -18,6 +18,7 @@ import { speakText, stopSpeaking } from '@/src/components/visuals/SpeechTts';
 import { getStudentDisplayName } from '@/src/stores/authStore';
 import { E05LogicGatesScene } from './E05LogicGatesScene';
 import { E05_STAGE_CONTENT, type E05Step } from './e05Training';
+import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
 
 interface E05ExperienceProps {
   onReturnLobby: () => void;
@@ -26,6 +27,7 @@ interface E05ExperienceProps {
 export function E05Experience({ onReturnLobby }: E05ExperienceProps) {
   const [currentStep, setCurrentStep] = useState<E05Step>('LOGIC_GATE_SYMBOLS_AND_TRUTH_TABLE');
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
+  const [assessmentResult, setAssessmentResult] = useState<LevelAssessmentResult | null>(null);
   const [stepEvidences, setStepEvidences] = useState<Record<string, unknown>>({});
   const [sceneRevision, setSceneRevision] = useState(0);
   const [showWorkOrder, setShowWorkOrder] = useState(false);
@@ -71,6 +73,7 @@ export function E05Experience({ onReturnLobby }: E05ExperienceProps) {
 
   const handleRestart = () => {
     setIsCompleted(false);
+    setAssessmentResult(null);
     setCurrentStep('LOGIC_GATE_SYMBOLS_AND_TRUTH_TABLE');
     setStepEvidences({});
     setHintRequested(false);
@@ -208,23 +211,8 @@ export function E05Experience({ onReturnLobby }: E05ExperienceProps) {
             levelId="E05"
             domainLabel="逻辑控制与信号"
             title="E05 逻辑门电路与汽车安全联锁实训报告"
-            dimensions={[
-              { id: 'BOOLEAN_LOGIC', label: '布尔逻辑符号', stars: 5 },
-              { id: 'TRUTH_TABLE_EXP', label: '试验箱真值表', stars: 5 },
-              { id: 'SEATBELT_INTERLOCK', label: '安全带联锁设计', stars: 5 },
-              { id: 'MULTI_COND_LOGIC', label: '多条件复合逻辑', stars: 5 },
-              { id: 'BLIND_IC_TEST', label: '逻辑芯片盲测', stars: 5 },
-              { id: 'VEHICLE_INTERLOCK_REPAIR', label: '实车联锁排故', stars: 5 },
-            ]}
-            summaryItems={[
-              { label: '真值表吻合度', value: '100% 达标' },
-              { label: '联锁响应延迟', value: '< 0.1 s' },
-              { label: '安全带联锁路试', value: '合格' },
-              { label: '五阶段实训评级', value: '优秀 (A+)' },
-              { label: '本关用时', value: '2 分钟' },
-            ]}
+            assessment={assessmentResult ?? undefined}
             metrics={stepEvidences}
-            mode="guided"
             nextTask="E06 转速信号寻踪——转速传感器与信号调理"
             onRestart={handleRestart}
             onReturn={onReturnLobby}
@@ -235,6 +223,11 @@ export function E05Experience({ onReturnLobby }: E05ExperienceProps) {
             currentStep={currentStep}
             onStepComplete={handleStepComplete}
             onAdvanceStep={handleAdvanceStep}
+            hintRequested={hintRequested}
+            onComplete={(result) => {
+              setAssessmentResult(result);
+              setIsCompleted(true);
+            }}
           />
         )}
       </div>

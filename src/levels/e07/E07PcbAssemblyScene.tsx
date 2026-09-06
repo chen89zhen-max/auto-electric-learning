@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { sounds } from '@/src/components/visuals/SoundEffects';
+import { useLevelAssessment } from '@/src/assessment/useLevelAssessment';
+import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
 import {
   type E07Step,
   E07_DEFECTS,
@@ -20,13 +22,32 @@ interface E07PcbAssemblySceneProps {
   currentStep: E07Step;
   onStepComplete: (step: E07Step, evidence: Record<string, unknown>) => void;
   onAdvanceStep: () => void;
+  onComplete?: (result: LevelAssessmentResult) => void;
+  hintRequested?: boolean;
 }
 
 export function E07PcbAssemblyScene({
   currentStep,
   onStepComplete,
   onAdvanceStep,
+  onComplete,
+  hintRequested = false,
 }: E07PcbAssemblySceneProps) {
+  const assessment = useLevelAssessment('E07');
+
+  React.useEffect(() => {
+    if (hintRequested) {
+      const stageMap: Record<E07Step, 'cognition' | 'standard' | 'calculation' | 'blind_test' | 'transfer'> = {
+        SOLDERING_SAFETY_AND_FIVE_STEPS: 'cognition',
+        VIRTUAL_PCB_INSERTION_AND_WELD: 'standard',
+        SOLDER_JOINT_QUALITY_STANDARD: 'calculation',
+        BLIND_PCB_DEFECT_INSPECTION: 'blind_test',
+        ENGINEERING_REPAIR_AND_DELIVERY: 'transfer',
+      };
+      assessment.requestHint(stageMap[currentStep]);
+    }
+  }, [hintRequested, currentStep, assessment]);
+
   // Multimeter knob: 'OFF' | 'MAGNIFIER_10X' | 'BUZZER_OHM' | 'DCV_20'
   const [meterKnob, setMeterKnob] = useState<'OFF' | 'MAGNIFIER_10X' | 'BUZZER_OHM' | 'DCV_20'>('OFF');
   const [meterWarning, setMeterWarning] = useState<string | null>(null);
@@ -72,12 +93,21 @@ export function E07PcbAssemblyScene({
   const [s5Submitted, setS5Submitted] = useState<boolean>(false);
 
   const requireTool = (required: 'MAGNIFIER_10X' | 'BUZZER_OHM' | 'DCV_20'): boolean => {
+    const stageMap: Record<E07Step, 'cognition' | 'standard' | 'calculation' | 'blind_test' | 'transfer'> = {
+      SOLDERING_SAFETY_AND_FIVE_STEPS: 'cognition',
+      VIRTUAL_PCB_INSERTION_AND_WELD: 'standard',
+      SOLDER_JOINT_QUALITY_STANDARD: 'calculation',
+      BLIND_PCB_DEFECT_INSPECTION: 'blind_test',
+      ENGINEERING_REPAIR_AND_DELIVERY: 'transfer',
+    };
     if (meterKnob === 'OFF') {
+      assessment.recordMeterBlocked(stageMap[currentStep]);
       setMeterWarning('⚠️ 检测工具电源未开！请先旋动旋钮选择检测工具！');
       sounds.playFailureSound?.();
       return false;
     }
     if (meterKnob !== required) {
+      assessment.recordMeterBlocked(stageMap[currentStep]);
       setMeterWarning(`⚠️ 模式错误！当前需要切至 [${required}] 模式！`);
       sounds.playFailureSound?.();
       return false;
@@ -255,6 +285,7 @@ export function E07PcbAssemblyScene({
                         sounds.playSuccessSound?.();
                         onStepComplete('SOLDERING_SAFETY_AND_FIVE_STEPS', { s1Choice });
                       } else {
+                        assessment.recordWrong('cognition');
                         sounds.playFailureSound?.();
                         alert('规程有误！过度加热会导致焊盘脱落，吹气会导致焊点内部晶格粗糙冷焊！');
                       }
@@ -270,7 +301,11 @@ export function E07PcbAssemblyScene({
                       <span>工艺规范考核过关！牢记 2~3 秒与五步黄金流程。</span>
                     </div>
                     <Button
-                      onClick={onAdvanceStep}
+                      onClick={() => {
+                        assessment.completeStage('cognition');
+                        assessment.startStage('standard');
+                        onAdvanceStep();
+                      }}
                       className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
                     >
                       进入步骤 2：PCB 插装与焊接实操 <ArrowRight className="w-3.5 h-3.5" />
@@ -430,6 +465,7 @@ export function E07PcbAssemblyScene({
                         sounds.playSuccessSound?.();
                         onStepComplete('VIRTUAL_PCB_INSERTION_AND_WELD', { s2Choice, s2InsertedParts });
                       } else {
+                        assessment.recordWrong('standard');
                         sounds.playFailureSound?.();
                         alert('判定有误！电解电容反接会炸膛，白条必须对齐阴影区！');
                       }
@@ -445,7 +481,11 @@ export function E07PcbAssemblyScene({
                       <span>插装焊接规范标准！极性正确，引脚剪切平整。</span>
                     </div>
                     <Button
-                      onClick={onAdvanceStep}
+                      onClick={() => {
+                        assessment.completeStage('standard');
+                        assessment.startStage('calculation');
+                        onAdvanceStep();
+                      }}
                       className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
                     >
                       进入步骤 3：焊点质量形态标准 <ArrowRight className="w-3.5 h-3.5" />
@@ -593,6 +633,7 @@ export function E07PcbAssemblyScene({
                         sounds.playSuccessSound?.();
                         onStepComplete('SOLDER_JOINT_QUALITY_STANDARD', { s3Choice, s3SelectedJoint });
                       } else {
+                        assessment.recordWrong('calculation');
                         sounds.playFailureSound?.();
                         alert('判定有误！优质焊点必须是光润凹面半月形，而不是堆积死锡球！');
                       }
@@ -608,7 +649,11 @@ export function E07PcbAssemblyScene({
                       <span>标准掌握完全达标！具备专业 IPC 质检眼光。</span>
                     </div>
                     <Button
-                      onClick={onAdvanceStep}
+                      onClick={() => {
+                        assessment.completeStage('calculation');
+                        assessment.startStage('blind_test');
+                        onAdvanceStep();
+                      }}
                       className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
                     >
                       进入步骤 4：典型工艺缺陷盲测 <ArrowRight className="w-3.5 h-3.5" />
@@ -745,6 +790,7 @@ export function E07PcbAssemblyScene({
                         sounds.playSuccessSound?.();
                         onStepComplete('BLIND_PCB_DEFECT_INSPECTION', { s4Diagnoses });
                       } else {
+                        assessment.recordWrong('blind_test');
                         sounds.playFailureSound?.();
                         alert('诊断存在错误，请核对万用表电阻读数与显微镜观察特征！');
                       }
@@ -760,7 +806,11 @@ export function E07PcbAssemblyScene({
                       <span>4 处工艺缺陷定位 100% 正确！具备资深硬件 QA 质检能力！</span>
                     </div>
                     <Button
-                      onClick={onAdvanceStep}
+                      onClick={() => {
+                        assessment.completeStage('blind_test');
+                        assessment.startStage('transfer', 'transfer');
+                        onAdvanceStep();
+                      }}
                       className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
                     >
                       进入步骤 5：实车工程返修与交付 <ArrowRight className="w-3.5 h-3.5" />
@@ -906,6 +956,9 @@ export function E07PcbAssemblyScene({
                     onClick={() => {
                       setS5Submitted(true);
                       sounds.playSuccessSound?.();
+                      assessment.completeStage('transfer');
+                      const finalResult = assessment.completeLevel();
+                      onComplete?.(finalResult);
                       onStepComplete('ENGINEERING_REPAIR_AND_DELIVERY', {
                         s5BridgeCleared,
                         s5ColdJointFixed,

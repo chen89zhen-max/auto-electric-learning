@@ -13,18 +13,39 @@ import {
 import { Button } from '@/components/ui/button';
 import { sounds } from '@/src/components/visuals/SoundEffects';
 import { type C03Step } from './c03Training';
+import { useLevelAssessment } from '@/src/assessment/useLevelAssessment';
+import type { LevelAssessmentResult, TrainingStageId } from '@/src/assessment/assessmentTypes';
 
 interface C03IndependentDeliverySceneProps {
   currentStep: C03Step;
   onStepComplete: (step: C03Step, evidence: Record<string, unknown>) => void;
   onAdvanceStep: () => void;
+  onComplete?: (result: LevelAssessmentResult) => void;
+  hintRequested?: boolean;
 }
 
 export function C03IndependentDeliveryScene({
   currentStep,
   onStepComplete,
   onAdvanceStep,
+  onComplete,
+  hintRequested,
 }: C03IndependentDeliverySceneProps) {
+  const assessment = useLevelAssessment('C03');
+
+  React.useEffect(() => {
+    if (hintRequested) {
+      const stageMap: Record<C03Step, TrainingStageId> = {
+        WORK_ORDER_INTAKE: 'cognition',
+        INDEPENDENT_STRATEGY: 'standard',
+        NON_DESTRUCTIVE_EXEC: 'calculation',
+        SOP_REPAIR_AND_REINSPECT: 'blind_test',
+        OWNER_DEFENSE_DELIVERY: 'transfer',
+      };
+      assessment.requestHint(stageMap[currentStep]);
+    }
+  }, [hintRequested, currentStep, assessment]);
+
   // Multimeter knob: 'OFF' | 'DCV_20' | 'OHM'
   const [meterKnob, setMeterKnob] = useState<'OFF' | 'DCV_20' | 'OHM'>('OFF');
   const [meterWarning, setMeterWarning] = useState<string | null>(null);
@@ -65,6 +86,14 @@ export function C03IndependentDeliveryScene({
   const requireMeterPowered = () => {
     if (meterKnob === 'OFF') {
       sounds.warningBuzz();
+      const stageMap: Record<C03Step, TrainingStageId> = {
+        WORK_ORDER_INTAKE: 'cognition',
+        INDEPENDENT_STRATEGY: 'standard',
+        NON_DESTRUCTIVE_EXEC: 'calculation',
+        SOP_REPAIR_AND_REINSPECT: 'blind_test',
+        OWNER_DEFENSE_DELIVERY: 'transfer',
+      };
+      assessment.recordMeterBlocked(stageMap[currentStep]);
       setMeterWarning('万用表尚未开机！请先旋至直流电压挡 (DCV 20V)！');
       return false;
     }
@@ -517,6 +546,7 @@ export function C03IndependentDeliveryScene({
                       sounds.success();
                     } else {
                       sounds.warningBuzz();
+                      assessment.recordWrong('cognition');
                     }
                     setS1Submitted(true);
                     onStepComplete('WORK_ORDER_INTAKE', {
@@ -531,7 +561,11 @@ export function C03IndependentDeliveryScene({
               ) : (
                 <Button
                   className="bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
-                  onClick={onAdvanceStep}
+                  onClick={() => {
+                    assessment.completeStage('cognition');
+                    assessment.startStage('standard');
+                    onAdvanceStep();
+                  }}
                 >
                   进入步骤 2：自主排故策略 <ArrowRight size={16} className="ml-1" />
                 </Button>
@@ -605,6 +639,7 @@ export function C03IndependentDeliveryScene({
                       sounds.success();
                     } else {
                       sounds.warningBuzz();
+                      assessment.recordWrong('standard');
                     }
                     setS2Submitted(true);
                     onStepComplete('INDEPENDENT_STRATEGY', {
@@ -619,7 +654,11 @@ export function C03IndependentDeliveryScene({
               ) : (
                 <Button
                   className="bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
-                  onClick={onAdvanceStep}
+                  onClick={() => {
+                    assessment.completeStage('standard');
+                    assessment.startStage('calculation');
+                    onAdvanceStep();
+                  }}
                 >
                   进入步骤 3：动态无损排查执行 <ArrowRight size={16} className="ml-1" />
                 </Button>
@@ -693,6 +732,7 @@ export function C03IndependentDeliveryScene({
                       sounds.success();
                     } else {
                       sounds.warningBuzz();
+                      assessment.recordWrong('calculation');
                     }
                     setS3Submitted(true);
                     onStepComplete('NON_DESTRUCTIVE_EXEC', {
@@ -707,7 +747,11 @@ export function C03IndependentDeliveryScene({
               ) : (
                 <Button
                   className="bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
-                  onClick={onAdvanceStep}
+                  onClick={() => {
+                    assessment.completeStage('calculation');
+                    assessment.startStage('blind_test');
+                    onAdvanceStep();
+                  }}
                 >
                   进入步骤 4：标准修复与闭环复验 <ArrowRight size={16} className="ml-1" />
                 </Button>
@@ -798,6 +842,8 @@ export function C03IndependentDeliveryScene({
                     voltageDrop: 0.03,
                     passed: true,
                   });
+                  assessment.completeStage('blind_test');
+                  assessment.startStage('transfer', 'transfer');
                   onAdvanceStep();
                 }}
               >
@@ -869,12 +915,20 @@ export function C03IndependentDeliveryScene({
                 disabled={!s5Defense || s5Signed}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
                 onClick={() => {
-                  sounds.success();
+                  if (s5Defense === 'A') {
+                    sounds.success();
+                  } else {
+                    sounds.warningBuzz();
+                    assessment.recordWrong('transfer');
+                  }
                   setS5Signed(true);
                   onStepComplete('OWNER_DEFENSE_DELIVERY', {
                     defenseChoice: s5Defense,
                     passed: s5Defense === 'A',
                   });
+                  assessment.completeStage('transfer');
+                  const finalResult = assessment.completeLevel();
+                  onComplete?.(finalResult);
                   onAdvanceStep();
                 }}
               >

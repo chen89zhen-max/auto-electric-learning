@@ -18,6 +18,7 @@ import { speakText, stopSpeaking } from '@/src/components/visuals/SpeechTts';
 import { getStudentDisplayName } from '@/src/stores/authStore';
 import { C03IndependentDeliveryScene } from './C03IndependentDeliveryScene';
 import { C03_STAGE_CONTENT, type C03Step } from './c03Training';
+import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
 
 interface C03ExperienceProps {
   onReturnLobby: () => void;
@@ -26,6 +27,7 @@ interface C03ExperienceProps {
 export function C03Experience({ onReturnLobby }: C03ExperienceProps) {
   const [currentStep, setCurrentStep] = useState<C03Step>('WORK_ORDER_INTAKE');
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
+  const [assessmentResult, setAssessmentResult] = useState<LevelAssessmentResult | null>(null);
   const [stepEvidences, setStepEvidences] = useState<Record<string, unknown>>({});
   const [sceneRevision, setSceneRevision] = useState(0);
   const [showWorkOrder, setShowWorkOrder] = useState(false);
@@ -69,6 +71,7 @@ export function C03Experience({ onReturnLobby }: C03ExperienceProps) {
 
   const handleRestart = () => {
     setIsCompleted(false);
+    setAssessmentResult(null);
     setCurrentStep('WORK_ORDER_INTAKE');
     setStepEvidences({});
     setHintRequested(false);
@@ -123,23 +126,8 @@ export function C03Experience({ onReturnLobby }: C03ExperienceProps) {
                 levelId="C03"
                 domainLabel="技能领域 · 独立交车与答辩闭环"
                 title="综合直流诊断与独立交车答辩能力报告"
-                dimensions={[
-                  { id: 'INTAKE_ANALYSIS', label: '客户问诊与偶发假说建立', stars: 5 },
-                  { id: 'DIAG_STRATEGY', label: '自主排故策略与安全规程', stars: 5 },
-                  { id: 'NON_DESTRUCTIVE', label: '非破坏性动态摇晃测试', stars: 5 },
-                  { id: 'PIN_REPAIR_TPA', label: '端子挑舌修复与二次锁止', stars: 5 },
-                  { id: 'OWNER_DEFENSE', label: '证据化维修答辩与交车闭环', stars: 5 },
-                ]}
-                summaryItems={[
-                  { label: '偶发故障本质', value: '颠簸振动导致插针退针脱开' },
-                  { label: '检测核心手法', value: '动态晃动测试 (Wiggle Test)' },
-                  { label: '修复加固方案', value: '金属锁舌挑针 + 二次锁片(TPA)' },
-                  { label: '复验总电压降', value: '0.03 V (达到原厂出厂标准)' },
-                  { label: '车主答辩结论', value: '破除换灯泡治标不治本误区' },
-                  { label: '本关用时', value: '2 分钟' },
-                ]}
+                assessment={assessmentResult ?? undefined}
                 metrics={stepEvidences}
-                mode="independent"
                 nextTask="篇章四《D01 小开关控制工作灯——继电器与电磁控制》"
                 onRestart={handleRestart}
                 onReturn={onReturnLobby}
@@ -165,6 +153,11 @@ export function C03Experience({ onReturnLobby }: C03ExperienceProps) {
                   currentStep={currentStep}
                   onStepComplete={handleStepComplete}
                   onAdvanceStep={handleAdvanceStep}
+                  onComplete={(result) => {
+                    setAssessmentResult(result);
+                    setIsCompleted(true);
+                  }}
+                  hintRequested={hintRequested}
                 />
               </div>
               <div className="objective-strip">

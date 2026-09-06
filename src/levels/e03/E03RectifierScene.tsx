@@ -16,18 +16,25 @@ import {
   E03_SAMPLES,
   calculateRectifierOutput,
 } from './e03Training';
+import { useLevelAssessment } from '@/src/assessment/useLevelAssessment';
+import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
 
 interface E03RectifierSceneProps {
   currentStep: E03Step;
   onStepComplete: (step: E03Step, evidence: Record<string, unknown>) => void;
   onAdvanceStep: () => void;
+  onComplete?: (result: LevelAssessmentResult) => void;
+  hintRequested?: boolean;
 }
 
 export function E03RectifierScene({
   currentStep,
   onStepComplete,
   onAdvanceStep,
+  onComplete,
+  hintRequested = false,
 }: E03RectifierSceneProps) {
+  const assessment = useLevelAssessment('E03');
   // Multimeter knob: 'OFF' | 'DCV_20' | 'ACV_20' | 'DIODE'
   const [meterKnob, setMeterKnob] = useState<'OFF' | 'DCV_20' | 'ACV_20' | 'DIODE'>('OFF');
   const [meterWarning, setMeterWarning] = useState<string | null>(null);
@@ -60,13 +67,35 @@ export function E03RectifierScene({
   const [s5Signed, setS5Signed] = useState<boolean>(false);
   const [s5Submitted, setS5Submitted] = useState<boolean>(false);
 
+  React.useEffect(() => {
+    if (hintRequested) {
+      const stageMap: Record<E03Step, 'cognition' | 'standard' | 'calculation' | 'blind_test' | 'transfer'> = {
+        RECTIFIER_TOPOLOGY_COGNITION: 'cognition',
+        BRIDGE_WIRING_AND_MULTIMETER_TEST: 'standard',
+        FILTER_CAPACITOR_AND_VOLTAGE_CALC: 'calculation',
+        BLIND_RECTIFIER_FAULT_DIAGNOSIS: 'blind_test',
+        ENGINEERING_REPAIR_AND_DELIVERY: 'transfer',
+      };
+      assessment.requestHint(stageMap[currentStep]);
+    }
+  }, [hintRequested, currentStep, assessment]);
+
   const requireMeterKnob = (required: 'DCV_20' | 'ACV_20' | 'DIODE'): boolean => {
+    const stageMap: Record<E03Step, 'cognition' | 'standard' | 'calculation' | 'blind_test' | 'transfer'> = {
+      RECTIFIER_TOPOLOGY_COGNITION: 'cognition',
+      BRIDGE_WIRING_AND_MULTIMETER_TEST: 'standard',
+      FILTER_CAPACITOR_AND_VOLTAGE_CALC: 'calculation',
+      BLIND_RECTIFIER_FAULT_DIAGNOSIS: 'blind_test',
+      ENGINEERING_REPAIR_AND_DELIVERY: 'transfer',
+    };
     if (meterKnob === 'OFF') {
+      assessment.recordMeterBlocked(stageMap[currentStep]);
       setMeterWarning('⚠️ 万用表未开机！请先切至对应测量挡位！');
       sounds.playFailureSound?.();
       return false;
     }
     if (meterKnob !== required) {
+      assessment.recordMeterBlocked(stageMap[currentStep]);
       setMeterWarning(`⚠️ 挡位错误！当前需要打到 [${required}] 挡位！`);
       sounds.playFailureSound?.();
       return false;
@@ -264,6 +293,7 @@ export function E03RectifierScene({
                         sounds.playSuccessSound?.();
                         onStepComplete('RECTIFIER_TOPOLOGY_COGNITION', { s1Choice, s1Topology });
                       } else {
+                        assessment.recordWrong('cognition');
                         sounds.playFailureSound?.();
                         alert('结论有误，请仔细对比半波与桥式整流的输出电压与能量利用率！');
                       }
@@ -279,7 +309,11 @@ export function E03RectifierScene({
                       <span>判定正确！桥式整流实现双向翻折利用，输出电压与频率翻倍！</span>
                     </div>
                     <Button
-                      onClick={onAdvanceStep}
+                      onClick={() => {
+                        assessment.completeStage('cognition');
+                        assessment.startStage('standard');
+                        onAdvanceStep();
+                      }}
                       className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
                     >
                       进入步骤 2：整流桥搭接测试 <ArrowRight className="w-3.5 h-3.5" />
@@ -411,6 +445,7 @@ export function E03RectifierScene({
                         sounds.playSuccessSound?.();
                         onStepComplete('BRIDGE_WIRING_AND_MULTIMETER_TEST', { s2Choice, s2SelectedArm });
                       } else {
+                        assessment.recordWrong('standard');
                         sounds.playFailureSound?.();
                         alert('判别有误！整流桥内部任何一只管击穿或开路，整桥即告报废！');
                       }
@@ -426,7 +461,11 @@ export function E03RectifierScene({
                       <span>检测规范掌握到位！4 桥臂均良好，准予进入滤波分析。</span>
                     </div>
                     <Button
-                      onClick={onAdvanceStep}
+                      onClick={() => {
+                        assessment.completeStage('standard');
+                        assessment.startStage('calculation');
+                        onAdvanceStep();
+                      }}
                       className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
                     >
                       进入步骤 3：滤波电容与输出计算 <ArrowRight className="w-3.5 h-3.5" />
@@ -541,6 +580,7 @@ export function E03RectifierScene({
                         sounds.playSuccessSound?.();
                         onStepComplete('FILTER_CAPACITOR_AND_VOLTAGE_CALC', { s3Choice, s3HasCapacitor });
                       } else {
+                        assessment.recordWrong('calculation');
                         sounds.playFailureSound?.();
                         alert('计算有误！加滤波电容后 Uo ≈ 1.2 × U2 = 14.4V！');
                       }
@@ -556,7 +596,11 @@ export function E03RectifierScene({
                       <span>计算准确！14.4V 是汽车发电机与蓄电池标准充电电压！</span>
                     </div>
                     <Button
-                      onClick={onAdvanceStep}
+                      onClick={() => {
+                        assessment.completeStage('calculation');
+                        assessment.startStage('blind_test');
+                        onAdvanceStep();
+                      }}
                       className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
                     >
                       进入步骤 4：发电机整流器盲测 <ArrowRight className="w-3.5 h-3.5" />
@@ -684,6 +728,7 @@ export function E03RectifierScene({
                         sounds.playSuccessSound?.();
                         onStepComplete('BLIND_RECTIFIER_FAULT_DIAGNOSIS', { s4Diagnoses });
                       } else {
+                        assessment.recordWrong('blind_test');
                         sounds.playFailureSound?.();
                         alert('诊断存在偏差，请重点分析二极管击穿与断路时纹波与电压的差异！');
                       }
@@ -699,7 +744,11 @@ export function E03RectifierScene({
                       <span>全组盲测分类 100% 正确！具备发电机电气故障快速定损能力！</span>
                     </div>
                     <Button
-                      onClick={onAdvanceStep}
+                      onClick={() => {
+                        assessment.completeStage('blind_test');
+                        assessment.startStage('transfer', 'transfer');
+                        onAdvanceStep();
+                      }}
                       className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
                     >
                       进入步骤 5：实车工程修复与交付 <ArrowRight className="w-3.5 h-3.5" />
@@ -859,6 +908,9 @@ export function E03RectifierScene({
                     onClick={() => {
                       setS5Submitted(true);
                       sounds.playSuccessSound?.();
+                      assessment.completeStage('transfer');
+                      const finalResult = assessment.completeLevel();
+                      onComplete?.(finalResult);
                       onStepComplete('ENGINEERING_REPAIR_AND_DELIVERY', {
                         s5Repaired,
                         s5EngineRunning,

@@ -18,6 +18,7 @@ import { speakText, stopSpeaking } from '@/src/components/visuals/SpeechTts';
 import { getStudentDisplayName } from '@/src/stores/authStore';
 import { D02DcMotorScene } from './D02DcMotorScene';
 import { D02_STAGE_CONTENT, type D02Step } from './d02Training';
+import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
 
 interface D02ExperienceProps {
   onReturnLobby: () => void;
@@ -26,6 +27,7 @@ interface D02ExperienceProps {
 export function D02Experience({ onReturnLobby }: D02ExperienceProps) {
   const [currentStep, setCurrentStep] = useState<D02Step>('LORENTZ_FORCE_AND_LEFT_HAND_RULE');
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
+  const [assessmentResult, setAssessmentResult] = useState<LevelAssessmentResult | null>(null);
   const [stepEvidences, setStepEvidences] = useState<Record<string, unknown>>({});
   const [sceneRevision, setSceneRevision] = useState(0);
   const [showWorkOrder, setShowWorkOrder] = useState(false);
@@ -75,6 +77,7 @@ export function D02Experience({ onReturnLobby }: D02ExperienceProps) {
     setStepEvidences({});
     setHintRequested(false);
     setShowWorkOrder(false);
+    setAssessmentResult(null);
     setSceneRevision((r) => r + 1);
   };
 
@@ -211,6 +214,11 @@ export function D02Experience({ onReturnLobby }: D02ExperienceProps) {
           currentStep={currentStep}
           onStepComplete={handleStepComplete}
           onAdvanceStep={handleAdvanceStep}
+          hintRequested={hintRequested}
+          onComplete={(result) => {
+            setAssessmentResult(result);
+            setIsCompleted(true);
+          }}
         />
 
         {/* Completed Ability Report */}
@@ -220,22 +228,8 @@ export function D02Experience({ onReturnLobby }: D02ExperienceProps) {
               levelId="D02"
               domainLabel="技能领域 · 直流电动机与H桥控制"
               title="D02 让电机转起来能力报告"
-              dimensions={[
-                { id: 'LEFT_HAND', label: '左手定则与安培力受力', stars: 5 },
-                { id: 'COMMUTATOR', label: '换向器连续旋转机理', stars: 5 },
-                { id: 'H_BRIDGE', label: '双继电器H桥正反转逻辑', stars: 5 },
-                { id: 'MOTOR_BLIND', label: '电刷与机械堵转盲测排查', stars: 5 },
-                { id: 'COMMISSIONING', label: '车窗升降平顺调试与验收', stars: 5 },
-              ]}
-              summaryItems={[
-                { label: '安培力定则', value: '左手定则' },
-                { label: '正常电枢电阻', value: '2.2 Ω' },
-                { label: '额定工作电流', value: '3.20 A (标准)' },
-                { label: '堵转故障识别', value: '16.8 A (机械卡死)' },
-                { label: '本关用时', value: '2 分钟' },
-              ]}
               metrics={stepEvidences}
-              mode="guided"
+              assessment={assessmentResult ?? undefined}
               nextTask="学习任务13《D03 转动为什么能发电——电磁感应与交流发电机》"
               onRestart={handleRestart}
               onReturn={onReturnLobby}

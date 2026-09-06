@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { FullscreenButton } from '@/src/components/FullscreenButton';
 import { AbilityReport } from '@/src/components/AbilityReport';
+import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
 import { MasterChenAvatar } from '@/src/components/visuals/MasterChenAvatar';
 import { sounds } from '@/src/components/visuals/SoundEffects';
 import { speakText, stopSpeaking } from '@/src/components/visuals/SpeechTts';
@@ -26,6 +27,7 @@ interface D03ExperienceProps {
 export function D03Experience({ onReturnLobby }: D03ExperienceProps) {
   const [currentStep, setCurrentStep] = useState<D03Step>('FARADAY_INDUCTION_AND_RIGHT_HAND_RULE');
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
+  const [assessmentResult, setAssessmentResult] = useState<LevelAssessmentResult | null>(null);
   const [stepEvidences, setStepEvidences] = useState<Record<string, unknown>>({});
   const [sceneRevision, setSceneRevision] = useState(0);
   const [showWorkOrder, setShowWorkOrder] = useState(false);
@@ -75,6 +77,7 @@ export function D03Experience({ onReturnLobby }: D03ExperienceProps) {
     setStepEvidences({});
     setHintRequested(false);
     setShowWorkOrder(false);
+    setAssessmentResult(null);
     setSceneRevision((r) => r + 1);
   };
 
@@ -211,6 +214,11 @@ export function D03Experience({ onReturnLobby }: D03ExperienceProps) {
           currentStep={currentStep}
           onStepComplete={handleStepComplete}
           onAdvanceStep={handleAdvanceStep}
+          hintRequested={hintRequested}
+          onComplete={(result) => {
+            setAssessmentResult(result);
+            setIsCompleted(true);
+          }}
         />
 
         {/* Completed Ability Report */}
@@ -220,22 +228,8 @@ export function D03Experience({ onReturnLobby }: D03ExperienceProps) {
               levelId="D03"
               domainLabel="技能领域 · 电磁感应与交流发电机"
               title="D03 转动为什么能发电能力报告"
-              dimensions={[
-                { id: 'RIGHT_HAND', label: '右手定则与感应电流方向', stars: 5 },
-                { id: 'RMS_VALUE', label: '正弦波三要素与有效值换算', stars: 5 },
-                { id: 'RPM_CHARACTERISTICS', label: '发电机转速特性与频率计算', stars: 5 },
-                { id: 'ALTERNATOR_BLIND', label: '转子励磁与定子缺相盲测', stars: 5 },
-                { id: 'CHARGING_ACCEPT', label: '碳刷调节器换装与稳压交车', stars: 5 },
-              ]}
-              summaryItems={[
-                { label: '发电机有效值', value: '14.0 V~ (ACV)' },
-                { label: '2000rpm频率', value: '200 Hz (f=pn/60)' },
-                { label: '励磁转子电阻', value: '3.0 Ω (标称)' },
-                { label: '怠速充电电压', value: '14.22 V (正常)' },
-                { label: '本关用时', value: '2 分钟' },
-              ]}
               metrics={stepEvidences}
-              mode="guided"
+              assessment={assessmentResult ?? undefined}
               nextTask="学习任务14《D04 断开开关后的现象——自感与互感分析》"
               onRestart={handleRestart}
               onReturn={onReturnLobby}

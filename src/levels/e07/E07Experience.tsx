@@ -16,6 +16,7 @@ import { MasterChenAvatar } from '@/src/components/visuals/MasterChenAvatar';
 import { sounds } from '@/src/components/visuals/SoundEffects';
 import { speakText, stopSpeaking } from '@/src/components/visuals/SpeechTts';
 import { getStudentDisplayName } from '@/src/stores/authStore';
+import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
 import { E07PcbAssemblyScene } from './E07PcbAssemblyScene';
 import { E07_STAGE_CONTENT, type E07Step } from './e07Training';
 
@@ -26,6 +27,7 @@ interface E07ExperienceProps {
 export function E07Experience({ onReturnLobby }: E07ExperienceProps) {
   const [currentStep, setCurrentStep] = useState<E07Step>('SOLDERING_SAFETY_AND_FIVE_STEPS');
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
+  const [assessmentResult, setAssessmentResult] = useState<LevelAssessmentResult | null>(null);
   const [stepEvidences, setStepEvidences] = useState<Record<string, unknown>>({});
   const [sceneRevision, setSceneRevision] = useState(0);
   const [showWorkOrder, setShowWorkOrder] = useState(false);
@@ -71,6 +73,7 @@ export function E07Experience({ onReturnLobby }: E07ExperienceProps) {
 
   const handleRestart = () => {
     setIsCompleted(false);
+    setAssessmentResult(null);
     setCurrentStep('SOLDERING_SAFETY_AND_FIVE_STEPS');
     setStepEvidences({});
     setHintRequested(false);
@@ -208,23 +211,8 @@ export function E07Experience({ onReturnLobby }: E07ExperienceProps) {
             levelId="E07"
             domainLabel="工艺规范与焊接"
             title="E07 PCB焊接工艺与实物量规验收实训报告"
-            dimensions={[
-              { id: 'SOLDERING_SAFETY', label: '电烙铁安全规范', stars: 5 },
-              { id: 'FIVE_STEP_PROCESS', label: '五步法施焊实操', stars: 5 },
-              { id: 'POLARITY_CHECK', label: '极性防呆核验', stars: 5 },
-              { id: 'IPC_JOINT_INSPECT', label: 'IPC焊点质检', stars: 5 },
-              { id: 'PROCESS_BLIND_TEST', label: '工艺缺陷盲测', stars: 5 },
-              { id: 'TEACHER_RUBRIC', label: '教师量规评定', stars: 5 },
-            ]}
-            summaryItems={[
-              { label: '教师实物量规得分', value: '96 分 (优秀)' },
-              { label: '剪脚残留规范长度', value: '1.2 mm (合格)' },
-              { label: '全功能通电试机', value: '100% 正常' },
-              { label: '五阶段实训评级', value: '优秀 (A+)' },
-              { label: '本关用时', value: '2 分钟' },
-            ]}
+            assessment={assessmentResult ?? undefined}
             metrics={stepEvidences}
-            mode="guided"
             nextTask="P6 全阶段实训结业！已具备进入 P7 综合交付挑战全部资质！"
             onRestart={handleRestart}
             onReturn={onReturnLobby}
@@ -235,6 +223,11 @@ export function E07Experience({ onReturnLobby }: E07ExperienceProps) {
             currentStep={currentStep}
             onStepComplete={handleStepComplete}
             onAdvanceStep={handleAdvanceStep}
+            hintRequested={hintRequested}
+            onComplete={(res) => {
+              setAssessmentResult(res);
+              setIsCompleted(true);
+            }}
           />
         )}
       </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   AlertTriangle,
   ArrowRight,
@@ -10,19 +10,40 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { sounds } from '@/src/components/visuals/SoundEffects';
+import { useLevelAssessment } from '@/src/assessment/useLevelAssessment';
+import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
 import { type D05Step } from './d05Training';
 
 interface D05TransformerSceneProps {
   currentStep: D05Step;
   onStepComplete: (step: D05Step, evidence: Record<string, unknown>) => void;
   onAdvanceStep: () => void;
+  onComplete?: (result: LevelAssessmentResult) => void;
+  hintRequested?: boolean;
 }
 
 export function D05TransformerScene({
   currentStep,
   onStepComplete,
   onAdvanceStep,
+  onComplete,
+  hintRequested,
 }: D05TransformerSceneProps) {
+  const assessment = useLevelAssessment('D05');
+
+  useEffect(() => {
+    if (hintRequested) {
+      const stageMap: Record<D05Step, 'cognition' | 'standard' | 'calculation' | 'blind_test' | 'transfer'> = {
+        STRUCTURE_AND_MAGNETIC_FLUX: 'cognition',
+        VOLTAGE_AND_CURRENT_RATIO: 'standard',
+        DC_INPUT_DISASTER_COUNTEREXAMPLE: 'calculation',
+        POLARITY_AND_SAME_NAME_TERMINALS: 'blind_test',
+        ONBOARD_INVERTER_STEP_UP_DELIVERY: 'transfer',
+      };
+      assessment.requestHint(stageMap[currentStep]);
+    }
+  }, [hintRequested, currentStep, assessment]);
+
   // Multimeter Knob: 'OFF' | 'DCV_20' | 'ACV_750' | 'OHM_200'
   const [meterKnob, setMeterKnob] = useState<'OFF' | 'DCV_20' | 'ACV_750' | 'OHM_200'>('OFF');
   const [meterWarning, setMeterWarning] = useState<string | null>(null);
@@ -55,14 +76,23 @@ export function D05TransformerScene({
 
   // Guard
   const requireMeterPowered = (expected: 'DCV_20' | 'ACV_750' | 'OHM_200'): boolean => {
+    const stageMap: Record<D05Step, 'cognition' | 'standard' | 'calculation' | 'blind_test' | 'transfer'> = {
+      STRUCTURE_AND_MAGNETIC_FLUX: 'cognition',
+      VOLTAGE_AND_CURRENT_RATIO: 'standard',
+      DC_INPUT_DISASTER_COUNTEREXAMPLE: 'calculation',
+      POLARITY_AND_SAME_NAME_TERMINALS: 'blind_test',
+      ONBOARD_INVERTER_STEP_UP_DELIVERY: 'transfer',
+    };
     if (meterKnob === 'OFF') {
       sounds.warningBuzz();
       setMeterWarning('⚠️ 万用表处于关机 OFF 状态！请先拨动旋钮开机再进行测量。');
+      assessment.recordMeterBlocked(stageMap[currentStep]);
       return false;
     }
     if (meterKnob !== expected) {
       sounds.warningBuzz();
       setMeterWarning(`⚠️ 量程不匹配！当前测试需使用 ${expected} 挡位。`);
+      assessment.recordMeterBlocked(stageMap[currentStep]);
       return false;
     }
     setMeterWarning(null);
@@ -595,6 +625,7 @@ export function D05TransformerScene({
                       } else {
                         sounds.warningBuzz();
                         setS1Submitted(true);
+                        assessment.recordWrong('cognition');
                       }
                     }}
                     className="w-full bg-purple-600 hover:bg-purple-500 text-xs font-semibold py-2"
@@ -602,7 +633,14 @@ export function D05TransformerScene({
                     提交磁耦合原理分析
                   </Button>
                 ) : s1Choice === 'A' ? (
-                  <Button onClick={onAdvanceStep} className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2">
+                  <Button
+                    onClick={() => {
+                      assessment.completeStage('cognition');
+                      assessment.startStage('standard');
+                      onAdvanceStep();
+                    }}
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                  >
                     分析透彻！进入变压比与变流比实验 <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
                 ) : (
@@ -628,7 +666,7 @@ export function D05TransformerScene({
                 </div>
                 <div className="space-y-2">
                   {[
-                    { id: 'A', text: '次级电流(5A)远大于初级电流(0.27A)，根据焦耳热规律次级绕组必须采用截面积粗得多的导线' },
+                    { id: 'A', text: '次级电流(5A)远大于初级电流(0.27A)，根据焦羽热规律次级绕组必须采用截面积粗得多的导线' },
                     { id: 'B', text: '初级电压高，所以初级导线必须比次级粗得多' },
                     { id: 'C', text: '初次级电流相等，导线粗细完全一致' },
                   ].map((opt) => {
@@ -668,6 +706,7 @@ export function D05TransformerScene({
                       } else {
                         sounds.warningBuzz();
                         setS2Submitted(true);
+                        assessment.recordWrong('standard');
                       }
                     }}
                     className="w-full bg-purple-600 hover:bg-purple-500 text-xs font-semibold py-2"
@@ -675,7 +714,14 @@ export function D05TransformerScene({
                     提交变比与线径分析
                   </Button>
                 ) : s2Choice === 'A' ? (
-                  <Button onClick={onAdvanceStep} className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2">
+                  <Button
+                    onClick={() => {
+                      assessment.completeStage('standard');
+                      assessment.startStage('calculation');
+                      onAdvanceStep();
+                    }}
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                  >
                     规律准确！进入直流短路灾难反例 <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
                 ) : (
@@ -741,6 +787,7 @@ export function D05TransformerScene({
                       } else {
                         sounds.warningBuzz();
                         setS3Submitted(true);
+                        assessment.recordWrong('calculation');
                       }
                     }}
                     className="w-full bg-purple-600 hover:bg-purple-500 text-xs font-semibold py-2"
@@ -748,7 +795,14 @@ export function D05TransformerScene({
                     {!s3FuseBlown ? '请先在左侧点击接入直流触发反例' : '提交直流短路原理分析'}
                   </Button>
                 ) : s3Choice === 'A' ? (
-                  <Button onClick={onAdvanceStep} className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2">
+                  <Button
+                    onClick={() => {
+                      assessment.completeStage('calculation');
+                      assessment.startStage('blind_test');
+                      onAdvanceStep();
+                    }}
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                  >
                     反例警示深刻！进入同名端测试 <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
                 ) : (
@@ -815,6 +869,7 @@ export function D05TransformerScene({
                       } else {
                         sounds.warningBuzz();
                         setS4Submitted(true);
+                        assessment.recordWrong('blind_test');
                       }
                     }}
                     className="w-full bg-purple-600 hover:bg-purple-500 text-xs font-semibold py-2"
@@ -822,7 +877,14 @@ export function D05TransformerScene({
                     提交同名端判定
                   </Button>
                 ) : s4Choice === 'A' ? (
-                  <Button onClick={onAdvanceStep} className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2">
+                  <Button
+                    onClick={() => {
+                      assessment.completeStage('blind_test');
+                      assessment.startStage('transfer', 'transfer');
+                      onAdvanceStep();
+                    }}
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                  >
                     判定准确！进入车载逆变升压综合交付 <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
                 ) : (
@@ -881,6 +943,9 @@ export function D05TransformerScene({
                         acVoltage: 219.8,
                         signed: true,
                       });
+                      assessment.completeStage('transfer');
+                      const finalResult = assessment.completeLevel();
+                      onComplete?.(finalResult);
                     }}
                     className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
                   >

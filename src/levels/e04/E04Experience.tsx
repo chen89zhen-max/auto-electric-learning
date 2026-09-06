@@ -18,6 +18,7 @@ import { speakText, stopSpeaking } from '@/src/components/visuals/SpeechTts';
 import { getStudentDisplayName } from '@/src/stores/authStore';
 import { E04TransistorScene } from './E04TransistorScene';
 import { E04_STAGE_CONTENT, type E04Step } from './e04Training';
+import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
 
 interface E04ExperienceProps {
   onReturnLobby: () => void;
@@ -26,6 +27,7 @@ interface E04ExperienceProps {
 export function E04Experience({ onReturnLobby }: E04ExperienceProps) {
   const [currentStep, setCurrentStep] = useState<E04Step>('TRANSISTOR_PRINCIPLE_COGNITION');
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
+  const [assessmentResult, setAssessmentResult] = useState<LevelAssessmentResult | null>(null);
   const [stepEvidences, setStepEvidences] = useState<Record<string, unknown>>({});
   const [sceneRevision, setSceneRevision] = useState(0);
   const [showWorkOrder, setShowWorkOrder] = useState(false);
@@ -71,6 +73,7 @@ export function E04Experience({ onReturnLobby }: E04ExperienceProps) {
 
   const handleRestart = () => {
     setIsCompleted(false);
+    setAssessmentResult(null);
     setCurrentStep('TRANSISTOR_PRINCIPLE_COGNITION');
     setStepEvidences({});
     setHintRequested(false);
@@ -208,23 +211,8 @@ export function E04Experience({ onReturnLobby }: E04ExperienceProps) {
             levelId="E04"
             domainLabel="电子器件与信号"
             title="E04 三极管开关与继电器驱动实训报告"
-            dimensions={[
-              { id: 'BJT_PRINCIPLE', label: '小控大原理认知', stars: 5 },
-              { id: 'PIN_AND_BETA', label: '引脚与β测试', stars: 5 },
-              { id: 'SATURATION_DESIGN', label: '饱和导通设计', stars: 5 },
-              { id: 'SWITCH_POWER_LOSS', label: '开关功耗控制', stars: 5 },
-              { id: 'BLIND_FAULT_TEST', label: '四类故障盲测', stars: 5 },
-              { id: 'VEHICLE_FAN_REPAIR', label: '实车风扇排故', stars: 5 },
-            ]}
-            summaryItems={[
-              { label: '放大系数 β', value: '145' },
-              { label: '饱和管压降 Uce', value: '0.18 V (深度饱和)' },
-              { label: '散热风扇控制', value: '96°C 自动启停' },
-              { label: '五阶段实训评级', value: '优秀 (A+)' },
-              { label: '本关用时', value: '2 分钟' },
-            ]}
+            assessment={assessmentResult ?? undefined}
             metrics={stepEvidences}
-            mode="guided"
             nextTask="E05 电路的条件判断——逻辑门电路认知"
             onRestart={handleRestart}
             onReturn={onReturnLobby}
@@ -235,6 +223,11 @@ export function E04Experience({ onReturnLobby }: E04ExperienceProps) {
             currentStep={currentStep}
             onStepComplete={handleStepComplete}
             onAdvanceStep={handleAdvanceStep}
+            hintRequested={hintRequested}
+            onComplete={(result) => {
+              setAssessmentResult(result);
+              setIsCompleted(true);
+            }}
           />
         )}
       </div>

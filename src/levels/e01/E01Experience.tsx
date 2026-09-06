@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { FullscreenButton } from '@/src/components/FullscreenButton';
 import { AbilityReport } from '@/src/components/AbilityReport';
+import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
 import { MasterChenAvatar } from '@/src/components/visuals/MasterChenAvatar';
 import { sounds } from '@/src/components/visuals/SoundEffects';
 import { speakText, stopSpeaking } from '@/src/components/visuals/SpeechTts';
@@ -26,6 +27,7 @@ interface E01ExperienceProps {
 export function E01Experience({ onReturnLobby }: E01ExperienceProps) {
   const [currentStep, setCurrentStep] = useState<E01Step>('DIODE_CONDUCTION_COGNITION');
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
+  const [assessmentResult, setAssessmentResult] = useState<LevelAssessmentResult | null>(null);
   const [stepEvidences, setStepEvidences] = useState<Record<string, unknown>>({});
   const [sceneRevision, setSceneRevision] = useState(0);
   const [showWorkOrder, setShowWorkOrder] = useState(false);
@@ -75,6 +77,7 @@ export function E01Experience({ onReturnLobby }: E01ExperienceProps) {
     setStepEvidences({});
     setHintRequested(false);
     setShowWorkOrder(false);
+    setAssessmentResult(null);
     setSceneRevision((r) => r + 1);
   };
 
@@ -208,23 +211,8 @@ export function E01Experience({ onReturnLobby }: E01ExperienceProps) {
             levelId="E01"
             domainLabel="电子器件与信号"
             title="E01 二极管特性与 LED 限流应用实训报告"
-            dimensions={[
-              { id: 'DIODE_CHAR', label: '单向导电认知', stars: 5 },
-              { id: 'MULTIMETER_DIODE', label: '万用表二极管档', stars: 5 },
-              { id: 'LED_CURRENT_LIMIT', label: 'LED限流与稳压', stars: 5 },
-              { id: 'BLIND_FAULT_TEST', label: '四类故障盲测', stars: 5 },
-              { id: 'VEHICLE_REPAIR', label: '实车板级排故', stars: 5 },
-              { id: 'SAFETY_SPEC', label: '安全与防反接规范', stars: 5 },
-            ]}
-            summaryItems={[
-              { label: '二极管正向导通压降', value: '642 mV' },
-              { label: 'LED限流阻值计算', value: '500 Ω (470Ω标称)' },
-              { label: '示宽灯修复实测电流', value: '21.3 mA' },
-              { label: '五阶段实训评级', value: '优秀 (A+)' },
-              { label: '本关用时', value: '2 分钟' },
-            ]}
             metrics={stepEvidences}
-            mode="guided"
+            assessment={assessmentResult ?? undefined}
             nextTask="E02 断电后为何还有电——电容器及其特性"
             onRestart={handleRestart}
             onReturn={onReturnLobby}
@@ -235,6 +223,11 @@ export function E01Experience({ onReturnLobby }: E01ExperienceProps) {
             currentStep={currentStep}
             onStepComplete={handleStepComplete}
             onAdvanceStep={handleAdvanceStep}
+            hintRequested={hintRequested}
+            onComplete={(result) => {
+              setAssessmentResult(result);
+              setIsCompleted(true);
+            }}
           />
         )}
       </div>

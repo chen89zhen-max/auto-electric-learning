@@ -11,11 +11,15 @@ import {
 import { Button } from '@/components/ui/button';
 import { sounds } from '@/src/components/visuals/SoundEffects';
 import { type D02Step } from './d02Training';
+import { useLevelAssessment } from '@/src/assessment/useLevelAssessment';
+import type { LevelAssessmentResult, TrainingStageId } from '@/src/assessment/assessmentTypes';
 
 interface D02DcMotorSceneProps {
   currentStep: D02Step;
   onStepComplete: (step: D02Step, evidence: Record<string, unknown>) => void;
   onAdvanceStep: () => void;
+  onComplete?: (result: LevelAssessmentResult) => void;
+  hintRequested?: boolean;
 }
 
 interface MotorBlindCase {
@@ -58,10 +62,10 @@ const MOTOR_BLIND_CASES: MotorBlindCase[] = [
     vehicleName: '越野SUV #309 (车窗上升半途卡死发烫)',
     symptom: '升窗到一半剧烈卡滞停下，门板内升窗开关发烫，保险丝发热。',
     faultType: 'TRACK_JAM',
-    faultName: '玻璃升降导轨泥槽异物严重卡死 (电机机械堵转)',
-    terminal1Voltage: 11.2,
+    faultName: '车窗升降机械导轨严重进沙卡死堵转',
+    terminal1Voltage: 12.0,
     motorResistance: 2.2,
-    loadedCurrent: 16.8, // locked-rotor stall current!
+    loadedCurrent: 16.8, // 16.8A stall current!
     explanation: '电机带载电流骤升至 16.8A 堵转状态！电气回路完全正常，实为导轨泥槽异物严重机械卡滞！',
   },
 ];
@@ -70,7 +74,24 @@ export function D02DcMotorScene({
   currentStep,
   onStepComplete,
   onAdvanceStep,
+  onComplete,
+  hintRequested,
 }: D02DcMotorSceneProps) {
+  const assessment = useLevelAssessment('D02');
+
+  React.useEffect(() => {
+    if (hintRequested) {
+      const stageMap: Record<D02Step, TrainingStageId> = {
+        LORENTZ_FORCE_AND_LEFT_HAND_RULE: 'cognition',
+        COMMUTATOR_AND_CONTINUOUS_ROTATION: 'standard',
+        H_BRIDGE_RELAY_DUAL_DIRECTION_CONTROL: 'calculation',
+        BLIND_DC_MOTOR_FAULT_ISOLATION: 'blind_test',
+        ENGINEERING_REPAIR_AND_COMMISSIONING: 'transfer',
+      };
+      assessment.requestHint(stageMap[currentStep]);
+    }
+  }, [hintRequested, currentStep, assessment]);
+
   // Multimeter Knob: 'OFF' | 'DCV_20' | 'OHM_200' | 'DCA_20'
   const [meterKnob, setMeterKnob] = useState<'OFF' | 'DCV_20' | 'OHM_200' | 'DCA_20'>('OFF');
   const [meterWarning, setMeterWarning] = useState<string | null>(null);
@@ -108,13 +129,22 @@ export function D02DcMotorScene({
 
   // Multimeter Anti-misoperation guard
   const requireMeterPowered = (expected: 'DCV_20' | 'OHM_200' | 'DCA_20'): boolean => {
+    const stageMap: Record<D02Step, TrainingStageId> = {
+      LORENTZ_FORCE_AND_LEFT_HAND_RULE: 'cognition',
+      COMMUTATOR_AND_CONTINUOUS_ROTATION: 'standard',
+      H_BRIDGE_RELAY_DUAL_DIRECTION_CONTROL: 'calculation',
+      BLIND_DC_MOTOR_FAULT_ISOLATION: 'blind_test',
+      ENGINEERING_REPAIR_AND_COMMISSIONING: 'transfer',
+    };
     if (meterKnob === 'OFF') {
       sounds.warningBuzz();
+      assessment.recordMeterBlocked(stageMap[currentStep]);
       setMeterWarning('⚠️ 万用表处于关机 OFF 状态！请先拨动旋钮开机再进行测量。');
       return false;
     }
     if (meterKnob !== expected) {
       sounds.warningBuzz();
+      assessment.recordMeterBlocked(stageMap[currentStep]);
       setMeterWarning(`⚠️ 当前量程不匹配！请将万用表拨至目标挡位。`);
       return false;
     }
@@ -721,6 +751,7 @@ export function D02DcMotorScene({
                         onStepComplete('LORENTZ_FORCE_AND_LEFT_HAND_RULE', { choice: s1Choice });
                       } else {
                         sounds.warningBuzz();
+                        assessment.recordWrong('cognition');
                         setS1Submitted(true);
                       }
                     }}
@@ -729,7 +760,14 @@ export function D02DcMotorScene({
                     提交受力方向判别
                   </Button>
                 ) : s1Choice === 'RIGHT' ? (
-                  <Button onClick={onAdvanceStep} className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2">
+                  <Button
+                    onClick={() => {
+                      assessment.completeStage('cognition');
+                      assessment.startStage('standard');
+                      onAdvanceStep();
+                    }}
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                  >
                     完全正确！进入换向器与连续旋转实训 <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
                 ) : (
@@ -794,6 +832,7 @@ export function D02DcMotorScene({
                         onStepComplete('COMMUTATOR_AND_CONTINUOUS_ROTATION', { choice: s2Choice });
                       } else {
                         sounds.warningBuzz();
+                        assessment.recordWrong('standard');
                         setS2Submitted(true);
                       }
                     }}
@@ -802,7 +841,14 @@ export function D02DcMotorScene({
                     提交换向原理分析
                   </Button>
                 ) : s2Choice === 'A' ? (
-                  <Button onClick={onAdvanceStep} className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2">
+                  <Button
+                    onClick={() => {
+                      assessment.completeStage('standard');
+                      assessment.startStage('calculation');
+                      onAdvanceStep();
+                    }}
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                  >
                     分析透彻！进入双继电器 H 桥控制实战 <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
                 ) : (
@@ -867,6 +913,7 @@ export function D02DcMotorScene({
                         onStepComplete('H_BRIDGE_RELAY_DUAL_DIRECTION_CONTROL', { choice: s3Choice });
                       } else {
                         sounds.warningBuzz();
+                        assessment.recordWrong('calculation');
                         setS3Submitted(true);
                       }
                     }}
@@ -875,7 +922,14 @@ export function D02DcMotorScene({
                     {!s3Observed ? '请先在左侧操作升窗/降窗按钮' : '提交 H 桥极性分析'}
                   </Button>
                 ) : s3Choice === 'A' ? (
-                  <Button onClick={onAdvanceStep} className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2">
+                  <Button
+                    onClick={() => {
+                      assessment.completeStage('calculation');
+                      assessment.startStage('blind_test');
+                      onAdvanceStep();
+                    }}
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                  >
                     逻辑严谨！进入独立盲测排故 <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
                 ) : (
@@ -948,6 +1002,7 @@ export function D02DcMotorScene({
                         onStepComplete('BLIND_DC_MOTOR_FAULT_ISOLATION', { caseId: activeBlind.id, choice: s4Choice });
                       } else {
                         sounds.warningBuzz();
+                        assessment.recordWrong('blind_test');
                         setS4Submitted(true);
                       }
                     }}
@@ -963,6 +1018,8 @@ export function D02DcMotorScene({
                         setS4Choice(null);
                         setS4Submitted(false);
                       } else {
+                        assessment.completeStage('blind_test');
+                        assessment.startStage('transfer', 'transfer');
                         onAdvanceStep();
                       }
                     }}
@@ -1027,6 +1084,10 @@ export function D02DcMotorScene({
                         current: 3.2,
                         signed: true,
                       });
+                      assessment.completeStage('transfer');
+                      const finalResult = assessment.completeLevel();
+                      onComplete?.(finalResult);
+                      onAdvanceStep();
                     }}
                     className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
                   >

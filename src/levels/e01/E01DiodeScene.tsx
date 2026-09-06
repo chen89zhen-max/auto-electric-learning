@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   AlertTriangle,
   ArrowRight,
@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { sounds } from '@/src/components/visuals/SoundEffects';
+import { useLevelAssessment } from '@/src/assessment/useLevelAssessment';
+import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
 import {
   type E01Step,
   E01_SAMPLES,
@@ -22,13 +24,31 @@ interface E01DiodeSceneProps {
   currentStep: E01Step;
   onStepComplete: (step: E01Step, evidence: Record<string, unknown>) => void;
   onAdvanceStep: () => void;
+  onComplete?: (result: LevelAssessmentResult) => void;
+  hintRequested?: boolean;
 }
 
 export function E01DiodeScene({
   currentStep,
   onStepComplete,
   onAdvanceStep,
+  onComplete,
+  hintRequested,
 }: E01DiodeSceneProps) {
+  const assessment = useLevelAssessment('E01');
+
+  useEffect(() => {
+    if (hintRequested) {
+      const stageMap: Record<E01Step, 'cognition' | 'standard' | 'calculation' | 'blind_test' | 'transfer'> = {
+        DIODE_CONDUCTION_COGNITION: 'cognition',
+        MULTIMETER_DIODE_TEST: 'standard',
+        ZENER_AND_LED_CALCULATION: 'calculation',
+        BLIND_DIODE_FAULT_DIAGNOSIS: 'blind_test',
+        ENGINEERING_REPAIR_AND_DELIVERY: 'transfer',
+      };
+      assessment.requestHint(stageMap[currentStep]);
+    }
+  }, [hintRequested, currentStep, assessment]);
   // Multimeter knob: 'OFF' | 'DIODE' | 'OHM_2K' | 'DCV_20'
   const [meterKnob, setMeterKnob] = useState<'OFF' | 'DIODE' | 'OHM_2K' | 'DCV_20'>('OFF');
   const [meterWarning, setMeterWarning] = useState<string | null>(null);
@@ -66,14 +86,23 @@ export function E01DiodeScene({
 
   // Multimeter guard
   const requireMeterKnob = (required: 'DIODE' | 'OHM_2K' | 'DCV_20'): boolean => {
+    const stageMap: Record<E01Step, 'cognition' | 'standard' | 'calculation' | 'blind_test' | 'transfer'> = {
+      DIODE_CONDUCTION_COGNITION: 'cognition',
+      MULTIMETER_DIODE_TEST: 'standard',
+      ZENER_AND_LED_CALCULATION: 'calculation',
+      BLIND_DIODE_FAULT_DIAGNOSIS: 'blind_test',
+      ENGINEERING_REPAIR_AND_DELIVERY: 'transfer',
+    };
     if (meterKnob === 'OFF') {
       setMeterWarning('⚠️ 万用表电源未开启！请先将旋钮打至相应测量挡位！');
       sounds.playFailureSound?.();
+      assessment.recordMeterBlocked(stageMap[currentStep]);
       return false;
     }
     if (meterKnob !== required) {
       setMeterWarning(`⚠️ 挡位错误！当前需要打到 [${required}] 挡位进行测量！`);
       sounds.playFailureSound?.();
+      assessment.recordMeterBlocked(stageMap[currentStep]);
       return false;
     }
     setMeterWarning(null);
@@ -293,6 +322,7 @@ export function E01DiodeScene({
                         onStepComplete('DIODE_CONDUCTION_COGNITION', { s1Choice, s1Polarity });
                       } else {
                         sounds.playFailureSound?.();
+                        assessment.recordWrong('cognition');
                         alert('结论有误，请仔细观察正接与反接时的电压与电流读数！');
                       }
                     }}
@@ -307,7 +337,11 @@ export function E01DiodeScene({
                       <span>判定正确！硅二极管具备单向导电性，正向导通压降约为 0.7V。</span>
                     </div>
                     <Button
-                      onClick={onAdvanceStep}
+                      onClick={() => {
+                        assessment.completeStage('cognition');
+                        assessment.startStage('standard');
+                        onAdvanceStep();
+                      }}
                       className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
                     >
                       进入步骤 2：万用表规范测试 <ArrowRight className="w-3.5 h-3.5" />
@@ -422,6 +456,7 @@ export function E01DiodeScene({
                         onStepComplete('MULTIMETER_DIODE_TEST', { s2Choice, s2ProbeDirection });
                       } else {
                         sounds.playFailureSound?.();
+                        assessment.recordWrong('standard');
                         alert('判别错误！双向均为0是击穿，双向均为OL是断路！');
                       }
                     }}
@@ -436,7 +471,11 @@ export function E01DiodeScene({
                       <span>规范检测通过！红正黑负有压降，对调显示 OL，二极管性能良好。</span>
                     </div>
                     <Button
-                      onClick={onAdvanceStep}
+                      onClick={() => {
+                        assessment.completeStage('standard');
+                        assessment.startStage('calculation');
+                        onAdvanceStep();
+                      }}
                       className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
                     >
                       进入步骤 3：稳压与限流计算 <ArrowRight className="w-3.5 h-3.5" />
@@ -604,6 +643,7 @@ export function E01DiodeScene({
                         });
                       } else {
                         sounds.playFailureSound?.();
+                        assessment.recordWrong('calculation');
                         alert('计算有误！R = (12V - 2V) / 0.02A = 10V / 0.02A = 500Ω！');
                       }
                     }}
@@ -618,7 +658,11 @@ export function E01DiodeScene({
                       <span>计算准确！R = (12 - 2) / 0.02 = 500Ω，能可靠保护汽车指示灯！</span>
                     </div>
                     <Button
-                      onClick={onAdvanceStep}
+                      onClick={() => {
+                        assessment.completeStage('calculation');
+                        assessment.startStage('blind_test');
+                        onAdvanceStep();
+                      }}
                       className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
                     >
                       进入步骤 4：典型故障盲测 <ArrowRight className="w-3.5 h-3.5" />
@@ -758,6 +802,7 @@ export function E01DiodeScene({
                         onStepComplete('BLIND_DIODE_FAULT_DIAGNOSIS', { s4Diagnoses });
                       } else {
                         sounds.playFailureSound?.();
+                        assessment.recordWrong('blind_test');
                         alert('诊断有误，请重新对测不准的样件对调表笔复验！');
                       }
                     }}
@@ -772,7 +817,11 @@ export function E01DiodeScene({
                       <span>全组盲测分类准确！具备专业板级元器件检修能力！</span>
                     </div>
                     <Button
-                      onClick={onAdvanceStep}
+                      onClick={() => {
+                        assessment.completeStage('blind_test');
+                        assessment.startStage('transfer', 'transfer');
+                        onAdvanceStep();
+                      }}
                       className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
                     >
                       进入步骤 5：实车工程修复与交付 <ArrowRight className="w-3.5 h-3.5" />
@@ -967,6 +1016,9 @@ export function E01DiodeScene({
                         s5PowerOn,
                         s5Repaired,
                       });
+                      assessment.completeStage('transfer');
+                      const finalResult = assessment.completeLevel();
+                      onComplete?.(finalResult);
                     }}
                     className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold"
                   >
