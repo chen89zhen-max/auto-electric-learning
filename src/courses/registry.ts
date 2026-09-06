@@ -74,6 +74,7 @@ export interface CourseLevelDefinition {
   description: string;
   category: string;
   duration: string;
+  curriculumRequirement?: 'required' | 'elective';
   textbookTask: string;
   objectiveIds: string[];
   prerequisiteLevelIds: string[];
@@ -493,6 +494,7 @@ export const CANONICAL_COURSE_REGISTRY: CourseLevelDefinition[] = [
     description: '单相变压器变压比、变流比、同名端及绕组阻抗检测实验（星号选学）。',
     category: '电磁感应',
     duration: '2 课时',
+    curriculumRequirement: 'elective',
     textbookTask: '学习任务19 变压器的认知 (13页, 选学)',
     objectiveIds: ['T19-TRANSFORMER-RATIO', 'T19-WINDING-TEST'],
     prerequisiteLevelIds: ['D04'],

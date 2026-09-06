@@ -38,6 +38,8 @@ export const D02_STAGE_CONTENT: Record<D02Step, D02StageContent> = {
       '观察无换向器反例：封闭线圈转过垂直平衡位置后，左右两边受力方向依然不变，产生反向制动转矩，导致线圈在平衡位置剧烈振荡并卡死。',
       '引入半圆铜环换向器与石墨电刷：在线圈刚越过平衡位置的瞬间（转矩为零），电刷接触片自动与另一半铜环接触。',
       '电流方向瞬间反转：越过平衡位置后线圈两侧电流随之换向，受到的电磁转矩始终保持顺时针，实现稳定连续高速旋转。',
+      '映射实车起动机 6 大内部结构：电枢转子、定子磁极、换向器铜环、石墨电刷、电磁开关（吸拉与保持）与单向离合器驱动齿轮。',
+      '对比单相脉动磁场与三相旋转磁场：单相磁场不能自起动必须依靠换向器，三相交流电互差 120° 产生天然平滑旋转磁场（新能源电驱核心）。',
       '在工单中记录换向器与电刷的机械摩擦与碳粉磨损机理。',
     ],
     completion: '换向器工作原理与无换向器卡滞反例对比透彻，掌握直流电动机连续运转的机械结构。',
@@ -93,5 +95,87 @@ export const D02_STAGE_CONTENT: Record<D02Step, D02StageContent> = {
       '好手艺！继电器换新了，换向器擦干净了，玻璃滑轨也润滑到位了！升降顺顺当当，工作电流只有 3 安培，安安静静不卡滞！把工具收好，车窗擦干净，通知车主提车！',
     hint: '点击“执行工程修复”，再分别测试升窗与降窗电流，确认各项指标合格后提交交付。',
     mentorEmotion: 'PRAISE',
+  },
+};
+
+export interface StarterMotorComponent {
+  id: 'ARMATURE' | 'STATOR_FIELD' | 'COMMUTATOR' | 'CARBON_BRUSHES' | 'SOLENOID_SWITCH' | 'DRIVE_PINION';
+  name: string;
+  role: string;
+  location: string;
+}
+
+export const STARTER_MOTOR_COMPONENTS: StarterMotorComponent[] = [
+  {
+    id: 'ARMATURE',
+    name: '电枢 (转子)',
+    role: '由硅钢片铁芯与多匝电枢线圈组成，通入直流电产生受力转矩',
+    location: '电机中心旋转轴',
+  },
+  {
+    id: 'STATOR_FIELD',
+    name: '定子磁极 (磁场)',
+    role: '提供恒定工作磁场，传统起动机为励磁绕组，现代多用钕铁硼永磁体',
+    location: '电机外壳内壁',
+  },
+  {
+    id: 'COMMUTATOR',
+    name: '换向器 (整流子)',
+    role: '由多片梯形铜片与云母绝缘片拼接成圆环，在电枢旋转越过中性面瞬间自动改变线圈电流方向',
+    location: '电枢轴前端',
+  },
+  {
+    id: 'CARBON_BRUSHES',
+    name: '碳刷与刷握 (电刷总成)',
+    role: '石墨材质耐磨滑块，借助弹簧恒压贴合在换向器铜片上，将外部直流电源引入高速旋转的电枢',
+    location: '后轴承盖刷架',
+  },
+  {
+    id: 'SOLENOID_SWITCH',
+    name: '电磁控制开关',
+    role: '双线圈结构（吸引线圈+保持线圈），接通起动机主电路并推动拨叉挂齿',
+    location: '电机上方圆筒体',
+  },
+  {
+    id: 'DRIVE_PINION',
+    name: '单向离合器驱动齿轮',
+    role: '顺时针将起动机扭矩单向传递至发动机飞轮齿圈；发动机起动后超速打滑脱开，防止飞轮反向倒拖炸毁电机',
+    location: '电机输出轴前端',
+  },
+];
+
+export interface MagneticFieldComparison {
+  singlePhase: {
+    name: string;
+    type: 'PULSATING';
+    description: string;
+    isSelfStarting: boolean;
+    phaseDifferenceDegrees: number;
+  };
+  threePhase: {
+    name: string;
+    type: 'ROTATING';
+    description: string;
+    isRotating: boolean;
+    isSelfStarting: boolean;
+    phaseDifferenceDegrees: number;
+  };
+}
+
+export const MAGNETIC_FIELD_COMPARISON: MagneticFieldComparison = {
+  singlePhase: {
+    name: '单相交流/单线圈脉动磁场',
+    type: 'PULSATING',
+    description: '固定空间轴线上大小和方向随时间正弦交变的脉动磁场，无固定旋转方向，不能自起动，必须借助机械换向器或起动电容裂相',
+    isSelfStarting: false,
+    phaseDifferenceDegrees: 0,
+  },
+  threePhase: {
+    name: '三相交流旋转磁场',
+    type: 'ROTATING',
+    description: '三相对称绕组在空间互差120°，通入对称三相交流电后合成产生恒定幅值、连续旋转的空间旋转磁场，无需机械换向器即可自然带动转子旋转',
+    isRotating: true,
+    isSelfStarting: true,
+    phaseDifferenceDegrees: 120,
   },
 };

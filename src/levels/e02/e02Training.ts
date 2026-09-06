@@ -121,3 +121,18 @@ export function calculateVcCharging(uSource: number, tauSeconds: number, timeEla
   const val = uSource * (1 - Math.exp(-timeElapsed / tauSeconds));
   return Math.round(val * 100) / 100;
 }
+
+/**
+ * Control-variable experiment calculation for parallel plate capacitor:
+ * C = ε * S / d
+ */
+export function calculateParallelPlateCapacitance(params: {
+  baseUf: number;
+  areaRatio: number; // S / S0, e.g. 0.5 ~ 2.0
+  distanceRatio: number; // d / d0, e.g. 0.5 ~ 2.0
+  dielectricConstant?: number; // relative permittivity εr, default 1.0
+}): number {
+  const { baseUf, areaRatio, distanceRatio, dielectricConstant = 1.0 } = params;
+  if (distanceRatio <= 0) return Infinity;
+  return Math.round((baseUf * (areaRatio / distanceRatio) * dielectricConstant) * 100) / 100;
+}

@@ -418,6 +418,11 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
                         <span className="text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
                           {meta.category}
                         </span>
+                        {canonical?.curriculumRequirement === 'elective' && (
+                          <span className="text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 border border-purple-200">
+                            ⭐ 选学/拓展
+                          </span>
+                        )}
                         <span className="text-[10px] sm:text-xs text-slate-400">
                           {meta.duration}
                         </span>

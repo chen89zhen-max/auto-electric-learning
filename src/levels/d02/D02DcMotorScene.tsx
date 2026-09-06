@@ -10,7 +10,11 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { sounds } from '@/src/components/visuals/SoundEffects';
-import { type D02Step } from './d02Training';
+import {
+  type D02Step,
+  STARTER_MOTOR_COMPONENTS,
+  MAGNETIC_FIELD_COMPARISON,
+} from './d02Training';
 import { useLevelAssessment } from '@/src/assessment/useLevelAssessment';
 import type { LevelAssessmentResult, TrainingStageId } from '@/src/assessment/assessmentTypes';
 import { evaluateMeterGuard } from '@/src/game/instruments/meterGuard';
@@ -103,8 +107,9 @@ export function D02DcMotorScene({
   const [s1Choice, setS1Choice] = useState<string | null>(null);
   const [s1Submitted, setS1Submitted] = useState<boolean>(false);
 
-  // Step 2: Commutator
+  // Step 2: Commutator & Starter Structure & Rotating Field
   const [s2HasCommutator, setS2HasCommutator] = useState<boolean>(false);
+  const [s2SubTab, setS2SubTab] = useState<'EXPERIMENT' | 'STARTER_MAP' | 'ROTATING_FIELD'>('EXPERIMENT');
   const [s2Choice, setS2Choice] = useState<string | null>(null);
   const [s2Submitted, setS2Submitted] = useState<boolean>(false);
 
@@ -446,29 +451,96 @@ export function D02DcMotorScene({
             )}
 
             {currentStep === 'COMMUTATOR_AND_CONTINUOUS_ROTATION' && (
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => {
-                    sounds.click();
-                    setS2HasCommutator(false);
-                  }}
-                  className={`px-3 py-1.5 rounded text-xs font-bold ${
-                    !s2HasCommutator ? 'bg-rose-600 text-white' : 'bg-slate-800 text-slate-300'
-                  }`}
-                >
-                  无换向器反例 (平衡位置卡滞)
-                </button>
-                <button
-                  onClick={() => {
-                    sounds.zap();
-                    setS2HasCommutator(true);
-                  }}
-                  className={`px-3 py-1.5 rounded text-xs font-bold ${
-                    s2HasCommutator ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300'
-                  }`}
-                >
-                  装配换向器与电刷 (单向连续运转)
-                </button>
+              <div className="flex flex-col gap-2 w-full">
+                <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
+                  <span className="text-xs text-slate-400 font-semibold">认知维度:</span>
+                  {[
+                    { key: 'EXPERIMENT', label: '1. 换向器仿真实验' },
+                    { key: 'STARTER_MAP', label: '2. 实车起动机6大结构' },
+                    { key: 'ROTATING_FIELD', label: '3. 单相 vs 三相旋转磁场' },
+                  ].map((tab) => (
+                    <button
+                      key={tab.key}
+                      onClick={() => {
+                        sounds.click();
+                        setS2SubTab(tab.key as any);
+                      }}
+                      className={`px-2.5 py-1 rounded text-xs font-bold cursor-pointer transition-colors ${
+                        s2SubTab === tab.key
+                          ? 'bg-sky-600 text-white shadow-xs'
+                          : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                {s2SubTab === 'EXPERIMENT' && (
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => {
+                        sounds.click();
+                        setS2HasCommutator(false);
+                      }}
+                      className={`px-3 py-1.5 rounded text-xs font-bold ${
+                        !s2HasCommutator ? 'bg-rose-600 text-white' : 'bg-slate-800 text-slate-300'
+                      }`}
+                    >
+                      无换向器反例 (平衡位置卡滞)
+                    </button>
+                    <button
+                      onClick={() => {
+                        sounds.zap();
+                        setS2HasCommutator(true);
+                      }}
+                      className={`px-3 py-1.5 rounded text-xs font-bold ${
+                        s2HasCommutator ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300'
+                      }`}
+                    >
+                      装配换向器与电刷 (单向连续运转)
+                    </button>
+                  </div>
+                )}
+
+                {s2SubTab === 'STARTER_MAP' && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-2 bg-slate-900/90 rounded-lg border border-slate-800 text-xs">
+                    {STARTER_MOTOR_COMPONENTS.map((comp) => (
+                      <div key={comp.id} className="p-2 bg-slate-950/70 rounded border border-slate-800 flex flex-col gap-1">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-sky-300">{comp.name}</span>
+                          <span className="text-[10px] text-slate-400 bg-slate-800 px-1 py-0.5 rounded">{comp.location}</span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 leading-tight">{comp.role}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {s2SubTab === 'ROTATING_FIELD' && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-slate-900/90 rounded-lg border border-slate-800 text-xs">
+                    <div className="p-2.5 bg-slate-950/70 rounded border border-slate-800 flex flex-col gap-1.5">
+                      <span className="font-bold text-rose-400">{MAGNETIC_FIELD_COMPARISON.singlePhase.name}</span>
+                      <p className="text-[11px] text-slate-300">{MAGNETIC_FIELD_COMPARISON.singlePhase.description}</p>
+                      <div className="mt-1 flex items-center gap-2 text-[10px] text-slate-400">
+                        <span className="px-1.5 py-0.5 bg-rose-950/60 text-rose-300 rounded border border-rose-900">
+                          不能自起动
+                        </span>
+                        <span>必须借机械电刷/电容</span>
+                      </div>
+                    </div>
+                    <div className="p-2.5 bg-slate-950/70 rounded border border-slate-800 flex flex-col gap-1.5">
+                      <span className="font-bold text-emerald-400">{MAGNETIC_FIELD_COMPARISON.threePhase.name}</span>
+                      <p className="text-[11px] text-slate-300">{MAGNETIC_FIELD_COMPARISON.threePhase.description}</p>
+                      <div className="mt-1 flex items-center gap-2 text-[10px] text-slate-400">
+                        <span className="px-1.5 py-0.5 bg-emerald-950/60 text-emerald-300 rounded border border-emerald-900">
+                          120° 空间对称
+                        </span>
+                        <span>无电刷天然平滑旋转</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

@@ -48,17 +48,17 @@ export const E07_STAGE_CONTENT: Record<E07Step, E07StageContent> = {
   },
   SOLDER_JOINT_QUALITY_STANDARD: {
     title: '实训步骤 3：合格焊点几何形态与常见焊接缺陷对比',
-    objective: '对照 IPC-A-610 国际电子装配标准，识别合格焊点(半月裙摆状)及虚焊、假焊、桥连连锡、焊盘剥离缺陷',
+    objective: '对照 IPC-A-610 国际电子装配标准，识别合格焊点良好润湿饱满度（凹面半月形 / 弯月面润湿角 θ < 90°）及虚焊、假焊、桥连连锡、焊盘剥离缺陷',
     actions: [
-      '合格焊点标准：呈光滑圆润的半月形圆锥体，焊锡沿引脚与焊盘充分润湿铺展，润湿角 θ < 30°，引脚轮廓隐约可见。',
+      '合格焊点标准：对照 IPC-A-610 国际标准，呈现良好润湿饱满度（凹面半月形 / 弯月面润湿角 θ < 90°，理想状态 θ < 30° 圆锥裙摆状），焊锡沿引脚与焊盘充分润湿铺展，引脚轮廓隐约可见。',
       '虚焊与假焊 (Cold/Pseudosolder)：焊锡未完全熔透或引脚有氧化层，呈豆腐渣粗糙球状，表面无光泽，内部存在接触电阻或隐蔽开路。',
       '桥连短路 (Bridging)：焊锡过多溢出或烙铁拉丝，导致相邻两个独立引脚铜箔粘连成一片，通电直接烧保险丝。',
       '焊盘起皮脱落 (Pad Lift)：烙铁温度过高(>380°C)或单点加热超过 6 秒，粘合树脂碳化脱胶，焊盘彻底撕裂报废。',
     ],
     completion: '建立工业级焊点质量眼光，熟记缺陷成因与防范措施。',
     mentorPrompt:
-      '什么叫合格的好焊点？三个字：润、亮、锥！像一颗颗晶莹剔透的水滴，四周像裙摆一样平滑贴在铜皮上，引脚在中间微微露个尖！要是堆成个死大圆球，里头十有八九是没吃透的虚焊；要是连到隔壁引脚就是短路桥连！',
-    hint: '点击放大显微镜切片，对比合格半月形圆锥焊点与虚焊、桥连的形态差异。',
+      '什么叫工业级合格的好焊点？对照 IPC-A-610 标准，讲究“良好润湿饱满度（凹面半月形）”！润湿角小于90度甚至30度，四周像裙摆一样平滑贴在铜皮上，引脚在中间微微露个尖！要是堆成个死大圆球，里头十有八九是没吃透的虚焊；要是连到隔壁引脚就是短路桥连！',
+    hint: '点击放大显微镜切片，对比合格凹面半月形圆锥焊点与虚焊、桥连的形态差异。',
     mentorEmotion: 'THINKING',
   },
   BLIND_PCB_DEFECT_INSPECTION: {
@@ -109,4 +109,43 @@ export const E07_DEFECTS: PcbDefectSample[] = [
   { id: 'DEF_2', location: '电阻 R3 焊盘', visualFeature: '焊点灰暗起皱呈豆腐渣粗糙球', multimeterOhm: 850, actualDefect: 'COLD_SOLDER' },
   { id: 'DEF_3', location: '电容 C2 丝印位', visualFeature: '白条负极朝向正极孔，长脚插负孔', multimeterOhm: 999999, actualDefect: 'REVERSED_POLARITY' },
   { id: 'DEF_4', location: '三极管 Q1 基极', visualFeature: '绿色阻焊油翘起，铜箔焊盘撕裂悬空', multimeterOhm: 9999999, actualDefect: 'PAD_LIFT' },
+];
+
+export interface PrePowerCheckItem {
+  id: 'GROUNDING' | 'TIP_SCREW' | 'STAND_WEIGHT' | 'SPONGE_WET' | 'VENTILATION' | 'GOGGLES';
+  label: string;
+  hazardIfIgnored: string;
+}
+
+export const E07_PRE_POWER_CHECKLIST: PrePowerCheckItem[] = [
+  {
+    id: 'GROUNDING',
+    label: '1. 烙铁接地保护与电源线绝缘完好无破损',
+    hazardIfIgnored: '接地断开或绝缘磨破直接导致机壳带电，造成触电伤害与漏电击穿敏感 MOS 芯片！',
+  },
+  {
+    id: 'TIP_SCREW',
+    label: '2. 烙铁头固定螺丝紧固无松晃',
+    hazardIfIgnored: '螺丝松动导致传热受阻且烙铁头可能高温跌落引燃工作台！',
+  },
+  {
+    id: 'STAND_WEIGHT',
+    label: '3. 烙铁架配重稳固且远离易燃物品',
+    hazardIfIgnored: '烙铁架倾倒或靠近无水酒精/纸张将引发工作台严重火灾！',
+  },
+  {
+    id: 'SPONGE_WET',
+    label: '4. 耐高温清洁海绵已注水润湿挤干',
+    hazardIfIgnored: '干海绵不仅无法清洁氧化皮，还会被 350°C 高温直接烧焦释放有害烟雾！',
+  },
+  {
+    id: 'VENTILATION',
+    label: '5. 抽风排烟装置已就位开启',
+    hazardIfIgnored: '松香受热升华产生的有害醛类烟雾被人体吸入将引起剧烈呼吸道灼伤！',
+  },
+  {
+    id: 'GOGGLES',
+    label: '6. 防护目镜已佩戴',
+    hazardIfIgnored: '焊锡加热时内部助焊剂爆沸可能造成熔融锡液飞溅灼伤眼角膜！',
+  },
 ];

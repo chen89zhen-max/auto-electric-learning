@@ -17,6 +17,7 @@ import { evaluateMeterGuard } from '@/src/game/instruments/meterGuard';
 import {
   type E07Step,
   E07_DEFECTS,
+  E07_PRE_POWER_CHECKLIST,
 } from './e07Training';
 
 export interface PhysicalEvaluationData {
@@ -64,7 +65,10 @@ export function E07PcbAssemblyScene({
   const [meterKnob, setMeterKnob] = useState<'OFF' | 'MAGNIFIER_10X' | 'BUZZER_OHM' | 'DCV_20'>('OFF');
   const [meterWarning, setMeterWarning] = useState<string | null>(null);
 
-  // Step 1: Safety & Five Steps
+  // Step 1: Safety & Five Steps & Pre-power checklist
+  const [s1CheckedItems, setS1CheckedItems] = useState<Record<string, boolean>>({});
+  const [s1HeatingStarted, setS1HeatingStarted] = useState<boolean>(false);
+  const [s1SafetyWarning, setS1SafetyWarning] = useState<string | null>(null);
   const [s1CurrentStepIdx, setS1CurrentStepIdx] = useState<number>(0);
   const [s1Choice, setS1Choice] = useState<string | null>(null);
   const [s1Submitted, setS1Submitted] = useState<boolean>(false);
@@ -241,6 +245,83 @@ export function E07PcbAssemblyScene({
                     {FIVE_STEPS[s1CurrentStepIdx].num}
                   </div>
                 </div>
+                {/* 焊前 6 项安全点检 */}
+                <div className="mt-4 p-3 bg-slate-900/90 rounded-xl border border-amber-500/30 flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                      电烙铁通电前 6 项安全必检（未全部确认严禁通电加热）
+                    </span>
+                    <span className="text-[11px] font-mono text-slate-400">
+                      已核验: {Object.values(s1CheckedItems).filter(Boolean).length} / 6
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs">
+                    {E07_PRE_POWER_CHECKLIST.map((item) => {
+                      const isChecked = !!s1CheckedItems[item.id];
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => {
+                            sounds.playToggleSound?.();
+                            setS1CheckedItems((prev) => ({ ...prev, [item.id]: !prev[item.id] }));
+                            setS1SafetyWarning(null);
+                          }}
+                          className={`p-2 rounded-lg text-left border flex items-center gap-2 cursor-pointer transition-colors ${
+                            isChecked
+                              ? 'bg-emerald-950/40 border-emerald-500/60 text-emerald-200'
+                              : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                          }`}
+                        >
+                          <span className={`w-4 h-4 rounded flex items-center justify-center text-[10px] font-bold border ${
+                            isChecked ? 'bg-emerald-600 border-emerald-400 text-white' : 'border-slate-600'
+                          }`}>
+                            {isChecked ? '✓' : ''}
+                          </span>
+                          <span className="text-[11px] leading-tight">{item.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {s1SafetyWarning && (
+                    <div className="p-2 bg-rose-950/60 border border-rose-500 rounded text-rose-300 text-xs flex items-center gap-1.5">
+                      <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
+                      <span>{s1SafetyWarning}</span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-[10px] text-slate-500">
+                      {s1HeatingStarted ? '🔥 焊台已接通并加温至 330°C' : '请逐项核对无隐患后通电'}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={s1HeatingStarted}
+                      onClick={() => {
+                        const checkedCount = Object.values(s1CheckedItems).filter(Boolean).length;
+                        if (checkedCount < 6) {
+                          assessment.recordUnsafeAction('cognition');
+                          setS1SafetyWarning('安全阻断！必须逐项确认完成全部 6 项安全点检后方可通电！');
+                          sounds.playFailureSound?.();
+                          return;
+                        }
+                        sounds.zap?.();
+                        setS1HeatingStarted(true);
+                        setS1SafetyWarning(null);
+                      }}
+                      className={`px-3 py-1.5 rounded text-xs font-bold transition-all cursor-pointer ${
+                        s1HeatingStarted
+                          ? 'bg-emerald-600 text-white'
+                          : 'bg-amber-600 hover:bg-amber-500 text-white shadow-xs'
+                      }`}
+                    >
+                      {s1HeatingStarted ? '✓ 已通电安全加热 (330°C)' : '通电前点检完毕 · 开启焊台加热'}
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <div className="text-xs text-slate-400 pt-4 border-t border-slate-800 font-mono">
@@ -290,10 +371,17 @@ export function E07PcbAssemblyScene({
                   <Button
                     disabled={!s1Choice}
                     onClick={() => {
+                      const checkedCount = Object.values(s1CheckedItems).filter(Boolean).length;
+                      if (!s1HeatingStarted || checkedCount < 6) {
+                        assessment.recordUnsafeAction('cognition');
+                        setS1SafetyWarning('安全阻断！必须完成通电前 6 项安全点检并开启焊台后方可提交！');
+                        sounds.playFailureSound?.();
+                        return;
+                      }
                       if (s1Choice === 'A') {
                         setS1Submitted(true);
                         sounds.playSuccessSound?.();
-                        onStepComplete('SOLDERING_SAFETY_AND_FIVE_STEPS', { s1Choice });
+                        onStepComplete('SOLDERING_SAFETY_AND_FIVE_STEPS', { s1Choice, prePowerChecks: s1CheckedItems });
                       } else {
                         assessment.recordWrong('cognition');
                         sounds.playFailureSound?.();

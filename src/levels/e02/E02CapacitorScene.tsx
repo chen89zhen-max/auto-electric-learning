@@ -16,6 +16,7 @@ import {
   E02_SAMPLES,
   calculateTauSeconds,
   calculateVcCharging,
+  calculateParallelPlateCapacitance,
 } from './e02Training';
 import { useLevelAssessment } from '@/src/assessment/useLevelAssessment';
 import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
@@ -44,6 +45,9 @@ export function E02CapacitorScene({
   // Step 1: Storage & Delay
   const [s1PowerState, setS1PowerState] = useState<'OFF' | 'CHARGING' | 'DISCHARGING'>('OFF');
   const [s1Voltage, setS1Voltage] = useState<number>(0);
+  const [s1PlateArea, setS1PlateArea] = useState<number>(1.0); // S / S0: 0.5 ~ 2.0
+  const [s1PlateDistance, setS1PlateDistance] = useState<number>(1.0); // d / d0: 0.5 ~ 2.0
+  const [s1Dielectric, setS1Dielectric] = useState<number>(1.0); // εr
   const [s1Choice, setS1Choice] = useState<string | null>(null);
   const [s1Submitted, setS1Submitted] = useState<boolean>(false);
 
@@ -298,6 +302,109 @@ export function E02CapacitorScene({
                   </Button>
                 </div>
               </div>
+
+              {/* 平行板电容器物理微实验: C = ε * S / d */}
+              {(() => {
+                const s1SimCap = calculateParallelPlateCapacitance({
+                  baseUf: 470,
+                  areaRatio: s1PlateArea,
+                  distanceRatio: s1PlateDistance,
+                  dielectricConstant: s1Dielectric,
+                });
+                const s1SimTau = calculateTauSeconds(10000, s1SimCap);
+                return (
+                  <div className="mt-4 p-3 bg-slate-900/90 rounded-xl border border-blue-900/40 flex flex-col gap-2.5">
+                    <div className="flex items-center justify-between flex-wrap gap-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-blue-300">📐 控制变量微实验：极板面积与间距对电容量的影响</span>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800">
+                          C = ε · S / d
+                        </span>
+                      </div>
+                      <div className="text-xs font-mono text-emerald-400 font-bold">
+                        计算容量: {s1SimCap.toFixed(1)} μF | 延时常数 τ: {s1SimTau.toFixed(2)} s
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-slate-400">
+                          <span>极板正对面积 S:</span>
+                          <span className="text-sky-300 font-bold font-mono">{(s1PlateArea * 100).toFixed(0)}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0.5"
+                          max="2.0"
+                          step="0.1"
+                          value={s1PlateArea}
+                          onChange={(e) => setS1PlateArea(parseFloat(e.target.value))}
+                          className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                        />
+                        <div className="flex justify-between text-[10px] text-slate-500">
+                          <span>50% (面积减半)</span>
+                          <span>200% (面积翻倍)</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-slate-400">
+                          <span>极板相对间距 d:</span>
+                          <span className="text-sky-300 font-bold font-mono">{(s1PlateDistance * 100).toFixed(0)}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0.5"
+                          max="2.0"
+                          step="0.1"
+                          value={s1PlateDistance}
+                          onChange={(e) => setS1PlateDistance(parseFloat(e.target.value))}
+                          className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                        />
+                        <div className="flex justify-between text-[10px] text-slate-500">
+                          <span>50% (薄介质极近)</span>
+                          <span>200% (拉开距离)</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-slate-400">
+                          <span>极间电介质 εr:</span>
+                          <span className="text-amber-300 font-bold font-mono">
+                            {s1Dielectric === 1.0 ? '空气 (1.0)' : s1Dielectric === 3.0 ? '汽车电解质 (3.0)' : '高介电陶瓷 (5.0)'}
+                          </span>
+                        </div>
+                        <div className="flex gap-1 pt-0.5">
+                          {[
+                            { val: 1.0, label: '空气' },
+                            { val: 3.0, label: '电解质' },
+                            { val: 5.0, label: '陶瓷' },
+                          ].map((item) => (
+                            <button
+                              key={item.val}
+                              type="button"
+                              onClick={() => setS1Dielectric(item.val)}
+                              className={`flex-1 py-1 px-1 rounded text-[10px] font-bold cursor-pointer transition-colors ${
+                                s1Dielectric === item.val
+                                  ? 'bg-blue-600 text-white shadow-xs'
+                                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                              }`}
+                            >
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="text-[10px] text-slate-500 text-right">介电常数越大电容越大</div>
+                      </div>
+                    </div>
+
+                    <div className="p-2 bg-slate-950/70 rounded-lg border border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
+                      <span>💡 <strong>物理规律</strong>：面积 $S$ 越大、间距 $d$ 越小，电容量 $C$ 越大，储存电荷量 $Q=CU$ 越多。</span>
+                      <span className="text-amber-300 shrink-0 font-mono ml-2">τ = RC 随之增大</span>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* 右侧零剧透知识验证 */}
