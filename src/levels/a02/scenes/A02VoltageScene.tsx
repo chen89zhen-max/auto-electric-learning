@@ -1,24 +1,37 @@
 'use client';
+/* eslint-disable jsx-a11y/prefer-tag-over-role -- SVG terminals and probe handles expose keyboard-operable button semantics. */
 
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
   ArrowRight,
+  Check,
   CheckCircle2,
+  CircleDot,
   Gauge,
-  RotateCcw,
+  GripVertical,
   Sparkles,
-  Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Multimeter, MultimeterDialMode } from '@/src/game/instruments/Multimeter';
+import {
+  Multimeter,
+  type MultimeterDialMode,
+} from '@/src/game/instruments/Multimeter';
 import { DCSolver } from '@/src/circuit/solver/DCSolver';
+import {
+  A02_STAGE_CONTENT,
+  A02_TERMINAL_LABELS,
+  createA02Progress,
+  findClosestA02Terminal,
+  isA02StepComplete,
+  recordA02Measurement,
+  type A02MeasurementKey,
+  type A02Progress,
+  type A02Step,
+  type A02TerminalId,
+} from '../a02Training';
 
-export type A02Step =
-  | 'BATTERY_PROBING'
-  | 'SWITCH_AND_LOAD'
-  | 'CONTACT_RESISTANCE_DROP'
-  | 'TRANSFER_DIAGNOSIS';
+export type { A02Step } from '../a02Training';
 
 interface A02VoltageSceneProps {
   currentStep: A02Step;
@@ -26,7 +39,16 @@ interface A02VoltageSceneProps {
   onAdvanceStep: () => void;
 }
 
-const TERMINAL_TO_NODE: Record<string, string> = {
+type ProbeColor = 'red' | 'black';
+type Point = { x: number; y: number };
+
+interface TerminalPosition extends Point {
+  id: A02TerminalId;
+  labelX: number;
+  labelY: number;
+}
+
+const TERMINAL_TO_NODE: Record<A02TerminalId, string> = {
   BAT_POS: 'N_BAT_POS',
   BAT_NEG: '0',
   SW_IN: 'N_SW_IN',
@@ -36,61 +58,115 @@ const TERMINAL_TO_NODE: Record<string, string> = {
   CHASSIS_GND: '0',
 };
 
-const TERMINAL_LABELS: Record<string, string> = {
-  BAT_POS: '蓄电池正极 (+12V)',
-  BAT_NEG: '蓄电池负极 (0V)',
-  SW_IN: '开关输入端',
-  SW_OUT: '开关输出端',
-  LAMP_POS: '检修灯正极',
-  LAMP_NEG: '检修灯负极',
-  CHASSIS_GND: '车身搭铁点 (0V)',
+const TERMINALS: readonly TerminalPosition[] = [
+  { id: 'BAT_POS', x: 58, y: 82, labelX: 58, labelY: 58 },
+  { id: 'BAT_NEG', x: 58, y: 214, labelX: 58, labelY: 241 },
+  { id: 'SW_IN', x: 185, y: 82, labelX: 178, labelY: 57 },
+  { id: 'SW_OUT', x: 258, y: 82, labelX: 266, labelY: 57 },
+  { id: 'LAMP_POS', x: 378, y: 82, labelX: 388, labelY: 57 },
+  { id: 'LAMP_NEG', x: 378, y: 191, labelX: 394, labelY: 216 },
+  { id: 'CHASSIS_GND', x: 246, y: 214, labelX: 246, labelY: 242 },
+];
+
+const TERMINAL_MAP = new Map(
+  TERMINALS.map((terminal) => [terminal.id, terminal]),
+);
+const PROBE_DOCKS: Record<ProbeColor, Point> = {
+  red: { x: 438, y: 254 },
+  black: { x: 474, y: 254 },
 };
+
+const RECORD_LABELS: Record<A02MeasurementKey, string> = {
+  batteryForward: '正向电压约 12V',
+  batteryReverse: '反向电压约 −12V',
+  switchOpen: '断开的开关两端约 12V',
+  lampClosed: '工作中的检修灯两端约 12V',
+  faultLamp: '灯端工作电压约 10.91V',
+  supplyDrop: '供电侧接点压降约 0.91V',
+  groundDrop: '搭铁侧接点压降约 0.18V',
+};
+
+const STEP_RECORDS: Record<A02Step, readonly A02MeasurementKey[]> = {
+  BATTERY_PROBING: ['batteryForward', 'batteryReverse'],
+  SWITCH_AND_LOAD: ['switchOpen', 'lampClosed'],
+  CONTACT_RESISTANCE_DROP: ['faultLamp', 'supplyDrop', 'groundDrop'],
+  TRANSFER_DIAGNOSIS: [],
+};
+
+const MODE_LABELS: Partial<Record<MultimeterDialMode, string>> = {
+  OFF: '关机',
+  DC_V: '直流电压 V⎓',
+  RESISTANCE: '电阻 Ω',
+  DC_A: '直流电流 A⎓',
+};
+
+function getTerminalPoint(id: A02TerminalId | null, fallback: Point): Point {
+  return id ? (TERMINAL_MAP.get(id) ?? fallback) : fallback;
+}
 
 export function A02VoltageScene({
   currentStep,
   onStepComplete,
   onAdvanceStep,
 }: A02VoltageSceneProps) {
-  // Multimeter states
-  const [dial, setDial] = useState<MultimeterDialMode>('DC_V');
+  const [dial, setDial] = useState<MultimeterDialMode>('OFF');
   const [redJack, setRedJack] = useState<'V_OHM' | 'A_10A'>('V_OHM');
-  const [redProbe, setRedProbe] = useState<string>('BAT_POS');
-  const [blackProbe, setBlackProbe] = useState<string>('BAT_NEG');
-  const [isSwitchClosed, setIsSwitchClosed] = useState<boolean>(true);
-
-  // Transfer challenge state (Stage 4)
+  const [redProbe, setRedProbe] = useState<A02TerminalId | null>(null);
+  const [blackProbe, setBlackProbe] = useState<A02TerminalId | null>(null);
+  const [activeProbe, setActiveProbe] = useState<ProbeColor | null>(null);
+  const [draggingProbe, setDraggingProbe] = useState<ProbeColor | null>(null);
+  const [dragPoint, setDragPoint] = useState<Point | null>(null);
+  const [isSwitchClosed, setIsSwitchClosed] = useState(true);
+  const [progress, setProgress] = useState<A02Progress>(() =>
+    createA02Progress(),
+  );
+  const [recordFeedback, setRecordFeedback] = useState(
+    '请按上方顺序完成操作，再记录测量结果。',
+  );
   const [transferAnswer, setTransferAnswer] = useState<string | null>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const dragOriginRef = useRef<Point | null>(null);
+  const completedStepsRef = useRef(new Set<A02Step>());
+  const stageContent = A02_STAGE_CONTENT[currentStep];
 
-  // Step completion flags
-  const [v03SwapObserved, setV03SwapObserved] = useState<boolean>(false);
-  const [switchOpenMeasured, setSwitchOpenMeasured] = useState<boolean>(false);
-  const [switchClosedMeasured, setSwitchClosedMeasured] = useState<boolean>(false);
-  const [v08LampMeasured, setV08LampMeasured] = useState<boolean>(false);
-  const [v08DropMeasured, setV08DropMeasured] = useState<boolean>(false);
-
-  // Instantiate DCSolver dynamically
   const simulation = useMemo(() => {
     const solver = new DCSolver('0');
-    solver.addVoltageSource({ id: 'BAT', nodePos: 'N_BAT_POS', nodeNeg: '0', voltage: 12.0 });
-
-    if (currentStep === 'CONTACT_RESISTANCE_DROP') {
-      // Benchmark V08: 0.5Ω supply contact + 6Ω lamp + 0.1Ω chassis ground
-      solver.addResistor({ id: 'R_SUPPLY', nodeA: 'N_BAT_POS', nodeB: 'N_SW_IN', resistance: 0.5 });
-      solver.addSwitch({ id: 'SW1', nodeA: 'N_SW_IN', nodeB: 'N_LAMP_POS', closed: isSwitchClosed });
-      solver.addResistor({ id: 'R_LAMP', nodeA: 'N_LAMP_POS', nodeB: 'N_LAMP_NEG', resistance: 6.0 });
-      solver.addResistor({ id: 'R_GROUND', nodeA: 'N_LAMP_NEG', nodeB: '0', resistance: 0.1 });
-    } else {
-      // Clean circuit: negligible contact resistances
-      solver.addResistor({ id: 'R_SUPPLY', nodeA: 'N_BAT_POS', nodeB: 'N_SW_IN', resistance: 1e-4 });
-      solver.addSwitch({ id: 'SW1', nodeA: 'N_SW_IN', nodeB: 'N_LAMP_POS', closed: isSwitchClosed });
-      solver.addResistor({ id: 'R_LAMP', nodeA: 'N_LAMP_POS', nodeB: 'N_LAMP_NEG', resistance: 6.0 });
-      solver.addResistor({ id: 'R_GROUND', nodeA: 'N_LAMP_NEG', nodeB: '0', resistance: 1e-4 });
-    }
-
+    solver.addVoltageSource({
+      id: 'BAT',
+      nodePos: 'N_BAT_POS',
+      nodeNeg: '0',
+      voltage: 12,
+    });
+    const hasFault =
+      currentStep === 'CONTACT_RESISTANCE_DROP' ||
+      currentStep === 'TRANSFER_DIAGNOSIS';
+    solver.addResistor({
+      id: 'R_SUPPLY',
+      nodeA: 'N_BAT_POS',
+      nodeB: 'N_SW_IN',
+      resistance: hasFault ? 0.5 : 1e-4,
+    });
+    solver.addSwitch({
+      id: 'SW1',
+      nodeA: 'N_SW_IN',
+      nodeB: 'N_LAMP_POS',
+      closed: isSwitchClosed,
+    });
+    solver.addResistor({
+      id: 'R_LAMP',
+      nodeA: 'N_LAMP_POS',
+      nodeB: 'N_LAMP_NEG',
+      resistance: 6,
+    });
+    solver.addResistor({
+      id: 'R_GROUND',
+      nodeA: 'N_LAMP_NEG',
+      nodeB: '0',
+      resistance: hasFault ? 0.1 : 1e-4,
+    });
     return solver.solve();
   }, [currentStep, isSwitchClosed]);
 
-  // Evaluate multimeter measurement
   const dmmResult = useMemo(() => {
     const dmm = new Multimeter();
     dmm.setDial(dial);
@@ -98,478 +174,806 @@ export function A02VoltageScene({
     dmm.setBlackProbeJack('COM');
     dmm.attachRedProbe(redProbe);
     dmm.attachBlackProbe(blackProbe);
-
-    const redNode = TERMINAL_TO_NODE[redProbe];
-    const blackNode = TERMINAL_TO_NODE[blackProbe];
-
     return dmm.measure({
       nodeVoltages: simulation.nodeVoltages,
-      redNode,
-      blackNode,
+      redNode: redProbe ? TERMINAL_TO_NODE[redProbe] : undefined,
+      blackNode: blackProbe ? TERMINAL_TO_NODE[blackProbe] : undefined,
       isCircuitPowered: true,
     });
-  }, [dial, redJack, redProbe, blackProbe, simulation]);
+  }, [blackProbe, dial, redJack, redProbe, simulation]);
 
-  // Check progress and trigger completions
-  const evaluateProgress = (rProbe: string, bProbe: string, swClosed: boolean) => {
-    if (currentStep === 'SWITCH_AND_LOAD') {
-      let openDone = switchOpenMeasured;
-      let closedDone = switchClosedMeasured;
-      if (rProbe === 'SW_IN' && bProbe === 'SW_OUT' && !swClosed) {
-        openDone = true;
-        setSwitchOpenMeasured(true);
-      }
-      if (rProbe === 'LAMP_POS' && bProbe === 'LAMP_NEG' && swClosed) {
-        closedDone = true;
-        setSwitchClosedMeasured(true);
-      }
-      if (openDone && closedDone) {
-        onStepComplete('SWITCH_AND_LOAD', {
-          switchDropOpen: 12.0,
-          lampDropClosed: 12.0,
-        });
-      }
-    } else if (currentStep === 'CONTACT_RESISTANCE_DROP') {
-      let lampDone = v08LampMeasured;
-      let dropDone = v08DropMeasured;
-      if (rProbe === 'LAMP_POS' && bProbe === 'LAMP_NEG' && swClosed) {
-        lampDone = true;
-        setV08LampMeasured(true);
-      }
-      if (
-        ((rProbe === 'BAT_POS' && bProbe === 'SW_IN') ||
-          (rProbe === 'LAMP_NEG' && bProbe === 'CHASSIS_GND')) &&
-        swClosed
-      ) {
-        dropDone = true;
-        setV08DropMeasured(true);
-      }
-      if (lampDone && dropDone) {
-        onStepComplete('CONTACT_RESISTANCE_DROP', {
-          v08Passed: true,
-          lampVoltage: 10.91,
-          supplyDrop: 0.91,
-          groundDrop: 0.18,
-        });
-      }
-    }
+  const stepReady =
+    currentStep === 'TRANSFER_DIAGNOSIS'
+      ? transferAnswer === 'SUPPLY_OXIDIZED'
+      : isA02StepComplete(currentStep, progress);
+
+  const connectProbe = (probe: ProbeColor, terminal: A02TerminalId) => {
+    if (probe === 'red') setRedProbe(terminal);
+    else setBlackProbe(terminal);
+    setActiveProbe(null);
+    setRecordFeedback(
+      `${probe === 'red' ? '红' : '黑'}表笔已接到“${A02_TERMINAL_LABELS[terminal]}”。`,
+    );
   };
 
-  // Handle probe swapping (Benchmark V03)
-  const handleSwapProbes = () => {
-    const oldRed = redProbe;
-    const newRed = blackProbe;
-    const newBlack = oldRed;
-    setRedProbe(newRed);
-    setBlackProbe(newBlack);
-    setV03SwapObserved(true);
+  const handleTerminalClick = (terminal: A02TerminalId) => {
+    if (!activeProbe) {
+      setRecordFeedback('请先点击红表笔或黑表笔，再点击要测量的接点。');
+      return;
+    }
+    connectProbe(activeProbe, terminal);
+  };
 
-    if (currentStep === 'BATTERY_PROBING') {
-      onStepComplete('BATTERY_PROBING', {
-        v03Passed: true,
-        forwardReading: 12.0,
-        reverseReading: -12.0,
+  const toSvgPoint = (clientX: number, clientY: number): Point | null => {
+    const svg = svgRef.current;
+    const matrix = svg?.getScreenCTM();
+    if (!svg || !matrix) return null;
+    const point = svg.createSVGPoint();
+    point.x = clientX;
+    point.y = clientY;
+    const transformed = point.matrixTransform(matrix.inverse());
+    return { x: transformed.x, y: transformed.y };
+  };
+
+  const handleProbePointerDown = (
+    probe: ProbeColor,
+    event: React.PointerEvent<SVGGElement>,
+  ) => {
+    event.preventDefault();
+    const point = toSvgPoint(event.clientX, event.clientY);
+    dragOriginRef.current = point;
+    setDraggingProbe(probe);
+    setDragPoint(point);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handleProbePointerMove = (event: React.PointerEvent<SVGGElement>) => {
+    if (!draggingProbe) return;
+    const point = toSvgPoint(event.clientX, event.clientY);
+    if (point) setDragPoint(point);
+  };
+
+  const handleProbePointerUp = (
+    probe: ProbeColor,
+    event: React.PointerEvent<SVGGElement>,
+  ) => {
+    const point = toSvgPoint(event.clientX, event.clientY);
+    const origin = dragOriginRef.current;
+    const moved =
+      point && origin
+        ? Math.hypot(point.x - origin.x, point.y - origin.y) > 5
+        : false;
+    const terminal = point
+      ? findClosestA02Terminal(point, TERMINALS, 30)
+      : null;
+    if (moved && terminal) connectProbe(probe, terminal);
+    else if (moved)
+      setRecordFeedback('没有放到测点上，请拖到发光的圆形接点附近再松手。');
+    else setActiveProbe((selected) => (selected === probe ? null : probe));
+    setDraggingProbe(null);
+    setDragPoint(null);
+    dragOriginRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId))
+      event.currentTarget.releasePointerCapture(event.pointerId);
+  };
+
+  const handleRecordMeasurement = () => {
+    const result = recordA02Measurement(progress, {
+      step: currentStep,
+      dial,
+      redJack,
+      redProbe,
+      blackProbe,
+      switchClosed: isSwitchClosed,
+      status: dmmResult.status,
+      measuredValue: dmmResult.measuredValue,
+    });
+    if (!result.recordedKey) {
+      if (dial !== 'DC_V')
+        setRecordFeedback('未记录：请先把功能旋钮拨到“直流电压”。');
+      else if (redJack !== 'V_OHM')
+        setRecordFeedback('未记录：测电压时，红表笔必须插在 VΩ 孔。');
+      else if (!redProbe || !blackProbe)
+        setRecordFeedback('未记录：两支表笔都要接到电路测点。');
+      else
+        setRecordFeedback(
+          '未记录：当前开关状态或表笔位置不符合本步要求，请按操作顺序核对。',
+        );
+      return;
+    }
+    setProgress(result.progress);
+    setRecordFeedback(`已记录：${RECORD_LABELS[result.recordedKey]}。`);
+    if (result.stepComplete && !completedStepsRef.current.has(currentStep)) {
+      completedStepsRef.current.add(currentStep);
+      onStepComplete(currentStep, {
+        completedMeasurements: STEP_RECORDS[currentStep],
+        measuredValue: dmmResult.measuredValue,
+        dial,
+        redJack,
       });
     }
-
-    evaluateProgress(newRed, newBlack, isSwitchClosed);
-  };
-
-  const handleRedProbeChange = (newRed: string) => {
-    setRedProbe(newRed);
-    evaluateProgress(newRed, blackProbe, isSwitchClosed);
-  };
-
-  const handleBlackProbeChange = (newBlack: string) => {
-    setBlackProbe(newBlack);
-    evaluateProgress(redProbe, newBlack, isSwitchClosed);
-  };
-
-  const handleSwitchToggle = () => {
-    const newClosed = !isSwitchClosed;
-    setIsSwitchClosed(newClosed);
-    evaluateProgress(redProbe, blackProbe, newClosed);
   };
 
   const handleTransferSelect = (answer: string) => {
     setTransferAnswer(answer);
     if (answer === 'SUPPLY_OXIDIZED') {
-      onStepComplete('TRANSFER_DIAGNOSIS', {
-        v08DiagnosticPassed: true,
-        selectedResolution: 'SUPPLY_OXIDIZED',
-      });
+      setRecordFeedback(
+        '判断正确：异常压降集中在供电侧氧化接点，应清洁、紧固并复测。',
+      );
+      if (!completedStepsRef.current.has('TRANSFER_DIAGNOSIS')) {
+        completedStepsRef.current.add('TRANSFER_DIAGNOSIS');
+        onStepComplete('TRANSFER_DIAGNOSIS', {
+          selectedResolution: answer,
+          supportingEvidence: {
+            supplyDrop: 0.91,
+            groundDrop: 0.18,
+            lampVoltage: 10.91,
+          },
+        });
+      }
+    } else {
+      setRecordFeedback(
+        '证据不支持直接更换部件。请比较供电侧与搭铁侧的压降大小。',
+      );
     }
   };
 
+  const handleAdvance = () => {
+    setActiveProbe(null);
+    setDraggingProbe(null);
+    setDragPoint(null);
+    setRecordFeedback('请按上方顺序完成操作，再记录测量结果。');
+    onAdvanceStep();
+  };
+
+  const displayedRedPoint =
+    draggingProbe === 'red' && dragPoint
+      ? dragPoint
+      : getTerminalPoint(redProbe, PROBE_DOCKS.red);
+  const displayedBlackPoint =
+    draggingProbe === 'black' && dragPoint
+      ? dragPoint
+      : getTerminalPoint(blackProbe, PROBE_DOCKS.black);
+  const hasFault =
+    currentStep === 'CONTACT_RESISTANCE_DROP' ||
+    currentStep === 'TRANSFER_DIAGNOSIS';
+
+  const renderProbe = (
+    probe: ProbeColor,
+    point: Point,
+    connected: A02TerminalId | null,
+  ) => {
+    const isRed = probe === 'red';
+    const selected = activeProbe === probe || draggingProbe === probe;
+    return (
+      <g
+        role="button"
+        tabIndex={0}
+        aria-label={`${isRed ? '红' : '黑'}表笔${connected ? `，当前接在${A02_TERMINAL_LABELS[connected]}` : '，当前未连接'}`}
+        aria-pressed={activeProbe === probe}
+        className="cursor-grab outline-none active:cursor-grabbing"
+        style={{
+          touchAction: 'none',
+          pointerEvents: activeProbe && activeProbe !== probe ? 'none' : 'auto',
+        }}
+        onPointerDown={(event) => handleProbePointerDown(probe, event)}
+        onPointerMove={handleProbePointerMove}
+        onPointerUp={(event) => handleProbePointerUp(probe, event)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            setActiveProbe((active) => (active === probe ? null : probe));
+          }
+        }}
+      >
+        {selected && (
+          <circle
+            cx={point.x}
+            cy={point.y}
+            r="18"
+            fill="none"
+            stroke="#fbbf24"
+            strokeWidth="3"
+            strokeDasharray="4 4"
+          />
+        )}
+        <circle
+          cx={point.x}
+          cy={point.y}
+          r="12"
+          fill={isRed ? '#dc2626' : '#111827'}
+          stroke="#fff"
+          strokeWidth="3"
+        />
+        <rect
+          x={point.x - 4}
+          y={point.y - 19}
+          width="8"
+          height="14"
+          rx="4"
+          fill={isRed ? '#f87171' : '#64748b'}
+        />
+      </g>
+    );
+  };
+
   return (
-    <div className="flex flex-col gap-4 p-4 text-slate-800 bg-white rounded-xl shadow-xs border border-slate-200">
-      {/* Top Banner Guide */}
-      <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
-        <div className="flex items-center gap-2">
-          <Zap className="text-blue-600" size={20} />
-          <div>
-            <h3 className="text-sm font-bold text-blue-900">
-              {currentStep === 'BATTERY_PROBING' && '阶段 1（跟练）：数字万用表电压挡与表笔极性探究 (基准 V03)'}
-              {currentStep === 'SWITCH_AND_LOAD' && '阶段 2（独立）：开关断开/闭合状态下的两点电压降测量'}
-              {currentStep === 'CONTACT_RESISTANCE_DROP' && '阶段 3（综合）：接触不良与车身搭铁压降体检 (基准 V08)'}
-              {currentStep === 'TRANSFER_DIAGNOSIS' && '阶段 4（迁移）：复杂车型接触氧化故障盲测排除'}
-            </h3>
-            <p className="text-xs text-blue-700">
-              {currentStep === 'BATTERY_PROBING' && '学习目标：掌握 COM/VΩ 插孔选用，观察表笔调换时电压正负号变化规律。'}
-              {currentStep === 'SWITCH_AND_LOAD' && '学习目标：测量开关断开时（12V）与闭合时（0V）两端电压，理解断路端电压特性。'}
-              {currentStep === 'CONTACT_RESISTANCE_DROP' && '学习目标：测量供电端氧化电阻与搭铁点接触压降，验证全回路压降和等于电源电压。'}
-              {currentStep === 'TRANSFER_DIAGNOSIS' && '学习目标：在新情境中独立判定压降异常点，完成维修验收工单。'}
+    <div className="a02-scene flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 text-slate-800 shadow-sm">
+      <section
+        className="rounded-xl border-2 border-blue-200 bg-blue-50 p-4"
+        aria-label="本步操作指令"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-lg font-black text-blue-950">
+              {stageContent.title}
+            </h2>
+            <p className="mt-1 text-base font-semibold leading-7 text-blue-800">
+              本步要做什么：{stageContent.objective}
             </p>
           </div>
+          {stepReady && (
+            <Button
+              onClick={handleAdvance}
+              className="min-h-11 bg-emerald-600 px-5 text-base font-bold text-white hover:bg-emerald-700"
+            >
+              {currentStep === 'TRANSFER_DIAGNOSIS'
+                ? '完成 A02 实训'
+                : '进入下一步'}
+              <ArrowRight size={18} />
+            </Button>
+          )}
         </div>
+        <ol className="mt-3 grid gap-2 text-sm font-semibold leading-6 text-slate-800 md:grid-cols-3">
+          {stageContent.actions.map((action, index) => (
+            <li
+              key={action}
+              className="flex gap-2 rounded-lg border border-blue-100 bg-white/90 p-3"
+            >
+              <span className="grid size-6 shrink-0 place-items-center rounded-full bg-blue-700 text-sm font-black text-white">
+                {index + 1}
+              </span>
+              <span>{action}</span>
+            </li>
+          ))}
+        </ol>
+        <p className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-900">
+          完成标志：{stageContent.completion}
+        </p>
+      </section>
 
-        {/* Step Progression Button */}
-        {((currentStep === 'BATTERY_PROBING' && v03SwapObserved) ||
-          (currentStep === 'SWITCH_AND_LOAD' && switchOpenMeasured && switchClosedMeasured) ||
-          (currentStep === 'CONTACT_RESISTANCE_DROP' && v08LampMeasured && v08DropMeasured) ||
-          (currentStep === 'TRANSFER_DIAGNOSIS' && transferAnswer === 'SUPPLY_OXIDIZED')) && (
-          <Button
-            size="sm"
-            onClick={onAdvanceStep}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center gap-1 cursor-pointer"
-          >
-            <span>下一步</span>
-            <ArrowRight size={16} />
-          </Button>
-        )}
-      </div>
-
-      {/* Main Interactive Stage Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        {/* Left 7 Columns: Circuit Board Schematic & Workbench */}
-        <div className="lg:col-span-7 flex flex-col gap-3 p-4 bg-slate-50 border border-slate-200 rounded-xl">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              12V 检修实训台工作电路
-            </span>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-slate-600">开关状态:</span>
-              <button
-                type="button"
-                onClick={handleSwitchToggle}
-                className={`px-3 py-1 rounded text-xs font-bold transition-colors cursor-pointer ${
-                  isSwitchClosed
-                    ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                    : 'bg-amber-600 text-white hover:bg-amber-700'
-                }`}
-              >
-                {isSwitchClosed ? '已闭合 (ON)' : '已断开 (OFF)'}
-              </button>
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
+        <section
+          className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 xl:col-span-7"
+          aria-label="12伏检修灯测量电路"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="text-base font-black text-slate-900">
+                12V 检修灯工作电路
+              </h3>
+              <p className="mt-1 text-sm text-slate-600">
+                点击一支表笔后点测点，或直接把表笔拖到圆形测点。
+              </p>
             </div>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsSwitchClosed((closed) => !closed);
+                setRecordFeedback(
+                  `开关已切换为${isSwitchClosed ? '断开' : '闭合'}状态。`,
+                );
+              }}
+              className={`min-h-11 px-4 text-base font-bold ${isSwitchClosed ? 'border-emerald-300 bg-emerald-50 text-emerald-800' : 'border-amber-300 bg-amber-50 text-amber-900'}`}
+            >
+              <CircleDot size={18} />
+              开关：{isSwitchClosed ? '已闭合' : '已断开'}
+            </Button>
           </div>
 
-          {/* Visual Schematic Diagram */}
-          <div className="relative w-full h-64 bg-slate-900 rounded-lg border border-slate-700 flex items-center justify-center p-4 overflow-hidden">
-            {/* SVG Circuit Lines */}
-            <svg className="w-full h-full" viewBox="0 0 500 220">
-              {/* Battery Block */}
-              <rect x="30" y="70" width="60" height="80" rx="6" fill="#1e293b" stroke="#3b82f6" strokeWidth="2" />
-              <text x="60" y="105" fill="#93c5fd" fontSize="12" fontWeight="bold" textAnchor="middle">12V 蓄电池</text>
-              <circle cx="60" cy="70" r="5" fill="#ef4444" />
-              <text x="60" y="62" fill="#ef4444" fontSize="10" fontWeight="bold" textAnchor="middle">+ (BAT_POS)</text>
-              <circle cx="60" cy="150" r="5" fill="#0284c7" />
-              <text x="60" y="166" fill="#38bdf8" fontSize="10" fontWeight="bold" textAnchor="middle">- (BAT_NEG)</text>
-
-              {/* Supply contact drop resistance (V08) */}
-              <line x1="60" y1="70" x2="160" y2="70" stroke={currentStep === 'CONTACT_RESISTANCE_DROP' ? '#f59e0b' : '#38bdf8'} strokeWidth="3" />
-              {currentStep === 'CONTACT_RESISTANCE_DROP' && (
-                <g>
-                  <rect x="100" y="58" width="40" height="24" rx="4" fill="#78350f" stroke="#f59e0b" strokeWidth="1.5" />
-                  <text x="120" y="74" fill="#fde68a" fontSize="9" fontWeight="bold" textAnchor="middle">0.5Ω 氧化</text>
-                </g>
-              )}
-
-              {/* Switch S1 */}
-              <rect x="160" y="50" width="80" height="40" rx="6" fill="#1e293b" stroke="#64748b" strokeWidth="2" />
-              <text x="200" y="68" fill="#cbd5e1" fontSize="11" fontWeight="bold" textAnchor="middle">控制开关</text>
-              <circle cx="170" cy="70" r="5" fill="#e2e8f0" />
-              <text x="170" y="44" fill="#94a3b8" fontSize="9" textAnchor="middle">SW_IN</text>
-              <circle cx="230" cy="70" r="5" fill="#e2e8f0" />
-              <text x="230" y="44" fill="#94a3b8" fontSize="9" textAnchor="middle">SW_OUT</text>
-              {/* Switch arm animation */}
-              <line
-                x1="170"
-                y1="70"
-                x2={isSwitchClosed ? '230' : '210'}
-                y2={isSwitchClosed ? '70' : '55'}
+          <div className="relative min-h-[310px] overflow-hidden rounded-xl border border-slate-700 bg-slate-950">
+            <svg
+              ref={svgRef}
+              className="h-full min-h-[310px] w-full select-none"
+              viewBox="0 0 500 280"
+              aria-label="可连接表笔的电路图"
+            >
+              <path
+                d="M58 82 H185"
+                stroke={hasFault ? '#f59e0b' : '#38bdf8'}
+                strokeWidth="4"
+                fill="none"
+              />
+              <path
+                d="M258 82 H378"
                 stroke="#38bdf8"
-                strokeWidth="3.5"
+                strokeWidth="4"
+                fill="none"
+              />
+              <path
+                d="M378 191 H246 L58 214"
+                stroke="#64748b"
+                strokeWidth="4"
+                fill="none"
               />
 
-              {/* Wire to Lamp */}
-              <line x1="230" y1="70" x2="340" y2="70" stroke="#38bdf8" strokeWidth="3" />
+              <g>
+                <rect
+                  x="24"
+                  y="82"
+                  width="68"
+                  height="132"
+                  rx="10"
+                  fill="#1e293b"
+                  stroke="#3b82f6"
+                  strokeWidth="3"
+                />
+                <text
+                  x="58"
+                  y="139"
+                  fill="#bfdbfe"
+                  fontSize="15"
+                  fontWeight="bold"
+                  textAnchor="middle"
+                >
+                  12V
+                </text>
+                <text
+                  x="58"
+                  y="160"
+                  fill="#bfdbfe"
+                  fontSize="14"
+                  fontWeight="bold"
+                  textAnchor="middle"
+                >
+                  蓄电池
+                </text>
+                <text
+                  x="58"
+                  y="101"
+                  fill="#fecaca"
+                  fontSize="18"
+                  fontWeight="bold"
+                  textAnchor="middle"
+                >
+                  ＋
+                </text>
+                <text
+                  x="58"
+                  y="204"
+                  fill="#bae6fd"
+                  fontSize="18"
+                  fontWeight="bold"
+                  textAnchor="middle"
+                >
+                  －
+                </text>
+              </g>
 
-              {/* Lamp L1 */}
-              <rect x="340" y="50" width="80" height="90" rx="8" fill="#1e293b" stroke="#eab308" strokeWidth="2" />
-              <circle
-                cx="380"
-                cy="95"
-                r="22"
-                fill={isSwitchClosed ? '#facc15' : '#475569'}
-                opacity={isSwitchClosed ? (currentStep === 'CONTACT_RESISTANCE_DROP' ? 0.8 : 1.0) : 0.2}
-              />
-              <text x="380" y="100" fill="#0f172a" fontSize="11" fontWeight="bold" textAnchor="middle">
-                {isSwitchClosed ? '6Ω 亮灯' : '熄灭'}
-              </text>
-              <circle cx="340" cy="70" r="5" fill="#ef4444" />
-              <text x="340" y="44" fill="#f87171" fontSize="9" textAnchor="middle">LAMP_POS</text>
-              <circle cx="340" cy="130" r="5" fill="#38bdf8" />
-              <text x="340" y="146" fill="#38bdf8" fontSize="9" textAnchor="middle">LAMP_NEG</text>
-
-              {/* Ground return wire & chassis ground */}
-              <line x1="340" y1="130" x2="250" y2="130" stroke="#64748b" strokeWidth="3" />
-              {currentStep === 'CONTACT_RESISTANCE_DROP' && (
+              {hasFault && (
                 <g>
-                  <rect x="250" y="118" width="40" height="24" rx="4" fill="#78350f" stroke="#f59e0b" strokeWidth="1.5" />
-                  <text x="270" y="134" fill="#fde68a" fontSize="9" fontWeight="bold" textAnchor="middle">0.1Ω 搭铁</text>
+                  <rect
+                    x="103"
+                    y="64"
+                    width="60"
+                    height="36"
+                    rx="6"
+                    fill="#78350f"
+                    stroke="#f59e0b"
+                    strokeWidth="2"
+                  />
+                  <text
+                    x="133"
+                    y="79"
+                    fill="#fef3c7"
+                    fontSize="13"
+                    fontWeight="bold"
+                    textAnchor="middle"
+                  >
+                    氧化接点
+                  </text>
+                  <text
+                    x="133"
+                    y="95"
+                    fill="#fde68a"
+                    fontSize="13"
+                    fontWeight="bold"
+                    textAnchor="middle"
+                  >
+                    0.5Ω
+                  </text>
                 </g>
               )}
-              <line x1="250" y1="130" x2="60" y2="150" stroke="#64748b" strokeWidth="3" />
-              <circle cx="200" cy="138" r="4" fill="#94a3b8" />
-              <text x="200" y="156" fill="#cbd5e1" fontSize="9" textAnchor="middle">CHASSIS_GND</text>
-            </svg>
 
-            {/* Probe Position Indicator Overlay */}
-            <div className="absolute top-2 left-2 flex items-center gap-3 bg-slate-800/90 px-3 py-1.5 rounded-md border border-slate-600 text-xs">
-              <span className="flex items-center gap-1 text-red-400 font-bold">
-                🔴 红表笔测点: {TERMINAL_LABELS[redProbe]}
-              </span>
-              <span className="flex items-center gap-1 text-sky-400 font-bold">
-                ⚫ 黑表笔测点: {TERMINAL_LABELS[blackProbe]}
-              </span>
-            </div>
-          </div>
-
-          {/* Probe Target Selectors */}
-          <div className="flex flex-col gap-2 mt-1">
-            <span className="text-xs font-bold text-slate-700">选择表笔连接端子：</span>
-            <div className="grid grid-cols-2 gap-3">
-              {/* Red Probe Selection */}
-              <div className="flex flex-col gap-1 p-2 bg-red-50/70 border border-red-200 rounded-lg">
-                <span className="text-xs font-bold text-red-800">🔴 红表笔 (+) 测点</span>
-                <select
-                  value={redProbe}
-                  onChange={(e) => handleRedProbeChange(e.target.value)}
-                  className="w-full text-xs font-medium p-1.5 bg-white border border-red-300 rounded text-slate-800 cursor-pointer"
+              <g>
+                <rect
+                  x="175"
+                  y="70"
+                  width="93"
+                  height="58"
+                  rx="9"
+                  fill="#1e293b"
+                  stroke="#94a3b8"
+                  strokeWidth="2"
+                />
+                <text
+                  x="221"
+                  y="111"
+                  fill="#e2e8f0"
+                  fontSize="15"
+                  fontWeight="bold"
+                  textAnchor="middle"
                 >
-                  {Object.entries(TERMINAL_LABELS).map(([id, name]) => (
-                    <option key={`red-${id}`} value={id}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Black Probe Selection */}
-              <div className="flex flex-col gap-1 p-2 bg-slate-100 border border-slate-300 rounded-lg">
-                <span className="text-xs font-bold text-slate-800">⚫ 黑表笔 (COM) 测点</span>
-                <select
-                  value={blackProbe}
-                  onChange={(e) => handleBlackProbeChange(e.target.value)}
-                  className="w-full text-xs font-medium p-1.5 bg-white border border-slate-300 rounded text-slate-800 cursor-pointer"
+                  控制开关
+                </text>
+                <circle cx="185" cy="82" r="5" fill="#e2e8f0" />
+                <circle cx="258" cy="82" r="5" fill="#e2e8f0" />
+                <line
+                  x1="185"
+                  y1="82"
+                  x2={isSwitchClosed ? 258 : 238}
+                  y2={isSwitchClosed ? 82 : 62}
+                  stroke="#38bdf8"
+                  strokeWidth="4"
+                />
+                <text
+                  x="221"
+                  y="124"
+                  fill={isSwitchClosed ? '#86efac' : '#fde68a'}
+                  fontSize="13"
+                  textAnchor="middle"
                 >
-                  {Object.entries(TERMINAL_LABELS).map(([id, name]) => (
-                    <option key={`black-${id}`} value={id}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
+                  {isSwitchClosed ? '闭合' : '断开'}
+                </text>
+              </g>
 
-            {/* V03 Probe Swap Button */}
-            <div className="flex items-center justify-between pt-1">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleSwapProbes}
-                className="text-xs font-bold text-blue-700 border-blue-300 hover:bg-blue-50 flex items-center gap-1.5 cursor-pointer"
-              >
-                <RotateCcw size={14} />
-                <span>调换红黑表笔位置 (探究 V03 极性反接)</span>
-              </Button>
-              {v03SwapObserved && (
-                <span className="text-xs font-bold text-emerald-600 flex items-center gap-1">
-                  <CheckCircle2 size={14} /> 已验证表笔极性反接规律（读数呈现负号）
-                </span>
+              <g>
+                <rect
+                  x="350"
+                  y="70"
+                  width="86"
+                  height="121"
+                  rx="12"
+                  fill="#1e293b"
+                  stroke="#eab308"
+                  strokeWidth="3"
+                />
+                <circle
+                  cx="393"
+                  cy="128"
+                  r="28"
+                  fill={isSwitchClosed ? '#facc15' : '#475569'}
+                  opacity={isSwitchClosed ? (hasFault ? 0.7 : 1) : 0.25}
+                />
+                <text
+                  x="393"
+                  y="133"
+                  fill="#0f172a"
+                  fontSize="14"
+                  fontWeight="bold"
+                  textAnchor="middle"
+                >
+                  {isSwitchClosed ? '亮灯' : '熄灭'}
+                </text>
+                <text
+                  x="393"
+                  y="176"
+                  fill="#fde68a"
+                  fontSize="14"
+                  fontWeight="bold"
+                  textAnchor="middle"
+                >
+                  检修灯 6Ω
+                </text>
+              </g>
+
+              {hasFault && (
+                <g>
+                  <rect
+                    x="272"
+                    y="196"
+                    width="66"
+                    height="36"
+                    rx="6"
+                    fill="#78350f"
+                    stroke="#f59e0b"
+                    strokeWidth="2"
+                  />
+                  <text
+                    x="305"
+                    y="211"
+                    fill="#fef3c7"
+                    fontSize="13"
+                    fontWeight="bold"
+                    textAnchor="middle"
+                  >
+                    搭铁接点
+                  </text>
+                  <text
+                    x="305"
+                    y="227"
+                    fill="#fde68a"
+                    fontSize="13"
+                    fontWeight="bold"
+                    textAnchor="middle"
+                  >
+                    0.1Ω
+                  </text>
+                </g>
               )}
-            </div>
-          </div>
-        </div>
 
-        {/* Right 5 Columns: Digital Multimeter Instrument Panel */}
-        <div className="lg:col-span-5 flex flex-col gap-3 p-4 bg-amber-500/10 border-2 border-amber-500/30 rounded-xl">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
-              <Gauge size={16} className="text-amber-600" />
-              通用数字万用表 (DMM Model)
-            </span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-200 text-amber-900">
-              CAT III 600V
-            </span>
+              <path
+                d={`M ${PROBE_DOCKS.red.x} ${PROBE_DOCKS.red.y} Q 420 250 ${displayedRedPoint.x} ${displayedRedPoint.y}`}
+                fill="none"
+                stroke="#ef4444"
+                strokeWidth="4"
+                strokeLinecap="round"
+              />
+              <path
+                d={`M ${PROBE_DOCKS.black.x} ${PROBE_DOCKS.black.y} Q 450 265 ${displayedBlackPoint.x} ${displayedBlackPoint.y}`}
+                fill="none"
+                stroke="#334155"
+                strokeWidth="5"
+                strokeLinecap="round"
+              />
+
+              {TERMINALS.map((terminal) => {
+                const occupied =
+                  redProbe === terminal.id || blackProbe === terminal.id;
+                return (
+                  <g
+                    key={terminal.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`测点：${A02_TERMINAL_LABELS[terminal.id]}`}
+                    className="cursor-pointer outline-none"
+                    onClick={() => handleTerminalClick(terminal.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        handleTerminalClick(terminal.id);
+                      }
+                    }}
+                  >
+                    <circle
+                      cx={terminal.x}
+                      cy={terminal.y}
+                      r="17"
+                      fill="transparent"
+                      stroke={activeProbe ? '#fbbf24' : 'transparent'}
+                      strokeWidth="2"
+                      strokeDasharray="4 3"
+                    />
+                    <circle
+                      cx={terminal.x}
+                      cy={terminal.y}
+                      r="9"
+                      fill={occupied ? '#fbbf24' : '#0f172a'}
+                      stroke="#f8fafc"
+                      strokeWidth="3"
+                    />
+                    <text
+                      x={terminal.labelX}
+                      y={terminal.labelY}
+                      fill="#e2e8f0"
+                      fontSize="13"
+                      fontWeight="bold"
+                      textAnchor="middle"
+                      className="pointer-events-none"
+                    >
+                      {A02_TERMINAL_LABELS[terminal.id]}
+                    </text>
+                  </g>
+                );
+              })}
+
+              {renderProbe('red', displayedRedPoint, redProbe)}
+              {renderProbe('black', displayedBlackPoint, blackProbe)}
+              <text
+                x="456"
+                y="276"
+                fill="#cbd5e1"
+                fontSize="13"
+                fontWeight="bold"
+                textAnchor="middle"
+              >
+                表笔停放处
+              </text>
+            </svg>
           </div>
 
-          {/* DMM LCD Screen */}
-          <div className="flex flex-col justify-between h-24 p-3 bg-emerald-950 border-4 border-slate-700 rounded-lg shadow-inner font-mono text-emerald-400">
-            <div className="flex items-center justify-between text-xs opacity-70">
-              <span>AUTO DC</span>
-              <span>10MΩ IN</span>
+          <div className="grid gap-2 text-sm sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => setActiveProbe('red')}
+              className={`flex min-h-12 items-center gap-2 rounded-lg border-2 px-3 text-left font-bold ${activeProbe === 'red' ? 'border-amber-400 bg-amber-50' : 'border-red-200 bg-red-50 text-red-900'}`}
+            >
+              <GripVertical size={18} className="text-red-600" />
+              红表笔：
+              {redProbe
+                ? A02_TERMINAL_LABELS[redProbe]
+                : '未连接，点击后选择测点'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveProbe('black')}
+              className={`flex min-h-12 items-center gap-2 rounded-lg border-2 px-3 text-left font-bold ${activeProbe === 'black' ? 'border-amber-400 bg-amber-50' : 'border-slate-300 bg-slate-100 text-slate-900'}`}
+            >
+              <GripVertical size={18} className="text-slate-800" />
+              黑表笔：
+              {blackProbe
+                ? A02_TERMINAL_LABELS[blackProbe]
+                : '未连接，点击后选择测点'}
+            </button>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p
+              className="text-sm font-semibold text-slate-700"
+              aria-live="polite"
+            >
+              {recordFeedback}
+            </p>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setRedProbe(null);
+                setBlackProbe(null);
+                setActiveProbe(null);
+                setRecordFeedback('两支表笔已拔下，请重新连接。');
+              }}
+              className="min-h-10 text-sm font-bold"
+            >
+              拔下两支表笔
+            </Button>
+          </div>
+        </section>
+
+        <section
+          className="flex flex-col gap-3 rounded-xl border-2 border-amber-300 bg-amber-50 p-4 xl:col-span-5"
+          aria-label="数字万用表"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="flex items-center gap-2 text-base font-black text-amber-950">
+              <Gauge size={20} />
+              数字万用表
+            </h3>
+            <span className="rounded-full bg-amber-200 px-3 py-1 text-sm font-bold text-amber-950">
+              安全等级 CAT III 600V
+            </span>
+          </div>
+          <div className="flex h-32 flex-col justify-between rounded-xl border-4 border-slate-700 bg-emerald-950 p-4 font-mono text-emerald-300 shadow-inner">
+            <div className="flex justify-between text-sm opacity-80">
+              <span>自动量程 · 直流</span>
+              <span>输入电阻 10MΩ</span>
             </div>
-            <div className="text-3xl font-black text-right tracking-widest text-emerald-300">
-              {dmmResult.displayText || '0.00 V'}
-            </div>
-            <div className="flex items-center justify-between text-[11px] opacity-70">
-              <span>HOLD</span>
+            <output className="text-right text-4xl font-black tracking-widest">
+              {dial === 'OFF' ? '— — — —' : dmmResult.displayText || '0.00 V'}
+            </output>
+            <div className="flex justify-between text-sm opacity-80">
+              <span>测量值</span>
               <span>{dmmResult.unit}</span>
             </div>
           </div>
 
-          {/* Warning Banner if any */}
           {dmmResult.warningMessage && (
-            <div className="p-2 bg-amber-100 border border-amber-300 rounded text-xs text-amber-900 font-bold flex items-start gap-1.5">
-              <AlertTriangle size={15} className="text-amber-700 shrink-0 mt-0.5" />
-              <span>{dmmResult.warningMessage}</span>
+            <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-100 p-3 text-sm font-bold leading-6 text-amber-950">
+              <AlertTriangle size={20} className="mt-0.5 shrink-0" />
+              {dmmResult.warningMessage}
             </div>
           )}
 
-          {/* Dial Gear Selector */}
-          <div className="flex flex-col gap-1">
-            <span className="text-xs font-bold text-slate-700">万用表功能旋钮：</span>
-            <div className="grid grid-cols-3 gap-1.5">
-              {(['OFF', 'DC_V', 'RESISTANCE', 'DC_A', 'CONTINUITY'] as MultimeterDialMode[]).map(
-                (mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => setDial(mode)}
-                    className={`px-2 py-1.5 rounded text-xs font-bold transition-all cursor-pointer ${
-                      dial === mode
-                        ? 'bg-amber-600 text-white shadow-xs'
-                        : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'
-                    }`}
-                  >
-                    {mode === 'DC_V' && '直流电压 (V⎓)'}
-                    {mode === 'RESISTANCE' && '电阻挡 (Ω)'}
-                    {mode === 'DC_A' && '直流电流 (A⎓)'}
-                    {mode === 'CONTINUITY' && '蜂鸣挡 (🔔)'}
-                    {mode === 'OFF' && '关机 (OFF)'}
-                  </button>
-                )
-              )}
+          <div>
+            <p className="mb-2 text-sm font-black text-slate-800">
+              第一项：选择功能挡位
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {(
+                ['OFF', 'DC_V', 'RESISTANCE', 'DC_A'] as MultimeterDialMode[]
+              ).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setDial(mode)}
+                  className={`min-h-12 rounded-lg border px-2 text-sm font-bold ${dial === mode ? 'border-amber-700 bg-amber-600 text-white' : 'border-slate-300 bg-white text-slate-800 hover:bg-slate-50'}`}
+                >
+                  {MODE_LABELS[mode]}
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Jack Selection */}
-          <div className="flex flex-col gap-1 pt-1">
-            <span className="text-xs font-bold text-slate-700">红表笔插孔位置：</span>
-            <div className="flex items-center gap-3">
-              <label className="flex items-center gap-1 text-xs text-slate-800 cursor-pointer font-medium">
+          <fieldset>
+            <legend className="mb-2 text-sm font-black text-slate-800">
+              第二项：确认红表笔插孔
+            </legend>
+            <div className="grid grid-cols-2 gap-2">
+              <label
+                className={`flex min-h-12 cursor-pointer items-center gap-2 rounded-lg border p-3 text-sm font-bold ${redJack === 'V_OHM' ? 'border-emerald-500 bg-emerald-50 text-emerald-900' : 'border-slate-300 bg-white'}`}
+              >
                 <input
                   type="radio"
                   name="redJack"
                   checked={redJack === 'V_OHM'}
                   onChange={() => setRedJack('V_OHM')}
                 />
-                <span>VΩ 插孔 (电压/电阻)</span>
+                VΩ 孔（测电压）
               </label>
-              <label className="flex items-center gap-1 text-xs text-slate-800 cursor-pointer font-medium">
+              <label
+                className={`flex min-h-12 cursor-pointer items-center gap-2 rounded-lg border p-3 text-sm font-bold ${redJack === 'A_10A' ? 'border-red-500 bg-red-50 text-red-900' : 'border-slate-300 bg-white'}`}
+              >
                 <input
                   type="radio"
                   name="redJack"
                   checked={redJack === 'A_10A'}
                   onChange={() => setRedJack('A_10A')}
                 />
-                <span className="text-red-700 font-bold">10A 插孔 (电流)</span>
+                10A 孔（测电流）
               </label>
             </div>
-          </div>
+          </fieldset>
 
-          {/* Teaching Summary Card based on Current Step */}
-          <div className="mt-auto p-3 bg-white border border-slate-200 rounded-lg text-xs flex flex-col gap-1.5">
-            <span className="font-bold text-slate-700 flex items-center gap-1">
-              <Sparkles size={14} className="text-amber-500" />
-              测点分析与诊断提示
-            </span>
-            {currentStep === 'BATTERY_PROBING' && (
-              <p className="text-slate-600">
-                当前测量值：<strong className="text-slate-900">{dmmResult.displayText}</strong>。
-                两点间电压具有方向性。红表笔电位高于黑表笔时为正，调换后黑表笔作为参考点，示数出现负号。
-              </p>
-            )}
-            {currentStep === 'SWITCH_AND_LOAD' && (
-              <div className="flex flex-col gap-1 text-slate-600">
-                <p>
-                  开关断开时开关两端电压：
-                  <strong className={switchOpenMeasured ? 'text-emerald-700' : 'text-slate-400'}>
-                    {switchOpenMeasured ? '已测得 12.00V (断路两端承受全电源电压)' : '待测 (测 SW_IN 到 SW_OUT)'}
-                  </strong>
-                </p>
-                <p>
-                  开关闭合时检修灯端电压：
-                  <strong className={switchClosedMeasured ? 'text-emerald-700' : 'text-slate-400'}>
-                    {switchClosedMeasured ? '已测得 12.00V (正常通电带载)' : '待测 (测 LAMP_POS 到 LAMP_NEG)'}
-                  </strong>
-                </p>
-              </div>
-            )}
-            {currentStep === 'CONTACT_RESISTANCE_DROP' && (
-              <div className="flex flex-col gap-1 text-slate-600">
-                <p>
-                  灯头工作电压：<strong className="text-slate-900">10.91 V</strong>（因接点氧化降落，低于标准 12V）
-                </p>
-                <p>
-                  供电接点压降：<strong className="text-slate-900">0.91 V</strong>；搭铁接点压降：<strong className="text-slate-900">0.18 V</strong>
-                </p>
-                <p className="text-emerald-700 font-bold">
-                  验证基准 V08：10.91V + 0.91V + 0.18V = 12.00V (全回路各部分电压降之和等于电源端电压)。
-                </p>
-              </div>
-            )}
-            {currentStep === 'TRANSFER_DIAGNOSIS' && (
-              <div className="flex flex-col gap-2">
-                <p className="text-slate-700 font-bold">
-                  故障诊断题：检修灯发光微弱，实测灯端仅有 10.91V。测得供电侧接点压降高达 0.91V，搭铁正常。应如何处置？
-                </p>
-                <div className="flex flex-col gap-1">
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="transfer"
-                      checked={transferAnswer === 'CHANGE_BATTERY'}
-                      onChange={() => handleTransferSelect('CHANGE_BATTERY')}
-                    />
-                    <span>A. 直接更换 12V 蓄电池</span>
-                  </label>
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="transfer"
-                      checked={transferAnswer === 'SUPPLY_OXIDIZED'}
-                      onChange={() => handleTransferSelect('SUPPLY_OXIDIZED')}
-                    />
-                    <span className="font-bold text-emerald-800">
-                      B. 清洁并紧固供电氧化端子，消除 0.91V 异常接触压降
-                    </span>
-                  </label>
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="transfer"
-                      checked={transferAnswer === 'CHANGE_LAMP'}
-                      onChange={() => handleTransferSelect('CHANGE_LAMP')}
-                    />
-                    <span>C. 直接更换灯泡</span>
-                  </label>
+          {currentStep !== 'TRANSFER_DIAGNOSIS' ? (
+            <>
+              <Button
+                onClick={handleRecordMeasurement}
+                className="min-h-12 w-full bg-blue-700 text-base font-black text-white hover:bg-blue-800"
+              >
+                <CheckCircle2 size={20} />
+                记录本次测量
+              </Button>
+              <div className="rounded-xl border border-slate-200 bg-white p-3">
+                <h4 className="flex items-center gap-2 text-sm font-black text-slate-900">
+                  <Sparkles size={17} className="text-amber-500" />
+                  本步测量记录
+                </h4>
+                <div className="mt-2 grid gap-2">
+                  {STEP_RECORDS[currentStep].map((key) => (
+                    <div
+                      key={key}
+                      className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold ${progress[key] ? 'bg-emerald-50 text-emerald-800' : 'bg-slate-100 text-slate-600'}`}
+                    >
+                      <span
+                        className={`grid size-6 shrink-0 place-items-center rounded-full ${progress[key] ? 'bg-emerald-600 text-white' : 'border border-slate-300 bg-white'}`}
+                      >
+                        {progress[key] && <Check size={16} />}
+                      </span>
+                      {RECORD_LABELS[key]}
+                    </div>
+                  ))}
                 </div>
               </div>
-            )}
-          </div>
-        </div>
+            </>
+          ) : (
+            <div className="rounded-xl border border-slate-200 bg-white p-4">
+              <h4 className="text-base font-black text-slate-900">
+                根据三项数据选择维修措施
+              </h4>
+              <p className="mt-2 rounded-lg bg-slate-100 p-3 text-sm font-semibold leading-6 text-slate-700">
+                灯端 10.91V；供电侧接点压降 0.91V；搭铁侧接点压降 0.18V。
+              </p>
+              <div className="mt-3 grid gap-2 text-sm">
+                {[
+                  ['CHANGE_BATTERY', '直接更换蓄电池'],
+                  ['SUPPLY_OXIDIZED', '清洁并紧固供电侧氧化接点，随后复测'],
+                  ['CHANGE_LAMP', '直接更换检修灯'],
+                ].map(([value, label]) => (
+                  <label
+                    key={value}
+                    className={`flex min-h-12 cursor-pointer items-center gap-2 rounded-lg border p-3 font-bold ${transferAnswer === value ? 'border-blue-500 bg-blue-50 text-blue-950' : 'border-slate-300'}`}
+                  >
+                    <input
+                      type="radio"
+                      name="transfer"
+                      checked={transferAnswer === value}
+                      onChange={() => handleTransferSelect(value)}
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );

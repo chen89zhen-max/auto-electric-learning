@@ -174,8 +174,10 @@ export class Multimeter {
 
       this.state.status = 'NORMAL';
       this.state.measuredValue = vDiff;
-      // Format with reasonable resolution
-      this.state.displayText = `${vDiff >= 0 ? '' : '-'}${Math.abs(vDiff).toFixed(2)} V`;
+      // Format with reasonable resolution and prevent -0.00 V
+      const absVal = Math.abs(vDiff);
+      const isNegative = vDiff < -0.005;
+      this.state.displayText = `${isNegative ? '-' : ''}${absVal.toFixed(2)} V`;
       return this.getState();
     }
 

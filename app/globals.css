@@ -417,3 +417,32 @@ h1 { margin: 0; font-size: clamp(20px, 2.2vw, 27px); letter-spacing: .02em; }
     padding: 14px 18px;
   }
 }
+
+/* A02 Scoped Typography and Readability */
+.a02-shell {
+  font-size: 16px;
+}
+.a02-shell .scene-heading {
+  min-height: 48px;
+  font-size: 16px;
+}
+.a02-shell .scene-meta {
+  font-size: 13px;
+  letter-spacing: 0.06em;
+}
+.a02-shell .objective-strip span {
+  font-size: 14px;
+}
+.a02-shell .objective-strip strong {
+  font-size: 16px;
+}
+.a02-shell .objective-strip .feedback {
+  font-size: 14px;
+  line-height: 1.5;
+}
+.a02-shell .bottom-bar {
+  font-size: 15px;
+}
+.a02-shell .unlock-hint {
+  font-size: 13px;
+}
