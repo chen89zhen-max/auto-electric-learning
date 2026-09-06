@@ -99,23 +99,17 @@ describe('Attempt Tracking, Replay & Evidence Framework (P1)', () => {
     expect(attempts[1].mode).toBe('independent');
   });
 
-  it('rejects event submission for under-construction levels (LEVEL_05 / D02)', async () => {
+  it('rejects event submission for under-construction levels (F01)', async () => {
     // LEVEL_00 and LEVEL_01 completed first
     await eventPost(request(studentToken, makeEvent('evt-lvl00', 'LEVEL_00', 90)));
     await eventPost(request(studentToken, makeEvent('evt-lvl01', 'LEVEL_01', 90)));
     await eventPost(request(studentToken, makeEvent('evt-lvl02', 'LEVEL_02', 90)));
 
-    // Attempting to submit for unimplemented / under-construction LEVEL_05 (D01)
-    const responseLegacy = await eventPost(request(studentToken, makeEvent('evt-under-cons-1', 'LEVEL_05', 90)));
-    expect(responseLegacy.status).toBe(422);
-    const bodyLegacy = (await responseLegacy.json()) as { error: string };
-    expect(bodyLegacy.error).toContain('建设中');
-
-    // Attempting to submit for canonical D02
-    const responseCanonical = await eventPost(request(studentToken, makeEvent('evt-under-cons-2', 'D02', 90)));
-    expect(responseCanonical.status).toBe(422);
-    const bodyCanonical = (await responseCanonical.json()) as { error: string };
-    expect(bodyCanonical.error).toContain('建设中');
+    // Attempting to submit for unimplemented / under-construction F01
+    const responseUnderCons = await eventPost(request(studentToken, makeEvent('evt-under-cons-1', 'F01', 90)));
+    expect(responseUnderCons.status).toBe(422);
+    const body = (await responseUnderCons.json()) as { error: string };
+    expect(body.error).toContain('建设中');
 
     // Verify nothing persisted
     expect(
