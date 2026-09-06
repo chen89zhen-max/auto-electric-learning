@@ -48,7 +48,7 @@ export function WorkshopScene() {
       {/* Workshop Bay Perspective Background */}
       <WorkshopBackground stationNumber={1} />
 
-      <div className="workshop-trainee" aria-hidden="true"><TrainingPerson action={state.currentStage === 'WELCOME'} /></div>
+      <div className="workshop-trainee" aria-hidden="true"><TrainingPerson action={false} /></div>
       {/* Stage: WELCOME */}
       {state.currentStage === 'WELCOME' && (
         <div className="relative z-10 w-full max-w-xl bg-white/95 backdrop-blur-md rounded-2xl p-5 sm:p-7 border-2 border-slate-200 shadow-2xl animate-in fade-in zoom-in duration-300 my-auto">
