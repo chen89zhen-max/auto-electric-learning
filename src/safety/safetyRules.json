@@ -1,5 +1,5 @@
 {
-  "version": "1.0",
+  "version": "2.0",
   "rules": [
     {
       "id": "SHOCK_DIRECT_CONTACT",
@@ -7,63 +7,209 @@
       "allow": false,
       "severity": "DANGER",
       "messageKey": "CHECK_ENVIRONMENT_FIRST",
-      "consequence": "阻止接触，避免形成二次伤害风险"
+      "consequence": "阻止接触，避免形成二次触电风险",
+      "priority": 100
     },
     {
       "id": "ELECTRICAL_FIRE_WATER",
       "when": { "fireType": "ELECTRICAL", "operation": "USE_WATER" },
       "allow": false,
       "severity": "DANGER",
-      "messageKey": "IDENTIFY_FIRE_FIRST"
+      "messageKey": "IDENTIFY_FIRE_FIRST",
+      "consequence": "水导电会引发触电和火势蔓延！严禁用水扑灭带电设备火灾",
+      "priority": 100
     },
     {
       "id": "POWERED_FIRE_EXTINGUISHER",
       "when": { "fireType": "ELECTRICAL", "powerState": "ON", "operation": "USE_EXTINGUISHER" },
       "allow": false,
       "severity": "DANGER",
-      "messageKey": "ISOLATE_POWER_FIRST"
+      "messageKey": "ISOLATE_POWER_FIRST",
+      "consequence": "带电设备灭火前必须先切断电源！",
+      "priority": 90
     },
     {
       "id": "ELECTRICAL_FIRE_FOAM",
       "when": { "fireType": "ELECTRICAL", "operation": "USE_EXTINGUISHER", "extinguisherType": "FOAM" },
       "allow": false,
       "severity": "WARNING",
-      "messageKey": "EXTINGUISHER_NOT_SUITABLE"
+      "messageKey": "EXTINGUISHER_NOT_SUITABLE",
+      "consequence": "泡沫灭火器含导电液体，不适用于电气火灾",
+      "priority": 90
     },
     {
       "id": "ELECTRICAL_FIRE_WATER_BASED",
       "when": { "fireType": "ELECTRICAL", "operation": "USE_EXTINGUISHER", "extinguisherType": "WATER_BASED" },
       "allow": false,
       "severity": "DANGER",
-      "messageKey": "EXTINGUISHER_NOT_SUITABLE"
+      "messageKey": "EXTINGUISHER_NOT_SUITABLE",
+      "consequence": "水基型灭火剂具有导电性，严禁用于带电电气火灾",
+      "priority": 90
     },
     {
       "id": "LIVE_DEVICE_OPEN",
       "when": { "powerState": "ON", "operation": "OPEN_DEVICE" },
       "allow": false,
       "severity": "DANGER",
-      "messageKey": "CHECK_AND_ISOLATE_FIRST"
+      "messageKey": "CHECK_AND_ISOLATE_FIRST",
+      "consequence": "通电状态下严禁开启电气设备外壳",
+      "priority": 80
     },
     {
       "id": "LIVE_COMPONENT_CHANGE",
       "when": { "powerState": "ON", "operation": "CHANGE_COMPONENT" },
       "allow": false,
       "severity": "DANGER",
-      "messageKey": "CHECK_AND_ISOLATE_FIRST"
+      "messageKey": "CHECK_AND_ISOLATE_FIRST",
+      "consequence": "通电状态下严禁更换电气元件",
+      "priority": 80
     },
     {
-      "id": "SAFE_DEFAULT",
-      "when": {},
+      "id": "INVALID_TERMINAL_CONNECTION",
+      "when": { "operation": "CONNECT_WIRE", "terminalValid": false },
+      "allow": false,
+      "severity": "DANGER",
+      "messageKey": "INVALID_TERMINAL",
+      "consequence": "端子不存在或未配置，无法写入连接",
+      "priority": 100
+    },
+    {
+      "id": "SHORT_CIRCUIT_POWER_ON",
+      "when": { "operation": "POWER_ON", "hasShortCircuitRisk": true },
+      "allow": false,
+      "severity": "DANGER",
+      "messageKey": "SHORT_CIRCUIT_DANGER",
+      "consequence": "【短路危险】检测到电源正负极间存在无负载直接回路！禁止送电",
+      "priority": 100
+    },
+    {
+      "id": "POWERED_WIRE_CONNECTION",
+      "when": { "powerState": "ON", "operation": "CONNECT_WIRE" },
+      "allow": false,
+      "severity": "DANGER",
+      "messageKey": "POWERED_WIRE_OPERATION",
+      "consequence": "【带电接线违规】通电状态下严禁连接导线！请先切断电源",
+      "priority": 90
+    },
+    {
+      "id": "POWERED_WIRE_DISCONNECTION",
+      "when": { "powerState": "ON", "operation": "DISCONNECT_WIRE" },
+      "allow": false,
+      "severity": "DANGER",
+      "messageKey": "POWERED_WIRE_OPERATION",
+      "consequence": "【带电拔线违规】通电状态下严禁拔掉导线！请先切断电源",
+      "priority": 90
+    },
+    {
+      "id": "UNSAFE_POWERED_CHASSIS_CONNECTION",
+      "when": { "powerState": "ON", "operation": "CONNECT_CHASSIS" },
+      "allow": false,
+      "severity": "DANGER",
+      "messageKey": "POWERED_CHASSIS_OPERATION",
+      "consequence": "【带电作业违规】通电状态下禁止操作车身搭铁！请先切断电源",
+      "priority": 90
+    },
+    {
+      "id": "SAFE_TOUCH_PERSON",
+      "when": { "powerState": "OFF", "operation": "TOUCH_PERSON" },
       "allow": true,
       "severity": "INFO",
-      "messageKey": "OPERATION_ALLOWED"
+      "messageKey": "OPERATION_ALLOWED",
+      "priority": 50
+    },
+    {
+      "id": "SAFE_DEVICE_OPEN",
+      "when": { "powerState": "OFF", "operation": "OPEN_DEVICE" },
+      "allow": true,
+      "severity": "INFO",
+      "messageKey": "OPERATION_ALLOWED",
+      "priority": 50
+    },
+    {
+      "id": "SAFE_COMPONENT_CHANGE",
+      "when": { "powerState": "OFF", "operation": "CHANGE_COMPONENT" },
+      "allow": true,
+      "severity": "INFO",
+      "messageKey": "OPERATION_ALLOWED",
+      "priority": 50
+    },
+    {
+      "id": "SAFE_ELECTRICAL_EXTINGUISHER_CO2",
+      "when": { "fireType": "ELECTRICAL", "powerState": "OFF", "operation": "USE_EXTINGUISHER", "extinguisherType": "CO2" },
+      "allow": true,
+      "severity": "INFO",
+      "messageKey": "OPERATION_ALLOWED",
+      "priority": 60
+    },
+    {
+      "id": "SAFE_ELECTRICAL_EXTINGUISHER_DRY",
+      "when": { "fireType": "ELECTRICAL", "powerState": "OFF", "operation": "USE_EXTINGUISHER", "extinguisherType": "DRY_CHEMICAL" },
+      "allow": true,
+      "severity": "INFO",
+      "messageKey": "OPERATION_ALLOWED",
+      "priority": 60
+    },
+    {
+      "id": "SAFE_POWER_OFF",
+      "when": { "operation": "POWER_OFF" },
+      "allow": true,
+      "severity": "INFO",
+      "messageKey": "OPERATION_ALLOWED",
+      "priority": 50
+    },
+    {
+      "id": "SAFE_SWITCH_OPERATION",
+      "when": { "operation": "SWITCH_OPERATION" },
+      "allow": true,
+      "severity": "INFO",
+      "messageKey": "OPERATION_ALLOWED",
+      "priority": 50
+    },
+    {
+      "id": "SAFE_WIRE_CONNECT",
+      "when": { "powerState": "OFF", "operation": "CONNECT_WIRE", "terminalValid": true },
+      "allow": true,
+      "severity": "INFO",
+      "messageKey": "OPERATION_ALLOWED",
+      "priority": 50
+    },
+    {
+      "id": "SAFE_WIRE_DISCONNECT",
+      "when": { "powerState": "OFF", "operation": "DISCONNECT_WIRE" },
+      "allow": true,
+      "severity": "INFO",
+      "messageKey": "OPERATION_ALLOWED",
+      "priority": 50
+    },
+    {
+      "id": "SAFE_CHASSIS_CONNECT",
+      "when": { "powerState": "OFF", "operation": "CONNECT_CHASSIS" },
+      "allow": true,
+      "severity": "INFO",
+      "messageKey": "OPERATION_ALLOWED",
+      "priority": 50
+    },
+    {
+      "id": "SAFE_POWER_ON",
+      "when": { "operation": "POWER_ON", "hasShortCircuitRisk": false },
+      "allow": true,
+      "severity": "INFO",
+      "messageKey": "OPERATION_ALLOWED",
+      "priority": 50
+    },
+    {
+      "id": "SAFE_TRANSFER_CHECK",
+      "when": { "operation": "CHECK_TRANSFER" },
+      "allow": true,
+      "severity": "INFO",
+      "messageKey": "OPERATION_ALLOWED",
+      "priority": 50
     }
   ],
   "reservedRuleTypes": [
     "POWERED_RESISTANCE_MEASUREMENT",
     "CURRENT_RANGE_PARALLEL_CONNECTION",
     "METER_PORT_MISMATCH",
-    "SHORT_CIRCUIT_RISK",
     "WRONG_FUSE_RATING",
     "LIVE_COMPONENT_REPLACEMENT",
     "UNSAFE_JUMPER_CONNECTION"

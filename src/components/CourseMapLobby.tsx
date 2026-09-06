@@ -60,6 +60,7 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
   const activeLevelMeta = COURSE_MAP.find((m) => m.id === progress.currentActiveLevel) || COURSE_MAP[0];
 
   const handleCardClick = (meta: LevelMeta) => {
+    if (!user) { setShowAuthDialog(true); return; }
     const unlocked = isLevelUnlocked(meta.id, progress);
     if (!unlocked) {
       setLockedNotice(`🔒 ${meta.title} 尚未解锁！请先完成：${meta.prerequisiteName || '前置关卡'}`);
@@ -121,40 +122,53 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
         </div>
 
         {/* Student Stats & Teacher Mode Tools */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full md:w-auto border-t md:border-t-0 pt-3 md:pt-0 border-slate-100">
-          <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0 ${isAdmin ? 'bg-purple-600' : 'bg-amber-500'}`}>
-              {isAdmin ? <ShieldAlert size={22} /> : <GraduationCap size={22} />}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full lg:w-auto border-t lg:border-t-0 pt-3 lg:pt-0 border-slate-100">
+          <div className="bg-white border border-slate-200 shadow-xs hover:border-slate-300 rounded-2xl p-3 sm:px-4.5 sm:py-3 flex items-center gap-3.5 transition-all">
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0 ${isAdmin ? 'bg-gradient-to-br from-purple-600 to-indigo-600 shadow-purple-500/20' : 'bg-gradient-to-br from-amber-500 to-amber-600 shadow-amber-500/20'}`}>
+              {isAdmin ? <ShieldAlert size={26} /> : <GraduationCap size={26} />}
             </div>
             <div>
-              <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5 flex-wrap">
-                <span>{user ? user.realName : progress.traineeName}</span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-base sm:text-lg font-bold text-slate-900 tracking-tight leading-tight">
+                  {user ? user.realName : progress.traineeName}
+                </span>
                 {user?.className && (
-                  <span className="text-[10px] text-slate-500 font-normal">({user.className})</span>
+                  <span className="text-xs sm:text-sm text-slate-500 font-medium">
+                    ({user.className})
+                  </span>
                 )}
-                <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded font-mono ${
+                <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border shadow-2xs font-mono ${
                   isAdmin
-                    ? 'bg-purple-100 text-purple-800'
-                    : 'bg-amber-100 text-amber-800'
+                    ? 'bg-purple-50 text-purple-700 border-purple-200'
+                    : user?.role === 'teacher'
+                    ? 'bg-blue-50 text-blue-700 border-blue-200'
+                    : 'bg-amber-50 text-amber-800 border-amber-200'
                 }`}>
                   {isAdmin
                     ? '系统管理员'
                     : user?.role === 'teacher'
                     ? '任课教师'
                     : completedCount === 0
-                    ? '入职见习中'
+                    ? '见习学员'
                     : completedCount === 1
-                    ? '技师认证Ⅰ'
+                    ? '安全实训学员'
                     : completedCount === 2
-                    ? '技师认证Ⅱ'
-                    : `技师认证 · ${completedCount}阶`}
+                    ? '回路搭建能手'
+                    : completedCount === 3
+                    ? '测量助手'
+                    : completedCount === 4
+                    ? '诊断学员'
+                    : `控制电路学员 · ${completedCount}级`}
                 </span>
               </div>
-              <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-2">
-                <span>完成进度: {completedCount} / {totalTasks}</span>
-                <div className="w-16 bg-slate-200 h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-emerald-500 h-full transition-all" style={{ width: `${progressPercent}%` }} />
+              <div className="text-xs sm:text-sm text-slate-600 mt-1 flex items-center gap-2.5 font-medium">
+                <span>完成进度: <strong className="text-slate-900 font-bold">{completedCount}</strong> / {totalTasks}</span>
+                <div className="w-24 sm:w-32 bg-slate-200 h-2.5 rounded-full overflow-hidden shadow-inner flex-shrink-0">
+                  <div className="bg-emerald-500 h-full rounded-full transition-all duration-300" style={{ width: `${progressPercent}%` }} />
                 </div>
+                <span className="text-xs text-emerald-600 font-bold font-mono">
+                  {progressPercent}%
+                </span>
               </div>
             </div>
           </div>
@@ -221,10 +235,10 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
               variant="outline"
               onClick={() => setShowResetConfirm(true)}
               className="text-xs border-slate-200 bg-white text-slate-500 hover:text-rose-600 hover:bg-rose-50"
-              title="重置学习记录，回到初始新用户状态"
+              disabled={!!user} title={user ? "正式学习记录由教师申请重训，管理员按流程处理" : "清理本机访客缓存"}
             >
               <RotateCcw size={14} className="mr-1" />
-              重置
+              清理缓存
             </Button>
           </div>
         </div>
@@ -244,7 +258,7 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
             <ShieldAlert size={36} className="text-amber-500 mx-auto mb-2" />
             <h3 className="text-base font-bold text-slate-800">确认重置全部学习记录？</h3>
             <p className="text-xs text-slate-500 my-2 leading-relaxed">
-              重置后，学习进度将还原为新学员初始状态（仅保留任务0解锁）。已获得的认证记录将被清除。
+              重置后，学习进度将还原为新学员初始状态（仅保留任务0解锁）。已记录的学习进度与成长称号将被重置。
             </p>
             <div className="flex gap-2 mt-4 justify-center">
               <Button size="sm" variant="outline" onClick={() => setShowResetConfirm(false)}>
@@ -299,7 +313,7 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
             <span>全景专业技能成长路径 (任务 0 ~ 任务 9)</span>
           </h2>
           <span className="text-xs text-slate-400 font-medium">
-            16:10 宽屏双列布局 · 逐级考核解锁 · 拒绝纸上谈兵
+            从车间准入到整车诊断 · 完成实训，逐步解锁
           </span>
         </div>
 
@@ -357,7 +371,7 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
                     {isCompleted ? (
                       <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-2.5 py-1 rounded-full border border-emerald-300 flex items-center gap-1">
                         <CheckCircle2 size={14} />
-                        已认证
+                        已完成
                       </span>
                     ) : unlocked ? (
                       <span className="text-xs bg-amber-100 text-amber-800 font-bold px-2.5 py-1 rounded-full border border-amber-300 flex items-center gap-1">
@@ -388,7 +402,7 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
                   <div>
                     {isCompleted ? (
                       <span className="text-[11px] sm:text-xs text-emerald-700 font-medium">
-                        认证通过 · 成绩合格 (100分)
+                        已完成实训 · 记录成绩 ({progress.levels[meta.id]?.score ?? '—'}分)
                       </span>
                     ) : unlocked ? (
                       <span className="text-[11px] sm:text-xs text-amber-700 font-bold">
@@ -428,7 +442,7 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
 
       {/* Footer */}
       <footer className="w-full max-w-[1480px] text-center text-xs text-slate-400 mt-8 pb-4">
-        新能源汽车电工电子技术实训系统 · 符合中职汽车专业教学大纲标准
+        中职汽车电工电子技术实训系统 · 课堂互动与技能训练平台
       </footer>
 
       {/* Login & Registration Dialog */}

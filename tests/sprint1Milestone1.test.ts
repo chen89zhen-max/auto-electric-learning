@@ -27,7 +27,7 @@ describe('Sprint 1 milestone 1', () => {
       operation: 'TOUCH_PERSON',
     });
     expect(decision.allowed).toBe(true);
-    expect(decision.ruleId).toBe('SAFE_DEFAULT');
+    expect(decision.ruleId).toBe('SAFE_TOUCH_PERSON');
   });
 
   it('uses injected configuration without a UI change', () => {

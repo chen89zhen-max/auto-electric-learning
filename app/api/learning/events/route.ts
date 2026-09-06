@@ -5,6 +5,10 @@ import { LearningEventError, submitLearningEvent, type LearningEventInput } from
 export async function POST(request: NextRequest) {
   const auth = requireAuth(request, { allowedRoles: ['student'], actionName: 'LEARNING_EVENT_SUBMIT' });
   if ('response' in auth) return auth.response;
+  const expectedUser = request.headers.get('x-nev-expected-user');
+  if (expectedUser && expectedUser !== encodeURIComponent(auth.context.user.username)) {
+    return NextResponse.json({ success: false, code: 'SESSION_CHANGED', error: '账号已在其他页面切换，请刷新页面后重新进入实训' }, { status: 409 });
+  }
   let input: LearningEventInput;
   try { input = await request.json() as LearningEventInput; } catch {
     return NextResponse.json({ success: false, code: 'INVALID_EVENT', error: '学习事件格式无效' }, { status: 400 });

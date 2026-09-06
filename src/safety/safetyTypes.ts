@@ -5,6 +5,12 @@ export type SafetyOperation =
   | 'USE_EXTINGUISHER'
   | 'USE_WATER'
   | 'POWER_OFF'
+  | 'POWER_ON'
+  | 'CONNECT_WIRE'
+  | 'DISCONNECT_WIRE'
+  | 'CONNECT_CHASSIS'
+  | 'CHECK_TRANSFER'
+  | 'SWITCH_OPERATION'
   | 'POWERED_RESISTANCE_MEASUREMENT'
   | 'CURRENT_RANGE_PARALLEL_CONNECTION'
   | 'METER_PORT_MISMATCH'
@@ -21,6 +27,10 @@ export interface SafetyContext {
   fireType?: 'ELECTRICAL' | 'ORDINARY';
   extinguisherType?: 'CO2' | 'DRY_CHEMICAL' | 'FOAM' | 'WATER_BASED';
   operation: SafetyOperation;
+  hasShortCircuitRisk?: boolean;
+  terminalValid?: boolean;
+  circuitHasLoad?: boolean;
+  isStandardTopology?: boolean;
 }
 
 export interface SafetyDecision {
@@ -38,4 +48,5 @@ export interface SafetyRule {
   severity: SafetyDecision['severity'];
   messageKey: string;
   consequence?: string;
+  priority?: number;
 }

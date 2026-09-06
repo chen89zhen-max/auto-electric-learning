@@ -41,6 +41,12 @@ beforeEach(() => {
 });
 
 describe('SQLite learning event projection', () => {
+  it('拒绝其他标签页换账号后的旧页面成绩，不能记入新会话账号', async () => {
+    const staleRequest = request(studentToken, event('evt-stale-tab'));
+    staleRequest.headers.set('x-nev-expected-user', 'another-student');
+    expect((await eventPost(staleRequest)).status).toBe(409);
+    expect(db.prepare<{ count: number }>('SELECT COUNT(*) count FROM learning_events').get()?.count).toBe(0);
+  });
   it('is idempotent by eventId and returns the originally stored projection', async () => {
     const input = event('evt-00000001');
     const first = await eventPost(request(studentToken, input));

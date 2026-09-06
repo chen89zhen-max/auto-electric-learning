@@ -5,10 +5,11 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('.', import.meta.url)),
+      'next/server': fileURLToPath(new URL('./node_modules/vinext/dist/shims/server.js', import.meta.url)),
     },
   },
   test: {
     environment: 'node',
-    include: ['tests/**/*.test.ts'],
+    include: ['tests/**/*.test.{ts,tsx}'],
   },
 });

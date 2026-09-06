@@ -38,7 +38,8 @@ export function getDatabasePath(): string {
   if (process.env.NODE_ENV === 'test' && process.env.TEST_DB_PATH) {
     return process.env.TEST_DB_PATH;
   }
-  const dataDir = path.join(process.cwd(), 'data');
+  const dataDir = process.env.APP_DATA_DIR || path.join(process.cwd(), 'data');
+  if (!path.isAbsolute(dataDir)) throw new Error('APP_DATA_DIR must be an absolute path');
   if (!fs.existsSync(dataDir)) {
     try {
       fs.mkdirSync(dataDir, { recursive: true });

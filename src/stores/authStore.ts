@@ -5,6 +5,7 @@ import type { UserProgressData } from './userProgressStore';
 import {
   saveUserProgress,
   createDefaultUserProgress,
+  resetProgressIdentity,
 } from './userProgressStore';
 
 export interface UserProfile {
@@ -36,6 +37,7 @@ let cachedUser: UserProfile | null = null;
 let authStatus: 'loading' | 'authenticated' | 'anonymous' = 'loading';
 let authVersion = 0;
 let restorePromise: Promise<UserProfile | null> | null = null;
+let sessionRevision = 0;
 
 function emitAuthChange(): void {
   authVersion += 1;
@@ -49,8 +51,13 @@ export function getCurrentUser(): UserProfile | null {
 }
 
 export function setCurrentUser(user: UserProfile | null): void {
+  sessionRevision += 1;
+  if (!user || cachedUser?.username !== user.username || cachedUser?.role !== user.role) {
+    resetProgressIdentity(user?.realName, user?.username);
+  }
   cachedUser = user;
   authStatus = user ? 'authenticated' : 'anonymous';
+  restorePromise = Promise.resolve(user);
   if (typeof localStorage !== 'undefined') {
     // Remove the legacy trusted identity snapshot. Server session is the source of truth.
     localStorage.removeItem(AUTH_STORAGE_KEY);
@@ -64,6 +71,7 @@ export async function loginUser(
   pass: string,
   expectedRole: UserProfile['role']
 ): Promise<{ success: boolean; error?: string; user?: UserProfile; progress?: UserProgressData }> {
+  const revision = ++sessionRevision;
   try {
     const res = await fetch('/api/auth/login', {
       method: 'POST',
@@ -72,6 +80,7 @@ export async function loginUser(
     });
 
     const data = (await res.json()) as AuthResponse;
+    if (revision !== sessionRevision) return { success: false, error: '登录操作已更新，请使用当前账号' };
     if (!res.ok || !data.success || !data.user) {
       return { success: false, error: data.error || '登录失败，请检查账号密码' };
     }
@@ -95,6 +104,7 @@ export async function activateStudent(
   activationCode: string,
   newPassword: string
 ): Promise<{ success: boolean; error?: string; user?: UserProfile; progress?: UserProgressData }> {
+  const revision = ++sessionRevision;
   try {
     const response = await fetch('/api/auth/activate', {
       method: 'POST',
@@ -102,6 +112,7 @@ export async function activateStudent(
       body: JSON.stringify({ username, activationCode, newPassword }),
     });
     const data = (await response.json()) as AuthResponse;
+    if (revision !== sessionRevision) return { success: false, error: '账号操作已更新，请使用当前账号' };
     if (!response.ok || !data.success || !data.user) {
       return { success: false, error: data.error || '账号激活失败' };
     }
@@ -121,6 +132,7 @@ export async function changeCurrentPassword(
   currentPassword: string,
   newPassword: string
 ): Promise<{ success: boolean; error?: string; user?: UserProfile }> {
+  const revision = ++sessionRevision;
   try {
     const response = await fetch('/api/auth/change-password', {
       method: 'POST',
@@ -128,6 +140,7 @@ export async function changeCurrentPassword(
       body: JSON.stringify({ currentPassword, newPassword }),
     });
     const data = (await response.json()) as AuthResponse;
+    if (revision !== sessionRevision) return { success: false, error: '账号操作已更新，请使用当前账号' };
     if (!response.ok || !data.success || !data.user) {
       return { success: false, error: data.error || '密码修改失败' };
     }
@@ -142,6 +155,7 @@ export async function changeCurrentPassword(
 }
 
 export async function logoutUser(): Promise<{ success: boolean; error?: string }> {
+  const revision = ++sessionRevision;
   let serverLogoutSucceeded = false;
   try {
     const response = await fetch('/api/auth/logout', {
@@ -152,9 +166,10 @@ export async function logoutUser(): Promise<{ success: boolean; error?: string }
   } catch (err) {
     console.error('Logout network error:', err);
   } finally {
-    setCurrentUser(null);
-    saveUserProgress(createDefaultUserProgress(), { sync: false });
-    restorePromise = null;
+    if (revision === sessionRevision) {
+      setCurrentUser(null);
+      saveUserProgress(createDefaultUserProgress(), { sync: false });
+    }
   }
 
   return serverLogoutSucceeded
@@ -166,17 +181,20 @@ export async function restoreSession(force = false): Promise<UserProfile | null>
   if (restorePromise && !force) return restorePromise;
 
   authStatus = 'loading';
+  const revision = ++sessionRevision;
   emitAuthChange();
 
   restorePromise = (async () => {
     try {
       const response = await fetch('/api/auth/me', { cache: 'no-store' });
+      if (revision !== sessionRevision) return cachedUser;
       if (!response.ok) {
         setCurrentUser(null);
         return null;
       }
 
       const data = (await response.json()) as AuthResponse;
+      if (revision !== sessionRevision) return cachedUser;
       if (!data.success || !data.user) {
         setCurrentUser(null);
         return null;
@@ -188,6 +206,7 @@ export async function restoreSession(force = false): Promise<UserProfile | null>
       }
       return data.user;
     } catch (err) {
+      if (revision !== sessionRevision) return cachedUser;
       console.error('Session restore error:', err);
       setCurrentUser(null);
       return null;

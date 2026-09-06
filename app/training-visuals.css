@@ -1,0 +1,61 @@
+.completion-status { display: flex; align-items: center; gap: 12px; padding: 14px 18px; margin: 14px 0; border: 1px solid #bae6fd; border-radius: 14px; background: #f0f9ff; color: #075985; text-align: left; font-size: 13px; }
+.level02-shell .scene-panel { container-type: inline-size; }
+.level02-shell .scene-content > * { height: auto; min-height: 100%; flex-shrink: 0; }
+.level02-shell .scene-content > * > * { flex-shrink: 0; }
+.experiment-scene > :last-child { flex-wrap: wrap; gap: 12px; }
+.experiment-scene > :last-child button { white-space: normal; height: auto; min-height: 40px; }
+@container (max-width: 680px) {
+  .experiment-grid { grid-template-columns: minmax(0, 1fr); }
+  .experiment-grid > div { grid-column: auto; }
+  .experiment-grid svg { max-height: 340px; }
+}
+@media (max-width: 1000px) {
+  .level02-shell .workspace { grid-template-columns: minmax(0, 1fr); overflow-y: auto; }
+  .level02-shell .scene-panel { min-height: 580px; }
+  .level02-shell .tutor-panel { min-height: 180px; }
+  .level02-shell .topbar { flex-wrap: wrap; gap: 8px; }
+}
+.completion-status > svg { flex-shrink: 0; }
+.completion-status strong, .completion-status span { display: block; }
+.completion-status span { margin-top: 4px; font-size: 12px; }
+.completion-saved { color: #065f46; background: #ecfdf5; border-color: #a7f3d0; }
+.completion-error { color: #9f1239; background: #fff1f2; border-color: #fecdd3; }
+.completion-status button { margin-left: auto; display: flex; flex-shrink: 0; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 9px; border: 1px solid currentColor; font-weight: 700; cursor: pointer; }
+.vehicle-stage { flex: 1; display: flex; align-items: center; min-height: 260px; background: #0b1629; border-radius: 16px; overflow: hidden; margin: 8px 0; }
+.training-vehicle { display: block; width: 100%; max-height: 560px; }
+.vehicle-shell, .vehicle-circuit { transition: opacity 650ms ease; }
+.vehicle-beam { animation: lamp-ignite 420ms ease-out both; }
+.circuit-switch-blade { transition: transform 280ms cubic-bezier(.2,.7,.3,1); }
+.flow-tracer { stroke-dasharray: 3 15; animation: training-current 850ms linear infinite; pointer-events: none; }
+.training-person { display: block; width: 100%; height: 100%; overflow: visible; }
+.person-idle { transform-origin: 90px 218px; animation: person-breathe 4.5s ease-in-out infinite; }
+.person-wave { animation: person-wave 2.2s ease-in-out 3; }
+.person-blink { animation: person-blink 5.8s ease-in-out infinite; }
+.chen-avatar { transform-origin: 50% 90%; }
+.chen-praise { animation: chen-nod 700ms ease-in-out 2; }
+.chen-warning { animation: chen-attention 480ms ease-in-out 2; }
+.chen-thinking { transform: rotate(-5deg); transition: transform 350ms ease; }
+.workshop-trainee { position: absolute; bottom: 7%; left: 2%; width: clamp(95px, 15%, 170px); z-index: 2; pointer-events: none; }
+.cpr-practice-row { display: flex; align-items: center; justify-content: center; gap: 28px; width: 100%; margin: auto 0; }
+.cpr-model { width: min(45%, 320px); color: #94a3b8; font-size: 11px; text-align: center; }
+.cpr-model span { display: block; margin-top: 8px; }
+[role="button"][tabindex="0"]:focus-visible { outline: 3px solid #fbbf24; outline-offset: 5px; }
+@keyframes training-current { to { stroke-dashoffset: -36; } }
+@keyframes lamp-ignite { from { opacity: 0; } to { opacity: 1; } }
+@keyframes person-breathe { 50% { transform: translateY(-1.5px) rotate(.5deg); } }
+@keyframes person-wave { 0%, 100% { transform: rotate(0deg); } 30%, 70% { transform: rotate(-18deg); } 50% { transform: rotate(8deg); } }
+@keyframes person-blink { 0%, 44%, 48%, 100% { transform: scaleY(1); } 46% { transform: scaleY(.08); } }
+@keyframes chen-nod { 50% { transform: translateY(3px) rotate(3deg); } }
+@keyframes chen-attention { 25% { transform: rotate(-3deg); } 75% { transform: rotate(3deg); } }
+@media (max-width: 760px) {
+  .workshop-trainee { display: none; }
+  .cpr-practice-row { gap: 10px; }
+  .cpr-model { width: 43%; }
+  .completion-status { flex-wrap: wrap; }
+  .vehicle-stage { min-height: 220px; overflow-x: auto; }
+  .training-vehicle { min-width: 620px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+  .flow-tracer { animation: none !important; stroke-dasharray: 3 10; }
+}

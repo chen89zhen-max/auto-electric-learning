@@ -280,8 +280,9 @@ export function level01Reducer(state: Level01State, action: Level01Action): Leve
         ...state,
         currentStage: level01ScenarioEngine.nextStage('FIRE_EVENT'),
         fireIdentified: true,
+        fireKnowledgeAcknowledged: true,
         eventLog: appendEvents(state, [{ action: 'KNOWLEDGE_CARD_OPEN', payload: { knowledgeId: 'ELECTRICAL_FIRE' }, stage: 'FIRE_RISK_ASSESSMENT' }]),
-        feedback: null,
+        feedback: '已识别为电气火灾，请先切断配电箱电源。',
       };
     case 'ACK_FIRE_KNOWLEDGE':
       if (state.currentStage !== 'FIRE_RISK_ASSESSMENT' || !state.fireIdentified) return state;
@@ -291,17 +292,27 @@ export function level01Reducer(state: Level01State, action: Level01Action): Leve
       return {
         ...state,
         firePowerChecked: true,
-        eventLog: state.firePowerChecked ? state.eventLog : appendEvents(state, [{ action: 'FIRE_POWER_CHECK' }]),
+        eventLog: appendEvents(state, [{ action: 'FIRE_POWER_CHECK' }]),
         feedback: `配电箱电源状态：${state.firePowerState}`,
       };
     case 'ISOLATE_FIRE_POWER': {
-      if (state.currentStage !== 'FIRE_RISK_ASSESSMENT' || !state.fireIdentified || !state.firePowerChecked) return { ...state, feedback: '先识别设备，并查看电源状态。' };
+      if (state.currentStage !== 'FIRE_RISK_ASSESSMENT') return state;
       const decision = safetyRuleEngine.evaluate({ levelId: 'LEVEL_01', stage: state.currentStage, powerState: state.firePowerState, fireType: 'ELECTRICAL', operation: 'POWER_OFF' });
       if (!decision.allowed) return { ...state, lastSafetyDecision: decision, feedback: '当前不能安全切断该电源，请请求支援。' };
-      return { ...state, firePowerState: 'OFF', firePowerChecked: true, lastSafetyDecision: decision, feedback: '✓ 配电箱相关电源已切断' };
+      const powerCheckEvents: Array<{ action: EventAction }> = state.firePowerChecked ? [] : [{ action: 'FIRE_POWER_CHECK' }];
+      return {
+        ...state,
+        firePowerState: 'OFF',
+        firePowerChecked: true,
+        fireIdentified: true,
+        fireKnowledgeAcknowledged: true,
+        lastSafetyDecision: decision,
+        eventLog: powerCheckEvents.length > 0 ? appendEvents(state, powerCheckEvents) : state.eventLog,
+        feedback: '✓ 配电箱相关电源已切断，请选用适用灭火器。'
+      };
     }
     case 'SELECT_EXTINGUISHER': {
-      if (!['FIRE_RISK_ASSESSMENT', 'FIRE_RESPONSE'].includes(state.currentStage) || !state.fireKnowledgeAcknowledged) return { ...state, feedback: '先确认火情类型。' };
+      if (!['FIRE_RISK_ASSESSMENT', 'FIRE_RESPONSE'].includes(state.currentStage)) return state;
       const decision = safetyRuleEngine.evaluate({ levelId: 'LEVEL_01', stage: state.currentStage, powerState: state.firePowerState, fireType: 'ELECTRICAL', extinguisherType: action.extinguisherType, operation: 'USE_EXTINGUISHER' });
       if (!decision.allowed) {
         return {
@@ -314,7 +325,7 @@ export function level01Reducer(state: Level01State, action: Level01Action): Leve
       }
       return {
         ...state,
-        currentStage: level01ScenarioEngine.nextStage('FIRE_RISK_ASSESSMENT'),
+        currentStage: state.currentStage === 'FIRE_RISK_ASSESSMENT' ? level01ScenarioEngine.nextStage('FIRE_RISK_ASSESSMENT') : state.currentStage,
         selectedExtinguisher: action.extinguisherType,
         lastSafetyDecision: decision,
         eventLog: appendEvents(state, [{ action: 'EXTINGUISHER_SELECTED', payload: { extinguisherType: action.extinguisherType, ruleId: decision.ruleId } }]),

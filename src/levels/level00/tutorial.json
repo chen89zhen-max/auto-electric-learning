@@ -5,5 +5,5 @@
   { "id": "SAFETY_PRECHECK", "objective": "DEVICE_STATE_CHECK", "currentTask": "确认状态后打开护盖", "allowedActions": ["VIEW_POWER", "TOGGLE_POWER", "OPEN_GUARD"], "requiredState": { "power": "OFF" }, "nextStage": "HELP_TUTORIAL" },
   { "id": "HELP_TUTORIAL", "objective": "USE_TUTOR_HELP", "currentTask": "遇到未知内容时请求帮助", "allowedActions": ["TRY_UNKNOWN", "RETURN", "REQUEST_HELP"], "nextStage": "REVIEW" },
   { "id": "REVIEW", "currentTask": "完成两项入职确认", "allowedActions": ["ANSWER_REVIEW"], "nextStage": "COMPLETE" },
-  { "id": "COMPLETE", "currentTask": "查看入职认证", "allowedActions": ["RETURN_LOBBY"] }
+  { "id": "COMPLETE", "currentTask": "查看入职报告", "allowedActions": ["RETURN_LOBBY"] }
 ]

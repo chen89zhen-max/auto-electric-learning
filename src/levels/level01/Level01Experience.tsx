@@ -24,12 +24,45 @@ const taskLabels: Record<string, string> = {
   COMPLETE: '查看安全作业能力报告',
 };
 
+import { LogOut } from 'lucide-react';
+import { FullscreenButton } from '@/src/components/FullscreenButton';
+import { getStudentDisplayName } from '@/src/stores/authStore';
+
 function Level01Game({ onReturnLevel00 }: { onReturnLevel00: () => void }) {
   const { state, dispatch } = useLevel01Store();
   level01ScenarioEngine.getScenario(state.currentStage);
+
+
   return (
     <main className="app-shell level01-shell">
-      <header className="topbar"><div className="brand-lockup"><span className="brand-mark safety-mark"><ShieldCheck size={23} /></span><div><p className="eyebrow">新能源汽车维修中心 · 第二天</p><h1>实训车间突发事故——安全用电</h1></div></div><Level01Progress completed={state.completedObjectives} /><div className="trainee-badge"><GraduationCap size={18} /><span>见习技师 · 安全训练</span></div></header>
+      <header className="topbar">
+        <div className="brand-lockup">
+          <span className="brand-mark safety-mark"><ShieldCheck size={23} /></span>
+          <div>
+            <p className="eyebrow">新能源汽车维修中心 · 第二天</p>
+            <h1>实训车间突发事故——安全用电</h1>
+          </div>
+        </div>
+        <Level01Progress completed={state.completedObjectives} />
+        <div className="trainee-badge">
+          <GraduationCap size={18} />
+          <span>实训成长称号 · {getStudentDisplayName('见习学员')}</span>
+        </div>
+
+        {/* Topbar Actions */}
+        <div className="flex items-center gap-2 ml-auto">
+          <FullscreenButton />
+          <button
+            type="button"
+            onClick={onReturnLevel00}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg transition-colors cursor-pointer shadow-xs"
+            title="退出当前实训并返回课程地图"
+          >
+            <LogOut size={15} />
+            <span>退出实训</span>
+          </button>
+        </div>
+      </header>
       <section className={state.currentStage === 'COMPLETE' ? 'workspace single' : 'workspace'} aria-label="安全用电实训工作区"><div className="scene-panel"><div className="scene-heading"><span className={state.warningLight ? 'status-dot danger' : 'status-dot'} /><span>{state.currentStage.includes('FIRE') ? '配电区域' : state.currentStage === 'TRANSFER_CHECK' ? '设备检查区' : '2号实训工位'}</span><span className="scene-meta">SEMI GUIDED</span></div><div className="scene-content"><Level01Scene onReturnLevel00={onReturnLevel00} /></div><div className="objective-strip"><span>当前任务</span><strong>{taskLabels[state.currentStage]}</strong>{state.feedback && <output className={state.feedback.startsWith('⚠') ? 'feedback warning' : 'feedback'}>{state.feedback}</output>}</div></div>{state.currentStage !== 'COMPLETE' && <Level01Tutor state={state} />}</section>
       <nav className="bottom-bar" aria-label="安全训练功能栏"><button type="button" onClick={() => dispatch({ type: 'OPEN_WORK_ORDER' })}><ClipboardList size={19} />工单</button><button type="button" onClick={() => dispatch({ type: 'REQUEST_HINT' })}><HelpCircle size={19} />请师傅提示</button><span className="toolbar-spacer" />{process.env.NODE_ENV !== 'production' && <button type="button" onClick={() => EventLogger.download(state.eventLog)}><FileJson size={18} />导出日志</button>}<button type="button" onClick={() => dispatch({ type: 'RESTART' })}><RotateCcw size={18} />重新开始</button></nav>
       <Level01WorkOrder />

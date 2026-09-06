@@ -179,6 +179,16 @@ export function createDefaultUserProgress(): UserProgressData {
 }
 
 let cachedProgress: UserProgressData | null = null;
+let identityRevision = 0;
+let progressOwner = '';
+const pendingCompletions = new Map<LevelId, { body: string; promise?: Promise<UserProgressData> }>();
+
+export function resetProgressIdentity(name = '见习学员', username = ''): void {
+  identityRevision += 1;
+  progressOwner = username;
+  pendingCompletions.clear();
+  saveUserProgress(createBaseUserProgress(name), { sync: false });
+}
 
 export function getUserProgress(): UserProgressData {
   if (cachedProgress) {
@@ -239,26 +249,30 @@ export async function submitLevelCompletion(
   score = 100,
   evidence: Record<string, unknown> = {}
 ): Promise<UserProgressData> {
-  const eventId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
-    ? crypto.randomUUID()
-    : `evt_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-  const response = await fetch('/api/learning/events', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      eventId,
-      levelId,
-      eventType: 'LEVEL_COMPLETE',
-      payload: { score, evidence },
-      occurredAt: Date.now(),
-    }),
-  });
-  const body = await response.json() as { projection?: UserProgressData; error?: string };
-  if (!response.ok || !body.projection) {
-    throw new Error(body.error || '学习结果保存失败');
+  const current = getUserProgress();
+  if (current.levels[levelId]?.status === 'completed') return current;
+  const revision = identityRevision;
+  let pending = pendingCompletions.get(levelId);
+  if (!pending) {
+    const eventId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID() : `evt_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    pending = { body: JSON.stringify({ eventId, levelId, eventType: 'LEVEL_COMPLETE', payload: { score, evidence }, occurredAt: Date.now() }) };
+    pendingCompletions.set(levelId, pending);
   }
-  saveUserProgress(body.projection, { sync: false });
-  return body.projection;
+  if (pending.promise) return pending.promise;
+  const submission = pending;
+  submission.promise = (async () => {
+    const response = await fetch('/api/learning/events', {
+      method: 'POST', headers: { 'content-type': 'application/json', 'x-nev-expected-user': encodeURIComponent(progressOwner) }, body: submission.body,
+    });
+    const body = await response.json() as { projection?: UserProgressData; error?: string };
+    if (revision !== identityRevision) throw new Error('账号已切换，请在当前账号重新进入实训');
+    if (!response.ok || !body.projection) throw new Error(body.error || '学习结果保存失败');
+    saveUserProgress(body.projection, { sync: false });
+    pendingCompletions.delete(levelId);
+    return body.projection;
+  })().finally(() => { submission.promise = undefined; });
+  return submission.promise;
 }
 
 const NEXT_LEVEL_MAP: Record<LevelId, LevelId | null> = {

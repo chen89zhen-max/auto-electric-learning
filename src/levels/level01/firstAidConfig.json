@@ -1,9 +1,11 @@
 {
-  "reviewStatus": "REQUIRES_PROFESSIONAL_REVIEW_BEFORE_FORMAL_USE",
-  "compressionRate": null,
-  "compressionDepth": null,
-  "compressionRatio": null,
-  "breathConfig": null,
+  "reviewStatus": "PENDING_PROFESSIONAL_REVIEW",
+  "disclaimer": "根据专业急救指南整理，教学模拟仅供规范指引，实操请遵医嘱及专业资质培训",
+  "compressionRate": "成人 100~120 次/min",
+  "compressionDepth": "成人 5~6 cm（胸骨充分回弹）",
+  "compressionRatio": "30:2",
+  "breathConfig": "每次人工吹气约1秒，观察胸廓起伏",
+  "compressionLocation": "胸骨中下1/3处（两乳头连线中点）",
   "simulationSeconds": 10,
   "practiceActionsRequired": 6,
   "sequence": ["CHECK_RESPONSE", "CALL_HELP", "CHECK_BREATHING"]

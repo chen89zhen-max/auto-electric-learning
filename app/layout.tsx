@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import './training-visuals.css';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://neev-technician-onboarding.zippy-hinny-9086.chatgpt.site'),

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Award, Check, GraduationCap, LogOut, Wrench } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { GameStoreProvider, useGameStore } from '@/src/stores/gameStore';
@@ -16,7 +16,8 @@ import { Level01Experience } from '@/src/levels/level01/Level01Experience';
 import { Level02Experience } from '@/src/levels/level02/Level02Experience';
 import { CourseMapLobby } from '@/src/components/CourseMapLobby';
 import { FullscreenButton } from '@/src/components/FullscreenButton';
-import { LevelId, submitLevelCompletion } from '@/src/stores/userProgressStore';
+import { LevelId } from '@/src/stores/userProgressStore';
+import { CompletionStatus } from '@/src/components/CompletionStatus';
 import { getStudentDisplayName, useAuth } from '@/src/stores/authStore';
 import { ChangePasswordGate } from '@/src/components/auth/ChangePasswordGate';
 import { SystemAdminConsole } from '@/src/components/admin/SystemAdminConsole';
@@ -24,33 +25,18 @@ import { TeacherDashboard } from '@/src/components/teacher/TeacherDashboard';
 
 function ResultPanel({ onReturnHome }: { onReturnHome: () => void }) {
   const { dispatch } = useGameStore();
-  const completionSubmitted = useRef(false);
-
-  useEffect(() => {
-    if (completionSubmitted.current) return;
-    completionSubmitted.current = true;
-    void submitLevelCompletion('LEVEL_00', 100, { source: 'sprint0_result' })
-      .catch((error) => console.error('Sprint 0 completion save failed:', error));
-  }, []);
 
   return (
     <section className="result-panel">
       <span className="result-seal"><Award size={44} /></span>
       <p className="step-label">新能源汽车维修中心</p>
-      <h2>见习技师入职认证</h2>
+      <h2>见习学员入职培训报告</h2>
       <div className="certificate-list">
         {['已熟悉工作任务', '已熟悉基础操作', '已完成安全准备', '已学会请求教学帮助'].map((item) => (
           <span key={item}><Check size={18} />{item}</span>
         ))}
       </div>
-      <div className="unlock-card">
-        <GraduationCap size={26} />
-        <div>
-          <small>下一任务已解锁</small>
-          <strong>学习任务1《安全用电》</strong>
-          <span>已开放</span>
-        </div>
-      </div>
+      <CompletionStatus levelId="LEVEL_00" nextTask="学习任务1《安全用电》" />
       <Button
         size="lg"
         className="primary-action result-action"
@@ -86,7 +72,7 @@ function GameExperience({
         <TaskProgress completed={state.completedObjectives} />
         <div className="trainee-badge">
           <GraduationCap size={18} />
-          <span>见习技师 · {getStudentDisplayName('见习学员')} ({state.currentStage === 'COMPLETE' ? '已认证' : '未认证'})</span>
+          <span>见习学员 · {getStudentDisplayName('见习学员')} ({state.currentStage === 'COMPLETE' ? '已完成' : '学习中'})</span>
         </div>
 
         {/* Topbar Actions */}
@@ -138,6 +124,12 @@ function GameExperience({
 }
 
 export function GameShell() {
+  const { user, isLoading } = useAuth();
+  if (isLoading) return <main className="min-h-screen flex items-center justify-center">正在核验安全会话…</main>;
+  return <SessionGameShell key={`${user?.role ?? 'guest'}:${user?.username ?? ''}`} />;
+}
+
+function SessionGameShell() {
   const { user, isLoading } = useAuth();
   // Home is the default view when user opens or refreshes the page!
   const [activeLevel, setActiveLevel] = useState<'HOME' | LevelId>('HOME');
