@@ -44,7 +44,6 @@ export function StudentEvidence({
 
   const fetchEvaluations = useCallback(async () => {
     try {
-      setLoadingE07(true);
       const res = await fetch(`/api/teacher/evaluations?studentId=${student.id}`);
       if (res.ok) {
         const data = await res.json() as { e07Attempts?: TeacherStudentE07Attempt[] };
@@ -58,7 +57,8 @@ export function StudentEvidence({
   }, [student.id]);
 
   useEffect(() => {
-    void fetchEvaluations();
+    const timer = window.setTimeout(() => void fetchEvaluations(), 0);
+    return () => window.clearTimeout(timer);
   }, [fetchEvaluations]);
 
   const getAttemptScores = (attemptId: string): E07PhysicalRubricData => {
@@ -309,10 +309,11 @@ export function StudentEvidence({
 
                   <div className="grid grid-cols-1 sm:grid-cols-5 gap-2.5 bg-white p-3 rounded-lg border border-amber-200">
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      <label htmlFor={`e07-pre-check-${attempt.attemptId}`} className="block text-[11px] font-bold text-slate-700 mb-1">
                         1. 供电前核验 (0-20分)
                       </label>
                       <input
+                        id={`e07-pre-check-${attempt.attemptId}`}
                         type="number"
                         min={0}
                         max={20}
@@ -322,10 +323,11 @@ export function StudentEvidence({
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      <label htmlFor={`e07-comp-orient-${attempt.attemptId}`} className="block text-[11px] font-bold text-slate-700 mb-1">
                         2. 元器件方向 (0-20分)
                       </label>
                       <input
+                        id={`e07-comp-orient-${attempt.attemptId}`}
                         type="number"
                         min={0}
                         max={20}
@@ -335,10 +337,11 @@ export function StudentEvidence({
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      <label htmlFor={`e07-solder-qual-${attempt.attemptId}`} className="block text-[11px] font-bold text-slate-700 mb-1">
                         3. 焊点润湿质量 (0-30分)
                       </label>
                       <input
+                        id={`e07-solder-qual-${attempt.attemptId}`}
                         type="number"
                         min={0}
                         max={30}
@@ -348,10 +351,11 @@ export function StudentEvidence({
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      <label htmlFor={`e07-safe-proc-${attempt.attemptId}`} className="block text-[11px] font-bold text-slate-700 mb-1">
                         4. 安全规范自检 (0-20分)
                       </label>
                       <input
+                        id={`e07-safe-proc-${attempt.attemptId}`}
                         type="number"
                         min={0}
                         max={20}
@@ -361,10 +365,11 @@ export function StudentEvidence({
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      <label htmlFor={`e07-evid-exp-${attempt.attemptId}`} className="block text-[11px] font-bold text-slate-700 mb-1">
                         5. 原理缺陷解释 (0-10分)
                       </label>
                       <input
+                        id={`e07-evid-exp-${attempt.attemptId}`}
                         type="number"
                         min={0}
                         max={10}

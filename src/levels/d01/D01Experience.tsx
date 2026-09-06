@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   ClipboardList,
-  GraduationCap,
   HelpCircle,
   LogOut,
   RotateCcw,
@@ -15,7 +14,6 @@ import { AbilityReport } from '@/src/components/AbilityReport';
 import { MasterChenAvatar } from '@/src/components/visuals/MasterChenAvatar';
 import { sounds } from '@/src/components/visuals/SoundEffects';
 import { speakText, stopSpeaking } from '@/src/components/visuals/SpeechTts';
-import { getStudentDisplayName } from '@/src/stores/authStore';
 import { D01RelayControlScene } from './D01RelayControlScene';
 import { D01_STAGE_CONTENT, type D01Step } from './d01Training';
 import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';

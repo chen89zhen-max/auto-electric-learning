@@ -44,7 +44,7 @@ import { getStudentDisplayName, useAuth } from '@/src/stores/authStore';
 import { ChangePasswordGate } from '@/src/components/auth/ChangePasswordGate';
 import { SystemAdminConsole } from '@/src/components/admin/SystemAdminConsole';
 import { TeacherDashboard } from '@/src/components/teacher/TeacherDashboard';
-import { resolveRequestedLevel, resolveRequestedLevelRoute } from '@/src/app/levelRoute';
+import { resolveRequestedLevel } from '@/src/app/levelRoute';
 import { useUserProgress } from '@/src/stores/userProgressStore';
 import { checkLevelPrerequisites, normalizeLevelId } from '@/src/courses/registry';
 

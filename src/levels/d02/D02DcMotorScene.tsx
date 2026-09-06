@@ -454,16 +454,18 @@ export function D02DcMotorScene({
               <div className="flex flex-col gap-2 w-full">
                 <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
                   <span className="text-xs text-slate-400 font-semibold">认知维度:</span>
-                  {[
-                    { key: 'EXPERIMENT', label: '1. 换向器仿真实验' },
-                    { key: 'STARTER_MAP', label: '2. 实车起动机6大结构' },
-                    { key: 'ROTATING_FIELD', label: '3. 单相 vs 三相旋转磁场' },
-                  ].map((tab) => (
+                  {(
+                    [
+                      { key: 'EXPERIMENT', label: '1. 换向器仿真实验' },
+                      { key: 'STARTER_MAP', label: '2. 实车起动机6大结构' },
+                      { key: 'ROTATING_FIELD', label: '3. 单相 vs 三相旋转磁场' },
+                    ] as const
+                  ).map((tab) => (
                     <button
                       key={tab.key}
                       onClick={() => {
                         sounds.click();
-                        setS2SubTab(tab.key as any);
+                        setS2SubTab(tab.key);
                       }}
                       className={`px-2.5 py-1 rounded text-xs font-bold cursor-pointer transition-colors ${
                         s2SubTab === tab.key
