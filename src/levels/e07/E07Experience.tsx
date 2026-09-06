@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import {
+  AlertTriangle,
+  CheckCircle2,
   ClipboardList,
   GraduationCap,
   HelpCircle,
@@ -17,7 +19,8 @@ import { sounds } from '@/src/components/visuals/SoundEffects';
 import { speakText, stopSpeaking } from '@/src/components/visuals/SpeechTts';
 import { getStudentDisplayName } from '@/src/stores/authStore';
 import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
-import { E07PcbAssemblyScene } from './E07PcbAssemblyScene';
+import { scoreAssessment } from '@/src/assessment/scoreAssessment';
+import { E07PcbAssemblyScene, type PhysicalEvaluationData } from './E07PcbAssemblyScene';
 import { E07_STAGE_CONTENT, type E07Step } from './e07Training';
 
 interface E07ExperienceProps {
@@ -32,6 +35,7 @@ export function E07Experience({ onReturnLobby }: E07ExperienceProps) {
   const [sceneRevision, setSceneRevision] = useState(0);
   const [showWorkOrder, setShowWorkOrder] = useState(false);
   const [hintRequested, setHintRequested] = useState(false);
+  const [physicalEvaluation, setPhysicalEvaluation] = useState<PhysicalEvaluationData | null>(null);
 
   const guidance = E07_STAGE_CONTENT[currentStep];
 
@@ -70,6 +74,25 @@ export function E07Experience({ onReturnLobby }: E07ExperienceProps) {
       setIsCompleted(true);
     }
   };
+
+  useEffect(() => {
+    let active = true;
+    async function loadPhysicalEval() {
+      try {
+        const res = await fetch('/api/learning/evaluations?levelId=E07');
+        if (res.ok) {
+          const data = await res.json() as { evaluation?: PhysicalEvaluationData | null };
+          if (active && data.evaluation) {
+            setPhysicalEvaluation(data.evaluation);
+          }
+        }
+      } catch {
+        // ignore network error
+      }
+    }
+    void loadPhysicalEval();
+    return () => { active = false; };
+  }, [isCompleted, currentStep]);
 
   const handleRestart = () => {
     setIsCompleted(false);
@@ -207,16 +230,96 @@ export function E07Experience({ onReturnLobby }: E07ExperienceProps) {
       {/* Main Workspace Area */}
       <div className="workspace-main flex-1 p-4 md:p-6 overflow-y-auto">
         {isCompleted ? (
-          <AbilityReport
-            levelId="E07"
-            domainLabel="工艺规范与焊接"
-            title="E07 PCB焊接工艺与实物量规验收实训报告"
-            assessment={assessmentResult ?? undefined}
-            metrics={stepEvidences}
-            nextTask="P6 全阶段实训结业！已具备进入 P7 综合交付挑战全部资质！"
-            onRestart={handleRestart}
-            onReturn={onReturnLobby}
-          />
+          <div className="space-y-4 max-w-4xl mx-auto">
+            {/* 真实实物量规验收卡片 */}
+            {physicalEvaluation ? (
+              <div className="p-4 bg-emerald-950/40 border border-emerald-500/40 rounded-2xl text-emerald-200 text-xs space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                    <span className="font-bold text-sm text-emerald-300">
+                      任课教师实物焊接量规核验已通过并存证入库
+                    </span>
+                  </div>
+                  <span className="font-mono font-bold text-base text-emerald-300">
+                    实物总分: {physicalEvaluation.totalScore} / 100 分
+                  </span>
+                </div>
+                <div className="text-[11px] text-slate-300 flex flex-wrap gap-4">
+                  <span>验收教师：<strong className="text-white">{physicalEvaluation.teacherName}</strong></span>
+                  <span>签署时间：{new Date(physicalEvaluation.signedAt).toLocaleString('zh-CN')}</span>
+                  {physicalEvaluation.comment && <span>教师评语：{physicalEvaluation.comment}</span>}
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-2 border-t border-emerald-500/30 text-[11px] text-slate-300">
+                  <div className="bg-slate-900/60 p-2 rounded border border-emerald-500/20">
+                    供电前外观: <strong className="text-emerald-400">{physicalEvaluation.rubricData?.pre_power_check ?? 0}/20</strong>
+                  </div>
+                  <div className="bg-slate-900/60 p-2 rounded border border-emerald-500/20">
+                    元器件方向: <strong className="text-emerald-400">{physicalEvaluation.rubricData?.component_orientation ?? 0}/20</strong>
+                  </div>
+                  <div className="bg-slate-900/60 p-2 rounded border border-emerald-500/20">
+                    焊点润湿质量: <strong className="text-emerald-400">{physicalEvaluation.rubricData?.solder_quality ?? 0}/30</strong>
+                  </div>
+                  <div className="bg-slate-900/60 p-2 rounded border border-emerald-500/20">
+                    安全操作自检: <strong className="text-emerald-400">{physicalEvaluation.rubricData?.safety_process ?? 0}/20</strong>
+                  </div>
+                  <div className="bg-slate-900/60 p-2 rounded border border-emerald-500/20">
+                    原理缺陷解释: <strong className="text-emerald-400">{physicalEvaluation.rubricData?.evidence_explanation ?? 0}/10</strong>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 bg-amber-500/10 border border-amber-500/40 rounded-2xl text-amber-200 text-xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 font-bold text-sm text-amber-300">
+                    <AlertTriangle className="w-5 h-5 text-amber-400" />
+                    <span>虚拟训练已完成，实物焊接等待任课教师验收</span>
+                  </div>
+                  <span className="bg-amber-500/20 text-amber-300 px-2.5 py-0.5 rounded text-[11px] font-bold border border-amber-500/40">
+                    待教师现场量规评定
+                  </span>
+                </div>
+                <p className="text-slate-300 text-xs leading-relaxed">
+                  请携带手工焊接完成的 PCB 训练板前往实训工位，由任课教师在教师工作台录入实物量规评语与各维度得分。
+                </p>
+              </div>
+            )}
+
+            <AbilityReport
+              levelId="E07"
+              domainLabel="工艺规范与焊接"
+              title="E07 PCB焊接工艺与实物量规验收实训报告"
+              assessment={assessmentResult ?? undefined}
+              summaryItems={
+                assessmentResult
+                  ? (() => {
+                      const scored = scoreAssessment(assessmentResult);
+                      return [
+                        { label: '过程答错记录', value: `${scored.counters.wrongAttempts} 次` },
+                        { label: '教学提示使用', value: `${scored.counters.hintRequests} 次` },
+                        { label: '仪表安全拦截', value: `${scored.counters.meterGuardBlocks} 次` },
+                        { label: '安全违规操作', value: `${scored.counters.unsafeActions} 次` },
+                        { label: '阶段重试次数', value: `${scored.counters.retries} 次` },
+                        {
+                          label: '实际实训耗时',
+                          value: `${Math.max(1, Math.round(scored.durationMs / 60_000))} 分钟`,
+                        },
+                        {
+                          label: '实物焊接量规',
+                          value: physicalEvaluation
+                            ? `${physicalEvaluation.totalScore} 分 (${physicalEvaluation.teacherName} 教师已签署)`
+                            : '待任课教师现场验收',
+                        },
+                      ];
+                    })()
+                  : undefined
+              }
+              metrics={stepEvidences}
+              nextTask="P6 全阶段实训结业！已具备进入 P7 综合交付挑战全部资质！"
+              onRestart={handleRestart}
+              onReturn={onReturnLobby}
+            />
+          </div>
         ) : (
           <E07PcbAssemblyScene
             key={sceneRevision}
@@ -224,6 +327,7 @@ export function E07Experience({ onReturnLobby }: E07ExperienceProps) {
             onStepComplete={handleStepComplete}
             onAdvanceStep={handleAdvanceStep}
             hintRequested={hintRequested}
+            physicalEvaluation={physicalEvaluation}
             onComplete={(res) => {
               setAssessmentResult(res);
               setIsCompleted(true);

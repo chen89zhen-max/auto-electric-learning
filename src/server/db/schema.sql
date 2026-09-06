@@ -183,6 +183,10 @@ CREATE TABLE IF NOT EXISTS teacher_evaluations (
   attempt_id TEXT,
   score INTEGER,
   comment TEXT NOT NULL DEFAULT '',
+  evaluation_type TEXT NOT NULL DEFAULT 'FORMATIVE',
+  rubric_version TEXT DEFAULT NULL,
+  rubric_data TEXT DEFAULT NULL,
+  signed_at INTEGER DEFAULT NULL,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL,
   FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE RESTRICT,
@@ -192,6 +196,10 @@ CREATE TABLE IF NOT EXISTS teacher_evaluations (
 
 CREATE INDEX IF NOT EXISTS idx_teacher_evaluations_student
 ON teacher_evaluations(student_id, created_at);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_teacher_eval_physical_attempt
+ON teacher_evaluations(attempt_id, evaluation_type)
+WHERE evaluation_type = 'PHYSICAL_RUBRIC' AND attempt_id IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS progress_corrections (
   id TEXT PRIMARY KEY,

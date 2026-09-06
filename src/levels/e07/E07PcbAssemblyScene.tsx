@@ -18,12 +18,22 @@ import {
   E07_DEFECTS,
 } from './e07Training';
 
+export interface PhysicalEvaluationData {
+  id: string;
+  teacherName: string;
+  totalScore: number;
+  signedAt: number;
+  comment: string | null;
+  rubricData: Record<string, number>;
+}
+
 interface E07PcbAssemblySceneProps {
   currentStep: E07Step;
   onStepComplete: (step: E07Step, evidence: Record<string, unknown>) => void;
   onAdvanceStep: () => void;
   onComplete?: (result: LevelAssessmentResult) => void;
   hintRequested?: boolean;
+  physicalEvaluation?: PhysicalEvaluationData | null;
 }
 
 export function E07PcbAssemblyScene({
@@ -32,6 +42,7 @@ export function E07PcbAssemblyScene({
   onAdvanceStep,
   onComplete,
   hintRequested = false,
+  physicalEvaluation,
 }: E07PcbAssemblySceneProps) {
   const assessment = useLevelAssessment('E07');
 
@@ -88,8 +99,6 @@ export function E07PcbAssemblyScene({
   const [s5BridgeCleared, setS5BridgeCleared] = useState<boolean>(false);
   const [s5ColdJointFixed, setS5ColdJointFixed] = useState<boolean>(false);
   const [s5PowerTested, setS5PowerTested] = useState<boolean>(false);
-  const [s5TeacherScore] = useState<number>(96);
-  const [s5TeacherSigned, setS5TeacherSigned] = useState<boolean>(false);
   const [s5Submitted, setS5Submitted] = useState<boolean>(false);
 
   const requireTool = (required: 'MAGNIFIER_10X' | 'BUZZER_OHM' | 'DCV_20'): boolean => {
@@ -907,52 +916,86 @@ export function E07PcbAssemblyScene({
               <div>
                 <h4 className="text-sm font-bold text-slate-200 mb-2 flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  教师现场量规实物评定单
+                  教师现场实物量规评定单 (E07-PHYSICAL-v1)
                 </h4>
-                <p className="text-xs text-slate-400 mb-3">现场指导教师对工艺质量量规评分：</p>
+                <p className="text-xs text-slate-400 mb-3">依据国家职业标准及实操量规规范评定：</p>
 
-                <div className="space-y-2 text-xs">
-                  <div className="p-2.5 bg-slate-900 rounded-lg border border-slate-800 flex justify-between">
-                    <span className="text-slate-400">焊点半月度与润湿:</span>
-                    <span className="text-emerald-400 font-bold">29/30 分 (光润圆锥)</span>
+                {physicalEvaluation ? (
+                  <div className="space-y-2 text-xs">
+                    <div className="p-3 bg-emerald-950/40 border border-emerald-500/40 rounded-xl space-y-2">
+                      <div className="flex items-center justify-between text-emerald-300 font-bold">
+                        <span className="flex items-center gap-1.5">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                          教师实物量规已验收签署
+                        </span>
+                        <span className="font-mono text-sm">{physicalEvaluation.totalScore} 分 (已入库)</span>
+                      </div>
+                      <div className="text-[11px] text-slate-300 space-y-0.5">
+                        <div>验收教师：<strong>{physicalEvaluation.teacherName}</strong></div>
+                        <div>签署时间：{new Date(physicalEvaluation.signedAt).toLocaleString('zh-CN')}</div>
+                        {physicalEvaluation.comment && <div>评语：{physicalEvaluation.comment}</div>}
+                      </div>
+                    </div>
+                    <div className="p-2 bg-slate-900 rounded-lg border border-slate-800 flex justify-between">
+                      <span className="text-slate-400">1. 供电前外观与安全核验:</span>
+                      <span className="text-emerald-400 font-bold">{physicalEvaluation.rubricData?.pre_power_check ?? 0}/20 分</span>
+                    </div>
+                    <div className="p-2 bg-slate-900 rounded-lg border border-slate-800 flex justify-between">
+                      <span className="text-slate-400">2. 元器件方向与插装规范:</span>
+                      <span className="text-emerald-400 font-bold">{physicalEvaluation.rubricData?.component_orientation ?? 0}/20 分</span>
+                    </div>
+                    <div className="p-2 bg-slate-900 rounded-lg border border-slate-800 flex justify-between">
+                      <span className="text-slate-400">3. 焊点形态与润湿质量:</span>
+                      <span className="text-emerald-400 font-bold">{physicalEvaluation.rubricData?.solder_quality ?? 0}/30 分</span>
+                    </div>
+                    <div className="p-2 bg-slate-900 rounded-lg border border-slate-800 flex justify-between">
+                      <span className="text-slate-400">4. 安全操作与工艺自检:</span>
+                      <span className="text-emerald-400 font-bold">{physicalEvaluation.rubricData?.safety_process ?? 0}/20 分</span>
+                    </div>
+                    <div className="p-2 bg-slate-900 rounded-lg border border-slate-800 flex justify-between">
+                      <span className="text-slate-400">5. 工艺原理与缺陷解释:</span>
+                      <span className="text-emerald-400 font-bold">{physicalEvaluation.rubricData?.evidence_explanation ?? 0}/10 分</span>
+                    </div>
                   </div>
-                  <div className="p-2.5 bg-slate-900 rounded-lg border border-slate-800 flex justify-between">
-                    <span className="text-slate-400">剪脚平整度与绝缘:</span>
-                    <span className="text-emerald-400 font-bold">20/20 分 (留长1.2mm)</span>
+                ) : (
+                  <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-2.5 text-xs text-amber-200">
+                    <div className="flex items-center gap-2 font-bold text-amber-300">
+                      <AlertTriangle className="w-4 h-4 shrink-0" />
+                      <span>虚拟训练已完成，实物焊接等待任课教师验收</span>
+                    </div>
+                    <p className="text-slate-300 text-[11px] leading-relaxed">
+                      请携带焊接成品前往实训工位，由任课教师在教师工作台录入实物量规评语与各维度得分。
+                    </p>
+                    <div className="space-y-1.5 pt-2 border-t border-amber-500/20 text-[11px] text-slate-400">
+                      <div className="flex justify-between">
+                        <span>1. 供电前外观与安全核验:</span>
+                        <span className="font-mono text-slate-300">满分 20 分</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>2. 元器件方向与插装规范:</span>
+                        <span className="font-mono text-slate-300">满分 20 分</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>3. 焊点形态与润湿质量:</span>
+                        <span className="font-mono text-slate-300">满分 30 分</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>4. 安全操作与工艺自检:</span>
+                        <span className="font-mono text-slate-300">满分 20 分</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>5. 工艺原理与缺陷解释:</span>
+                        <span className="font-mono text-slate-300">满分 10 分</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="p-2.5 bg-slate-900 rounded-lg border border-slate-800 flex justify-between">
-                    <span className="text-slate-400">通电全功能运行:</span>
-                    <span className="text-emerald-400 font-bold">30/30 分 (背光无频闪)</span>
-                  </div>
-                  <div className="p-2.5 bg-slate-900 rounded-lg border border-slate-800 flex justify-between">
-                    <span className="text-slate-400">板面清洁与安全规范:</span>
-                    <span className="text-emerald-400 font-bold">17/20 分 (无锡渣残留)</span>
-                  </div>
-                  <div className="p-2.5 bg-emerald-950/30 rounded-lg border border-emerald-500/40 flex justify-between font-bold text-sm">
-                    <span className="text-emerald-300">量规综合得分:</span>
-                    <span className="text-emerald-400 font-mono">{s5TeacherScore} 分 (优秀 A+)</span>
-                  </div>
-                </div>
-
-                <div className="mt-4 flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="e07-sign"
-                    disabled={!s5PowerTested || s5Submitted}
-                    checked={s5TeacherSigned}
-                    onChange={(e) => setS5TeacherSigned(e.target.checked)}
-                    className="rounded accent-emerald-500"
-                  />
-                  <label htmlFor="e07-sign" className="text-xs text-slate-300 cursor-pointer">
-                    实训教师陈师傅核验实物量规达标（96分），同意准予结课交付
-                  </label>
-                </div>
+                )}
               </div>
 
               <div className="mt-4 pt-4 border-t border-slate-800">
                 {!s5Submitted ? (
                   <Button
-                    disabled={!s5TeacherSigned || !s5PowerTested}
+                    disabled={!s5PowerTested}
                     onClick={() => {
                       setS5Submitted(true);
                       sounds.playSuccessSound?.();
@@ -962,17 +1005,21 @@ export function E07PcbAssemblyScene({
                       onStepComplete('ENGINEERING_REPAIR_AND_DELIVERY', {
                         s5BridgeCleared,
                         s5ColdJointFixed,
-                        s5TeacherScore,
+                        s5PowerTested,
                       });
                     }}
                     className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold"
                   >
-                    教师签字并完成 P6 总结课
+                    完成虚拟排故与通电测试并提交
                   </Button>
                 ) : (
                   <div className="p-3 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 shrink-0" />
-                    <span>交车成功！整车仪表板恢复出厂性能，工艺量规评定优秀！</span>
+                    <span>
+                      {physicalEvaluation
+                        ? '交车成功！整车仪表板恢复出厂性能，工艺量规已验收！'
+                        : '虚拟训练已完成，实物焊接等待任课教师验收'}
+                    </span>
                   </div>
                 )}
               </div>

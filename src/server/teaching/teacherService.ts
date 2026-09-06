@@ -15,7 +15,21 @@ export type TeacherServiceErrorCode =
   | 'INVALID_EVALUATION'
   | 'INVALID_RETRAINING_REASON'
   | 'INVALID_ATTEMPT'
-  | 'DUPLICATE_RETRAINING_REQUEST';
+  | 'DUPLICATE_RETRAINING_REQUEST'
+  | 'DUPLICATE_PHYSICAL_RUBRIC'
+  | 'DUPLICATE_EVALUATION';
+
+export const E07_PHYSICAL_RUBRIC_VERSION = 'E07-PHYSICAL-v1';
+
+export const E07_PHYSICAL_RUBRIC_MAX_SCORES = {
+  pre_power_check: 20,
+  component_orientation: 20,
+  solder_quality: 30,
+  safety_process: 20,
+  evidence_explanation: 10,
+} as const;
+
+export type E07PhysicalRubricKey = keyof typeof E07_PHYSICAL_RUBRIC_MAX_SCORES;
 
 export class TeacherServiceError extends Error {
   constructor(public readonly code: TeacherServiceErrorCode, message: string) {
@@ -86,12 +100,113 @@ function validateAttempt(studentId: string, attemptId: string | undefined, db: A
   return attemptId;
 }
 
+export interface CreateEvaluationInput {
+  teacherId: string;
+  studentId: string;
+  attemptId?: string;
+  score?: number;
+  comment?: string;
+  evaluationType?: 'FORMATIVE' | 'PHYSICAL_RUBRIC';
+  rubricVersion?: string;
+  rubricItems?: Record<string, unknown>;
+}
+
 export function createTeacherEvaluation(
-  params: { teacherId: string; studentId: string; attemptId?: string; score?: number; comment: string },
+  params: CreateEvaluationInput,
   db: AppDatabase = getDatabase()
-): { id: string; createdAt: number } {
+): { id: string; score: number; createdAt: number; signedAt?: number } {
   requireAuthorizedStudent(params.teacherId, params.studentId, db);
-  const comment = params.comment.trim();
+  const evaluationType = params.evaluationType || 'FORMATIVE';
+
+  if (evaluationType === 'PHYSICAL_RUBRIC') {
+    if (!params.attemptId) {
+      throw new TeacherServiceError('INVALID_ATTEMPT', '物理实物量规评价必须关联实训记录');
+    }
+    const attempt = db.prepare<{ student_id: string; level_id: string }>(
+      'SELECT student_id, level_id FROM learning_attempts WHERE id=?'
+    ).get(params.attemptId);
+
+    if (!attempt || attempt.student_id !== params.studentId) {
+      throw new TeacherServiceError('INVALID_ATTEMPT', '实训记录与目标学生不匹配');
+    }
+    if (attempt.level_id !== 'E07') {
+      throw new TeacherServiceError('INVALID_ATTEMPT', '仅 E07 关卡支持实物量规签署');
+    }
+
+    const duplicate = db.prepare<{ id: string }>(
+      "SELECT id FROM teacher_evaluations WHERE attempt_id=? AND evaluation_type='PHYSICAL_RUBRIC'"
+    ).get(params.attemptId);
+    if (duplicate) {
+      throw new TeacherServiceError('DUPLICATE_PHYSICAL_RUBRIC', '该实训记录已完成物理量规签署，不可重复提交');
+    }
+
+    if (params.rubricVersion !== E07_PHYSICAL_RUBRIC_VERSION) {
+      throw new TeacherServiceError('INVALID_EVALUATION', `未知的量规版本: ${params.rubricVersion}`);
+    }
+
+    if (!params.rubricItems || typeof params.rubricItems !== 'object') {
+      throw new TeacherServiceError('INVALID_EVALUATION', '缺少实物量规打分明细');
+    }
+
+    let totalScore = 0;
+    const validatedRubricData: Record<string, number> = {};
+
+    for (const [key, maxScore] of Object.entries(E07_PHYSICAL_RUBRIC_MAX_SCORES)) {
+      const val = (params.rubricItems as Record<string, unknown>)[key];
+      if (typeof val !== 'number' || !Number.isInteger(val) || val < 0 || val > maxScore) {
+        throw new TeacherServiceError('INVALID_EVALUATION', `量规项目 ${key} 得分必须为 0 到 ${maxScore} 的整数`);
+      }
+      validatedRubricData[key] = val;
+      totalScore += val;
+    }
+
+    const comment = (params.comment ?? '').trim();
+    if (comment.length > 1000) {
+      throw new TeacherServiceError('INVALID_EVALUATION', '评语长度不能超过 1000 个字符');
+    }
+
+    const id = `eval_${generateSecureToken(10)}`;
+    const now = Date.now();
+
+    db.transaction(() => {
+      db.prepare(
+        `INSERT INTO teacher_evaluations
+          (id, teacher_id, student_id, attempt_id, score, comment, evaluation_type, rubric_version, rubric_data, signed_at, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run(
+        id,
+        params.teacherId,
+        params.studentId,
+        params.attemptId,
+        totalScore,
+        comment,
+        'PHYSICAL_RUBRIC',
+        params.rubricVersion,
+        JSON.stringify(validatedRubricData),
+        now,
+        now,
+        now
+      );
+
+      recordAuditStrict({
+        actorId: params.teacherId,
+        action: 'TEACHER_PHYSICAL_RUBRIC_SIGNED',
+        targetType: 'teacher_evaluation',
+        targetId: id,
+        result: 'SUCCESS',
+        details: {
+          studentId: params.studentId,
+          attemptId: params.attemptId,
+          rubricVersion: params.rubricVersion,
+          score: totalScore,
+        },
+      }, db);
+    });
+
+    return { id, score: totalScore, createdAt: now, signedAt: now };
+  }
+
+  const comment = (params.comment ?? '').trim();
   if (!comment || comment.length > 1000
     || (params.score !== undefined && (!Number.isInteger(params.score) || params.score < 0 || params.score > 100))) {
     throw new TeacherServiceError('INVALID_EVALUATION', '评价内容或分数无效');
@@ -102,8 +217,8 @@ export function createTeacherEvaluation(
   db.transaction(() => {
     db.prepare(
       `INSERT INTO teacher_evaluations
-        (id,teacher_id,student_id,attempt_id,score,comment,created_at,updated_at)
-       VALUES (?,?,?,?,?,?,?,?)`
+        (id,teacher_id,student_id,attempt_id,score,comment,evaluation_type,rubric_version,rubric_data,signed_at,created_at,updated_at)
+       VALUES (?,?,?,?,?,?,'FORMATIVE',NULL,NULL,NULL,?,?)`
     ).run(id, params.teacherId, params.studentId, attemptId, params.score ?? null, comment, now, now);
     recordAuditStrict({
       actorId: params.teacherId,
@@ -114,7 +229,123 @@ export function createTeacherEvaluation(
       details: { studentId: params.studentId, attemptId },
     }, db);
   });
-  return { id, createdAt: now };
+  return { id, score: params.score ?? 0, createdAt: now };
+}
+
+export function listStudentE07Attempts(
+  teacherId: string,
+  studentId: string,
+  db: AppDatabase = getDatabase()
+): Array<{
+  attemptId: string;
+  studentId: string;
+  startedAt: number;
+  completedAt: number;
+  score: number;
+  evaluationId: string | null;
+  physicalScore: number | null;
+  signedAt: number | null;
+  rubricData: Record<string, number> | null;
+}> {
+  requireAuthorizedStudent(teacherId, studentId, db);
+  const rows = db.prepare<{
+    attemptId: string;
+    studentId: string;
+    startedAt: number;
+    completedAt: number;
+    score: number;
+    evaluationId: string | null;
+    physicalScore: number | null;
+    signedAt: number | null;
+    rubricDataStr: string | null;
+  }>(
+    `SELECT a.id AS attemptId, a.student_id AS studentId, a.started_at AS startedAt,
+            a.completed_at AS completedAt, a.score,
+            e.id AS evaluationId, e.score AS physicalScore, e.signed_at AS signedAt,
+            e.rubric_data AS rubricDataStr
+     FROM learning_attempts a
+     LEFT JOIN teacher_evaluations e
+       ON e.attempt_id = a.id AND e.evaluation_type = 'PHYSICAL_RUBRIC'
+     WHERE a.student_id = ? AND a.level_id = 'E07'
+     ORDER BY a.started_at DESC`
+  ).all(studentId);
+
+  return rows.map((r) => {
+    let rubricData: Record<string, number> | null = null;
+    if (r.rubricDataStr) {
+      try { rubricData = JSON.parse(r.rubricDataStr); } catch {}
+    }
+    return {
+      attemptId: r.attemptId,
+      studentId: r.studentId,
+      startedAt: r.startedAt,
+      completedAt: r.completedAt,
+      score: r.score,
+      evaluationId: r.evaluationId,
+      physicalScore: r.physicalScore,
+      signedAt: r.signedAt,
+      rubricData,
+    };
+  });
+}
+
+export function getPhysicalEvaluationByAttempt(
+  attemptId: string,
+  db: AppDatabase = getDatabase()
+): {
+  id: string;
+  studentId: string;
+  attemptId: string;
+  score: number;
+  comment: string;
+  evaluationType: string;
+  rubricVersion: string;
+  rubricData: Record<string, number>;
+  teacherName: string;
+  signedAt: number;
+} | null {
+  const row = db.prepare<{
+    id: string;
+    student_id: string;
+    attempt_id: string;
+    score: number;
+    comment: string;
+    evaluation_type: string;
+    rubric_version: string | null;
+    rubric_data: string | null;
+    signed_at: number | null;
+    teacher_name: string | null;
+    teacher_username: string;
+  }>(
+    `SELECT e.id, e.student_id, e.attempt_id, e.score, e.comment, e.evaluation_type,
+            e.rubric_version, e.rubric_data, e.signed_at,
+            u.real_name AS teacher_name, u.username AS teacher_username
+     FROM teacher_evaluations e
+     JOIN users u ON e.teacher_id = u.id
+     WHERE e.attempt_id = ? AND e.evaluation_type = 'PHYSICAL_RUBRIC'
+     ORDER BY e.created_at DESC
+     LIMIT 1`
+  ).get(attemptId);
+
+  if (!row) return null;
+
+  let rubricData: Record<string, number> = {};
+  if (row.rubric_data) {
+    try { rubricData = JSON.parse(row.rubric_data); } catch {}
+  }
+
+  return {
+    id: row.id,
+    studentId: row.student_id,
+    attemptId: row.attempt_id,
+    score: row.score,
+    comment: row.comment,
+    evaluationType: row.evaluation_type,
+    rubricVersion: row.rubric_version || '',
+    rubricData,
+    teacherName: row.teacher_name || row.teacher_username,
+    signedAt: row.signed_at || 0,
+  };
 }
 
 export function listTeacherEvaluations(
@@ -124,7 +355,7 @@ export function listTeacherEvaluations(
 ): unknown[] {
   requireAuthorizedStudent(teacherId, studentId, db);
   return db.prepare(
-    `SELECT id,student_id studentId,attempt_id attemptId,score,comment,created_at createdAt,updated_at updatedAt
+    `SELECT id,student_id studentId,attempt_id attemptId,score,comment,evaluation_type evaluationType,rubric_version rubricVersion,signed_at signedAt,created_at createdAt,updated_at updatedAt
      FROM teacher_evaluations WHERE teacher_id=? AND student_id=? ORDER BY created_at DESC`
   ).all(teacherId, studentId);
 }

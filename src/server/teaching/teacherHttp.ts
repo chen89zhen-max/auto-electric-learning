@@ -14,7 +14,7 @@ export function teacherErrorResponse(error: unknown): NextResponse {
     if (error.code.startsWith('FORBIDDEN_')) {
       return NextResponse.json({ success: false, code: error.code, error: error.message }, { status: 403 });
     }
-    if (error.code === 'DUPLICATE_RETRAINING_REQUEST') {
+    if (error.code === 'DUPLICATE_RETRAINING_REQUEST' || error.code === 'DUPLICATE_PHYSICAL_RUBRIC' || error.code === 'DUPLICATE_EVALUATION') {
       return NextResponse.json({ success: false, code: error.code, error: error.message }, { status: 409 });
     }
     return NextResponse.json({ success: false, code: error.code, error: error.message }, { status: 422 });

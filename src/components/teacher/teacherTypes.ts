@@ -17,3 +17,26 @@ export interface TeacherStudentItem {
   completedLevels: number;
   lastUpdated: number;
 }
+
+export interface E07PhysicalRubricData {
+  pre_power_check: number;
+  component_orientation: number;
+  solder_quality: number;
+  safety_process: number;
+  evidence_explanation: number;
+}
+
+export interface TeacherStudentE07Attempt {
+  attemptId: string;
+  attemptScore: number | null;
+  completedAt: number;
+  hasPhysicalRubric: boolean;
+  physicalEvaluation?: {
+    id: string;
+    teacherName: string;
+    totalScore: number;
+    signedAt: number;
+    comment: string | null;
+    rubricData: Record<string, number>;
+  };
+}

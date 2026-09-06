@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { LevelId } from '@/src/types/progress';
 import { EVIDENCE_DIMENSIONS, type EvidenceDimensionId } from '@/src/types/evidence';
-import type { TeacherStudentItem } from './teacherTypes';
+import type { TeacherStudentItem, TeacherStudentE07Attempt, E07PhysicalRubricData } from './teacherTypes';
 
 const LEVEL_NAMES: Record<LevelId, { num: string; name: string }> = {
   LEVEL_00: { num: '00', name: '维修中心第一天' },
@@ -35,6 +35,74 @@ export function StudentEvidence({
   const [score, setScore] = useState(80);
   const [comment, setComment] = useState('');
   const [reason, setReason] = useState('');
+
+  const [e07Attempts, setE07Attempts] = useState<TeacherStudentE07Attempt[]>([]);
+  const [loadingE07, setLoadingE07] = useState(false);
+  const [rubricScores, setRubricScores] = useState<Record<string, E07PhysicalRubricData>>({});
+  const [rubricComments, setRubricComments] = useState<Record<string, string>>({});
+  const [isSigning, setIsSigning] = useState<string | null>(null);
+
+  const fetchEvaluations = useCallback(async () => {
+    try {
+      setLoadingE07(true);
+      const res = await fetch(`/api/teacher/evaluations?studentId=${student.id}`);
+      if (res.ok) {
+        const data = await res.json() as { e07Attempts?: TeacherStudentE07Attempt[] };
+        setE07Attempts(data.e07Attempts || []);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLoadingE07(false);
+    }
+  }, [student.id]);
+
+  useEffect(() => {
+    void fetchEvaluations();
+  }, [fetchEvaluations]);
+
+  const getAttemptScores = (attemptId: string): E07PhysicalRubricData => {
+    return rubricScores[attemptId] || {
+      pre_power_check: 20,
+      component_orientation: 20,
+      solder_quality: 30,
+      safety_process: 20,
+      evidence_explanation: 10,
+    };
+  };
+
+  const updateAttemptScore = (attemptId: string, key: keyof E07PhysicalRubricData, val: number) => {
+    const current = getAttemptScores(attemptId);
+    setRubricScores((prev) => ({
+      ...prev,
+      [attemptId]: {
+        ...current,
+        [key]: val,
+      },
+    }));
+  };
+
+  const submitPhysicalRubric = async (attemptId: string) => {
+    setIsSigning(attemptId);
+    try {
+      const scores = getAttemptScores(attemptId);
+      const cmt = rubricComments[attemptId] || '';
+      await submit('/api/teacher/evaluations', {
+        studentId: student.id,
+        attemptId,
+        evaluationType: 'PHYSICAL_RUBRIC',
+        rubricVersion: 'E07-PHYSICAL-v1',
+        rubricData: scores,
+        comment: cmt,
+      });
+      await fetchEvaluations();
+      onSaved('E07 实物焊接量规签署已保存');
+    } catch (error) {
+      onSaved((error as Error).message);
+    } finally {
+      setIsSigning(null);
+    }
+  };
 
   const submit = async (url: string, body: Record<string, unknown>) => {
     const response = await fetch(url, {
@@ -170,6 +238,172 @@ export function StudentEvidence({
       <p className="text-xs text-slate-500">
         最后更新：{new Date(student.lastUpdated).toLocaleString('zh-CN', { hour12: false })}。这里展示服务端学习证据与尝试记录；教师评价不会改写学生游戏记录。
       </p>
+
+      {/* E07 Physical Rubric Section */}
+      <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-4 space-y-3" aria-label="E07实物焊接量规签署">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+              <span>E07 任务实物焊接量规签署 (Physical Rubric)</span>
+              {loadingE07 && <span className="text-xs text-slate-400">加载中...</span>}
+            </h3>
+            <p className="text-xs text-slate-500">
+              国家教仪规范：实物焊接作品须由任课教师在现场依五维量规核验评定并数字签名，评定数据存证入库。
+            </p>
+          </div>
+        </div>
+
+        {e07Attempts.length === 0 ? (
+          <div className="p-3 bg-white rounded border border-slate-200 text-xs text-slate-500 text-center">
+            暂无 E07 实训记录（学生在客户端完成 E07 虚拟训练后，此处将自动显示待签署实物量规记录）
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {e07Attempts.map((attempt) => {
+              const hasRubric = attempt.hasPhysicalRubric && attempt.physicalEvaluation;
+              const scores = getAttemptScores(attempt.attemptId);
+              const totalScore = scores.pre_power_check + scores.component_orientation + scores.solder_quality + scores.safety_process + scores.evidence_explanation;
+
+              if (hasRubric && attempt.physicalEvaluation) {
+                const evalData = attempt.physicalEvaluation;
+                return (
+                  <div key={attempt.attemptId} className="p-3.5 rounded-lg border border-emerald-300 bg-emerald-50/60 text-xs space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-emerald-800 text-sm">
+                        ✓ 实物量规已由 {evalData.teacherName} 教师完成验收签署
+                      </span>
+                      <span className="text-emerald-700 font-mono font-bold text-sm">
+                        实物总分: {evalData.totalScore} / 100 分
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-[11px] text-slate-600 bg-white/70 p-2.5 rounded border border-emerald-200">
+                      <div>通电前核验: <strong className="text-emerald-700">{evalData.rubricData?.pre_power_check ?? 0}/20</strong></div>
+                      <div>元器件方向: <strong className="text-emerald-700">{evalData.rubricData?.component_orientation ?? 0}/20</strong></div>
+                      <div>焊点润湿质量: <strong className="text-emerald-700">{evalData.rubricData?.solder_quality ?? 0}/30</strong></div>
+                      <div>安全操作自检: <strong className="text-emerald-700">{evalData.rubricData?.safety_process ?? 0}/20</strong></div>
+                      <div>原理缺陷解释: <strong className="text-emerald-700">{evalData.rubricData?.evidence_explanation ?? 0}/10</strong></div>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-slate-500">
+                      <span>评语: {evalData.comment || '无评语'}</span>
+                      <span>签署时间: {new Date(evalData.signedAt).toLocaleString('zh-CN')}</span>
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <div key={attempt.attemptId} className="p-3.5 rounded-lg border border-amber-300 bg-amber-50/60 text-xs space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="font-bold text-amber-800 text-sm">
+                        ⏳ 待验收签署：E07 实物焊接工单
+                      </span>
+                      <span className="text-slate-500 ml-2 font-mono text-[11px]">
+                        (记录编号: {attempt.attemptId} · 完成于: {new Date(attempt.completedAt).toLocaleString('zh-CN')})
+                      </span>
+                    </div>
+                    <span className="bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded text-[11px] border border-amber-300">
+                      待教师现场核验
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-5 gap-2.5 bg-white p-3 rounded-lg border border-amber-200">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        1. 供电前核验 (0-20分)
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={20}
+                        value={scores.pre_power_check}
+                        onChange={(e) => updateAttemptScore(attempt.attemptId, 'pre_power_check', Math.min(20, Math.max(0, Number(e.target.value))))}
+                        className="teacher-input w-full"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        2. 元器件方向 (0-20分)
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={20}
+                        value={scores.component_orientation}
+                        onChange={(e) => updateAttemptScore(attempt.attemptId, 'component_orientation', Math.min(20, Math.max(0, Number(e.target.value))))}
+                        className="teacher-input w-full"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        3. 焊点润湿质量 (0-30分)
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={30}
+                        value={scores.solder_quality}
+                        onChange={(e) => updateAttemptScore(attempt.attemptId, 'solder_quality', Math.min(30, Math.max(0, Number(e.target.value))))}
+                        className="teacher-input w-full"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        4. 安全规范自检 (0-20分)
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={20}
+                        value={scores.safety_process}
+                        onChange={(e) => updateAttemptScore(attempt.attemptId, 'safety_process', Math.min(20, Math.max(0, Number(e.target.value))))}
+                        className="teacher-input w-full"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        5. 原理缺陷解释 (0-10分)
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={10}
+                        value={scores.evidence_explanation}
+                        onChange={(e) => updateAttemptScore(attempt.attemptId, 'evidence_explanation', Math.min(10, Math.max(0, Number(e.target.value))))}
+                        className="teacher-input w-full"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-1">
+                    <div className="flex-1 w-full flex items-center gap-2">
+                      <input
+                        type="text"
+                        placeholder="现场观察评语（选填）"
+                        value={rubricComments[attempt.attemptId] || ''}
+                        onChange={(e) => setRubricComments((prev) => ({ ...prev, [attempt.attemptId]: e.target.value }))}
+                        className="teacher-input flex-1"
+                      />
+                      <span className="font-bold text-slate-700 shrink-0 text-xs">
+                        量规合计：<strong className="text-blue-700 font-mono text-sm">{totalScore}</strong> / 100 分
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={isSigning === attempt.attemptId}
+                      onClick={() => void submitPhysicalRubric(attempt.attemptId)}
+                      className="teacher-primary shrink-0 text-xs px-4 py-1.5"
+                    >
+                      {isSigning === attempt.attemptId ? '签署中...' : '签署实物量规并存证'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* Teacher Evaluation & Retraining Forms */}
       <div className="grid gap-4 lg:grid-cols-2">
