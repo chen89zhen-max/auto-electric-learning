@@ -418,31 +418,47 @@ h1 { margin: 0; font-size: clamp(20px, 2.2vw, 27px); letter-spacing: .02em; }
   }
 }
 
-/* A02 Scoped Typography and Readability */
-.a02-shell {
+/* A02 / A03 / A04 Scoped Typography and Readability */
+.a02-shell,
+.a03-shell,
+.a04-shell {
   font-size: 16px;
 }
-.a02-shell .scene-heading {
+.a02-shell .scene-heading,
+.a03-shell .scene-heading,
+.a04-shell .scene-heading {
   min-height: 48px;
   font-size: 16px;
 }
-.a02-shell .scene-meta {
+.a02-shell .scene-meta,
+.a03-shell .scene-meta,
+.a04-shell .scene-meta {
   font-size: 13px;
   letter-spacing: 0.06em;
 }
-.a02-shell .objective-strip span {
+.a02-shell .objective-strip span,
+.a03-shell .objective-strip span,
+.a04-shell .objective-strip span {
   font-size: 14px;
 }
-.a02-shell .objective-strip strong {
+.a02-shell .objective-strip strong,
+.a03-shell .objective-strip strong,
+.a04-shell .objective-strip strong {
   font-size: 16px;
 }
-.a02-shell .objective-strip .feedback {
+.a02-shell .objective-strip .feedback,
+.a03-shell .objective-strip .feedback,
+.a04-shell .objective-strip .feedback {
   font-size: 14px;
   line-height: 1.5;
 }
-.a02-shell .bottom-bar {
+.a02-shell .bottom-bar,
+.a03-shell .bottom-bar,
+.a04-shell .bottom-bar {
   font-size: 15px;
 }
-.a02-shell .unlock-hint {
+.a02-shell .unlock-hint,
+.a03-shell .unlock-hint,
+.a04-shell .unlock-hint {
   font-size: 13px;
 }

@@ -6,573 +6,848 @@ import {
   ArrowRight,
   CheckCircle2,
   Gauge,
-  Sparkles,
   ShieldAlert,
   Trash2,
+  Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Multimeter, MultimeterDialMode } from '@/src/game/instruments/Multimeter';
+import { Multimeter } from '@/src/game/instruments/Multimeter';
 import { ClampMeter } from '@/src/game/instruments/ClampMeter';
-import { DCSolver } from '@/src/circuit/solver/DCSolver';
-
-export type A04Step =
-  | 'SERIES_MEASUREMENT'
-  | 'SHORT_CIRCUIT_INTERCEPT'
-  | 'CLAMP_METER_TASK'
-  | 'BATTERY_DISPOSAL'
-  | 'TRANSFER_PARALLEL_KCL';
+import { sounds } from '@/src/components/visuals/SoundEffects';
+import { PracticeMode } from '@/src/types/evidence';
+import { A04Step } from '../a04Training';
 
 interface A04CurrentSceneProps {
   currentStep: A04Step;
+  practiceMode?: PracticeMode;
   onStepComplete: (step: A04Step, evidence: Record<string, unknown>) => void;
   onAdvanceStep: () => void;
 }
 
 export function A04CurrentScene({
   currentStep,
+  practiceMode = 'guided',
   onStepComplete,
   onAdvanceStep,
 }: A04CurrentSceneProps) {
-  // Multimeter states
-  const dial: MultimeterDialMode = 'DC_A';
-  const redJack: 'A_10A' | 'V_OHM' = 'A_10A';
-  const [meterPlacement, setMeterPlacement] = useState<'DISCONNECTED' | 'IN_SERIES' | 'PARALLEL_BRIDGE'>('DISCONNECTED');
-  const [isSwitchClosed, setIsSwitchClosed] = useState<boolean>(true);
+  // Step 1 & 2: Series ammeter & switch state
+  const [isSwitchClosed, setIsSwitchClosed] = useState(false);
+  const [isCircuitBroken, setIsCircuitBroken] = useState(false);
+  const [isMeterInsertedInBreak, setIsMeterInsertedInBreak] = useState(false);
+  const [isV06BridgeAttempted, setIsV06BridgeAttempted] = useState(false);
 
-  // Clamp meter states
-  const clampDial: 'OFF' | 'DC_A' = 'DC_A';
-  const [clampedOption, setClampedOption] = useState<'NONE' | 'SINGLE_FEED' | 'DUAL_WIRES'>('NONE');
+  // Step 3: Clamp meter states
+  const [clampedMode, setClampedMode] = useState<'NONE' | 'SINGLE' | 'DUAL'>('NONE');
+  const [singleObserved, setSingleObserved] = useState(false);
+  const [dualObserved, setDualObserved] = useState(false);
 
-  // Battery disposal state
-  const [batteryTested, setBatteryTested] = useState<boolean>(false);
-  const [batteryDisposed, setBatteryDisposed] = useState<boolean>(false);
+  // Step 4: Battery disposal
+  const [batteryLoadTested, setBatteryLoadTested] = useState(false);
+  const [batteryDisposed, setBatteryDisposed] = useState(false);
 
-  // Transfer challenge state
+  // Step 5: Transfer Parasitic Drain / KCL
+  const [pulledFuses, setPulledFuses] = useState<Set<string>>(new Set());
   const [kclAnswer, setKclAnswer] = useState<string | null>(null);
 
-  // Step completion flags
-  const [v06InterceptObserved, setV06InterceptObserved] = useState<boolean>(false);
-  const [seriesMeasured, setSeriesMeasured] = useState<boolean>(false);
-  const [clampSingleMeasured, setClampSingleMeasured] = useState<boolean>(false);
-  const [clampDualMeasured, setClampDualMeasured] = useState<boolean>(false);
-
-  // DC Solver calculation for circuit
-  const simulation = useMemo(() => {
-    const solver = new DCSolver('0');
-    solver.addVoltageSource({ id: 'BAT', nodePos: '1', nodeNeg: '0', voltage: 12.0 });
-
-    if (meterPlacement === 'IN_SERIES') {
-      // 10A Ammeter inserted in series between switch and lamp (internal shunt 0.01Ω)
-      solver.addSwitch({ id: 'SW1', nodeA: '1', nodeB: '2', closed: isSwitchClosed });
-      solver.addResistor({ id: 'R_AMMETER', nodeA: '2', nodeB: '3', resistance: 0.01 });
-      solver.addResistor({ id: 'R_LAMP', nodeA: '3', nodeB: '0', resistance: 6.0 });
+  // Clamp meter instance
+  const clampMeter = useMemo(() => {
+    const cm = new ClampMeter();
+    cm.setDial('DC_A');
+    if (clampedMode === 'SINGLE') {
+      cm.clampWires([{ id: 'W1', name: '供电导线 (+12V)', current: 2.0, direction: 'FEED' }]);
+    } else if (clampedMode === 'DUAL') {
+      cm.clampWires([
+        { id: 'W1', name: '供电导线 (+12V)', current: 2.0, direction: 'FEED' },
+        { id: 'W2', name: '搭铁导线 (GND)', current: 2.0, direction: 'RETURN' },
+      ]);
     } else {
-      // Direct connection without meter in series
-      solver.addSwitch({ id: 'SW1', nodeA: '1', nodeB: '2', closed: isSwitchClosed });
-      solver.addResistor({ id: 'R_LAMP', nodeA: '2', nodeB: '0', resistance: 6.0 });
+      cm.clampWires([]);
     }
+    return cm.getState();
+  }, [clampedMode]);
 
-    return solver.solve();
-  }, [meterPlacement, isSwitchClosed]);
-
-  // Multimeter measurement evaluation
+  // Multimeter reading evaluation
   const dmmResult = useMemo(() => {
     const dmm = new Multimeter();
-    dmm.setDial(dial);
-    dmm.setRedProbeJack(redJack);
+    dmm.setDial('DC_A');
+    dmm.setRedProbeJack('A_10A');
     dmm.setBlackProbeJack('COM');
 
-    if (meterPlacement === 'PARALLEL_BRIDGE') {
-      // V06: Dangerous direct bridge across 12V battery terminals!
-      return dmm.measure({
-        isDirectBatteryBridge: true,
-      });
+    if (currentStep === 'SERIES_MEASUREMENT') {
+      if (isMeterInsertedInBreak && isSwitchClosed) {
+        return dmm.measure({ branchCurrent: 2.0 });
+      }
+      return dmm.measure({ branchCurrent: 0.0 });
     }
 
-    if (meterPlacement === 'IN_SERIES') {
-      const current = isSwitchClosed ? simulation.branchCurrents.get('R_AMMETER') ?? 0 : 0;
-      return dmm.measure({
-        branchCurrent: current,
-      });
+    if (currentStep === 'SHORT_CIRCUIT_INTERCEPT') {
+      if (isV06BridgeAttempted) {
+        return dmm.measure({ isDirectBatteryBridge: true });
+      }
+      return dmm.measure({ branchCurrent: 0.0 });
     }
 
-    return dmm.measure({ branchCurrent: 0 });
-  }, [dial, redJack, meterPlacement, isSwitchClosed, simulation]);
-
-  // Clamp meter evaluation
-  const clampResult = useMemo(() => {
-    const clamp = new ClampMeter();
-    clamp.setDial(clampDial);
-
-    const circuitCurrent = isSwitchClosed ? 2.0 : 0.0;
-    if (clampedOption === 'SINGLE_FEED') {
-      return clamp.clampWires([
-        { id: 'W_FEED', name: '检修灯供电火线', current: circuitCurrent, direction: 'FEED' },
-      ]);
-    } else if (clampedOption === 'DUAL_WIRES') {
-      return clamp.clampWires([
-        { id: 'W_FEED', name: '供电火线', current: circuitCurrent, direction: 'FEED' },
-        { id: 'W_RETURN', name: '搭铁地线', current: circuitCurrent, direction: 'RETURN' },
-      ]);
+    if (currentStep === 'TRANSFER_PARALLEL_KCL') {
+      if (practiceMode === 'transfer') {
+        // Parasitic drain: base 480mA.
+        // If F2 (Dashcam) pulled -> drops by 420mA!
+        let drain = 480;
+        if (pulledFuses.has('F1')) drain -= 15;
+        if (pulledFuses.has('F2')) drain -= 420;
+        if (pulledFuses.has('F3')) drain -= 25;
+        if (pulledFuses.has('F4')) drain -= 20;
+        return {
+          displayText: `${drain} mA`,
+          measuredValue: drain / 1000,
+          unit: 'mA',
+          status: 'NORMAL',
+        };
+      } else {
+        return dmm.measure({ branchCurrent: 3.0 });
+      }
     }
 
-    return clamp.clampWires([]);
-  }, [clampDial, clampedOption, isSwitchClosed]);
+    return dmm.measure({});
+  }, [currentStep, isMeterInsertedInBreak, isSwitchClosed, isV06BridgeAttempted, practiceMode, pulledFuses]);
 
-  const handleMeterPlacement = (placement: 'DISCONNECTED' | 'IN_SERIES' | 'PARALLEL_BRIDGE') => {
-    setMeterPlacement(placement);
-    if (placement === 'IN_SERIES' && isSwitchClosed) {
-      setSeriesMeasured(true);
+  // Step 1: Handle series operations
+  const handleBreakConnector = () => {
+    sounds.click();
+    setIsCircuitBroken(true);
+  };
+
+  const handleInsertMeter = () => {
+    sounds.click();
+    if (!isCircuitBroken) return;
+    setIsMeterInsertedInBreak(true);
+  };
+
+  const handleToggleSwitch = () => {
+    sounds.click();
+    const next = !isSwitchClosed;
+    setIsSwitchClosed(next);
+
+    if (next && isMeterInsertedInBreak) {
+      sounds.success();
       onStepComplete('SERIES_MEASUREMENT', {
+        circuitBrokenFirst: true,
+        meterPlugged10A: true,
         seriesCurrent: 2.0,
-        meterInsertedCorrectly: true,
-      });
-    }
-    if (placement === 'PARALLEL_BRIDGE') {
-      setV06InterceptObserved(true);
-      onStepComplete('SHORT_CIRCUIT_INTERCEPT', {
-        v06Passed: true,
-        interceptedDanger: true,
-        fuseBlownAvoided: true,
+        mode: practiceMode,
       });
     }
   };
 
-  const handleSwitchToggle = () => {
-    const nextClosed = !isSwitchClosed;
-    setIsSwitchClosed(nextClosed);
-    if (nextClosed && meterPlacement === 'IN_SERIES') {
-      setSeriesMeasured(true);
-      onStepComplete('SERIES_MEASUREMENT', {
-        seriesCurrent: 2.0,
-        meterInsertedCorrectly: true,
-      });
-    }
-  };
-
-  const handleClampOption = (option: 'SINGLE_FEED' | 'DUAL_WIRES') => {
-    setClampedOption(option);
-    let singleDone = clampSingleMeasured;
-    let dualDone = clampDualMeasured;
-    if (option === 'SINGLE_FEED') {
-      singleDone = true;
-      setClampSingleMeasured(true);
-    }
-    if (option === 'DUAL_WIRES') {
-      dualDone = true;
-      setClampDualMeasured(true);
-    }
-    if (singleDone && dualDone) {
-      onStepComplete('CLAMP_METER_TASK', {
-        clampSingleCurrent: 2.0,
-        clampDualCancellationCurrent: 0.0,
-        fluxCancellationObserved: true,
-      });
-    }
-  };
-
-  const handleBatteryDisposal = () => {
-    setBatteryDisposed(true);
-    onStepComplete('BATTERY_DISPOSAL', {
-      loadVoltage: 9.2,
-      isDepleted: true,
-      hazardousDisposalConfirmed: true,
+  // Step 2: Handle V06 Short Circuit Bridge Attempt
+  const handleAttemptBridge = () => {
+    sounds.zap();
+    sounds.warningBuzz();
+    setIsV06BridgeAttempted(true);
+    onStepComplete('SHORT_CIRCUIT_INTERCEPT', {
+      v06Intercepted: true,
+      dangerDirectBridgeAttempted: true,
+      mode: practiceMode,
     });
   };
 
-  const handleKclAnswer = (ans: string) => {
-    setKclAnswer(ans);
-    if (ans === 'KCL_CORRECT') {
-      onStepComplete('TRANSFER_PARALLEL_KCL', {
-        kclVerified: true,
-        totalCurrent: 9.0,
+  // Step 3: Handle Clamp meter
+  const handleClampSingle = () => {
+    sounds.click();
+    setClampedMode('SINGLE');
+    setSingleObserved(true);
+    if (dualObserved) {
+      sounds.success();
+      onStepComplete('CLAMP_METER_TASK', {
+        singleWireCurrent: 2.0,
+        fluxCancellationObserved: true,
+        mode: practiceMode,
       });
     }
   };
 
+  const handleClampDual = () => {
+    sounds.click();
+    setClampedMode('DUAL');
+    setDualObserved(true);
+    if (singleObserved) {
+      sounds.success();
+      onStepComplete('CLAMP_METER_TASK', {
+        singleWireCurrent: 2.0,
+        fluxCancellationObserved: true,
+        mode: practiceMode,
+      });
+    }
+  };
+
+  // Step 4: Handle Battery load test & disposal
+  const handleBatteryTest = () => {
+    sounds.click();
+    setBatteryLoadTested(true);
+  };
+
+  const handleBatteryRecycle = () => {
+    sounds.success();
+    setBatteryDisposed(true);
+    onStepComplete('BATTERY_DISPOSAL', {
+      loadVoltage: 9.2,
+      isSeverelySulfated: true,
+      hazardousRecycled: true,
+      mode: practiceMode,
+    });
+  };
+
+  // Step 5: Toggle Pulling Fuses
+  const handleToggleFuse = (fuseId: string) => {
+    sounds.click();
+    const next = new Set(pulledFuses);
+    if (next.has(fuseId)) {
+      next.delete(fuseId);
+    } else {
+      next.add(fuseId);
+    }
+    setPulledFuses(next);
+
+    if (next.has('F2')) {
+      sounds.success();
+      onStepComplete('TRANSFER_PARALLEL_KCL', {
+        faultIsolated: 'F2_DASHCAM',
+        finalSleepDrainMA: 60,
+        mode: practiceMode,
+      });
+    }
+  };
+
+  const handleKclAnswerSubmit = (ans: string) => {
+    sounds.click();
+    setKclAnswer(ans);
+    if (ans === 'KCL_3A') {
+      sounds.success();
+      onStepComplete('TRANSFER_PARALLEL_KCL', {
+        kclAnswer: 'I_TOTAL_3A',
+        mode: practiceMode,
+      });
+    }
+  };
+
+  // Step advance ready check
+  const isStepAdvanceReady =
+    (currentStep === 'SERIES_MEASUREMENT' && isMeterInsertedInBreak && isSwitchClosed) ||
+    (currentStep === 'SHORT_CIRCUIT_INTERCEPT' && isV06BridgeAttempted) ||
+    (currentStep === 'CLAMP_METER_TASK' && singleObserved && dualObserved) ||
+    (currentStep === 'BATTERY_DISPOSAL' && batteryLoadTested && batteryDisposed) ||
+    (currentStep === 'TRANSFER_PARALLEL_KCL' &&
+      (pulledFuses.has('F2') || kclAnswer === 'KCL_3A'));
+
   return (
-    <div className="flex flex-col gap-4 p-4 text-slate-800 bg-white rounded-xl shadow-xs border border-slate-200">
-      {/* Top Banner Guide */}
-      <div className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
-        <div className="flex items-center gap-2">
-          <AlertTriangle className="text-red-600" size={20} />
-          <div>
-            <h3 className="text-sm font-bold text-red-900">
-              {currentStep === 'SERIES_MEASUREMENT' && '阶段 1（串联接入）：万用表 10A 电流挡串联接入测量规范'}
-              {currentStep === 'SHORT_CIRCUIT_INTERCEPT' && '阶段 2（安全拦截）：电流挡严禁并联跨接电源 (基准 V06)'}
-              {currentStep === 'CLAMP_METER_TASK' && '阶段 3（微任务）：汽车非接触式钳形电流表测量与双线反例'}
-              {currentStep === 'BATTERY_DISPOSAL' && '阶段 4（环保微任务）：废旧蓄电池带载检测与规范归集'}
-              {currentStep === 'TRANSFER_PARALLEL_KCL' && '阶段 5（迁移）：双大灯并联支路电流与总电流 KCL 验证'}
-            </h3>
-            <p className="text-xs text-red-700">
-              {currentStep === 'SERIES_MEASUREMENT' && '学习目标：红表笔选 10A 孔，断开电路供电线，将表笔串联接入闭合回路中测得工作电流。'}
-              {currentStep === 'SHORT_CIRCUIT_INTERCEPT' && '学习目标：验证基准 V06，体验电流挡误并联跨接电源时系统的执行前强制拦截机制。'}
-              {currentStep === 'CLAMP_METER_TASK' && '学习目标：使用钳形表非接触测流，观察同时钳入单导线与双导线时的磁通抵消现象。'}
-              {currentStep === 'BATTERY_DISPOSAL' && '学习目标：测试老化电池带载端电压（9.2V），规范归入危废回收箱。'}
-              {currentStep === 'TRANSFER_PARALLEL_KCL' && '学习目标：在双路负载中验证支路电流之和等于总干路电流。'}
-            </p>
+    <div className="w-full flex flex-col gap-4 text-slate-800">
+      {/* Station Top Step Navigation Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-white border border-slate-200 rounded-xl shadow-xs">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <span
+              className={`w-2.5 h-2.5 rounded-full ${
+                isStepAdvanceReady ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'
+              }`}
+            />
+            <span className="text-xs font-black text-slate-800 tracking-wider">
+              {currentStep === 'SERIES_MEASUREMENT' && '阶段 1 / 5 · 万用表 10A 电流挡串联断路接入规范'}
+              {currentStep === 'SHORT_CIRCUIT_INTERCEPT' && '阶段 2 / 5 · 危险并联跨接短路拦截 (基准 V06)'}
+              {currentStep === 'CLAMP_METER_TASK' && '阶段 3 / 5 · 汽车专用钳形表非接触测量与磁通抵消'}
+              {currentStep === 'BATTERY_DISPOSAL' && '阶段 4 / 5 · 废旧蓄电池带载检测与环保危废箱分类'}
+              {currentStep === 'TRANSFER_PARALLEL_KCL' &&
+                (practiceMode === 'transfer'
+                  ? '阶段 5 / 5 · 实车整车休眠暗电流排查 (拔保险丝实战)'
+                  : '阶段 5 / 5 · 并联双大灯支路电流与总干路 KCL 验证')}
+            </span>
           </div>
+
+          <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-red-50 text-red-800 border border-red-200">
+            {practiceMode === 'guided'
+              ? '跟练模式 · 步骤引导'
+              : practiceMode === 'independent'
+              ? '独立模式 · 自主实测'
+              : '迁移模式 · 实车排故'}
+          </span>
         </div>
 
-        {/* Step Progression Button */}
-        {((currentStep === 'SERIES_MEASUREMENT' && seriesMeasured) ||
-          (currentStep === 'SHORT_CIRCUIT_INTERCEPT' && v06InterceptObserved) ||
-          (currentStep === 'CLAMP_METER_TASK' && clampSingleMeasured && clampDualMeasured) ||
-          (currentStep === 'BATTERY_DISPOSAL' && batteryTested && batteryDisposed) ||
-          (currentStep === 'TRANSFER_PARALLEL_KCL' && kclAnswer === 'KCL_CORRECT')) && (
+        {isStepAdvanceReady && (
           <Button
             size="sm"
             onClick={onAdvanceStep}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center gap-1 cursor-pointer"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center gap-1.5 px-4 shadow-sm cursor-pointer"
           >
-            <span>下一步</span>
+            <span>{currentStep === 'TRANSFER_PARALLEL_KCL' ? '查看通关报告' : '进入下一步'}</span>
             <ArrowRight size={16} />
           </Button>
         )}
       </div>
 
-      {/* Main Interactive Stage Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        {/* Left 7 Columns: Work Bench / Wiring Experiment */}
-        <div className="lg:col-span-7 flex flex-col gap-3 p-4 bg-slate-50 border border-slate-200 rounded-xl">
-          {/* Steps 1 & 2: Multimeter Series & Short Circuit Scene */}
-          {(currentStep === 'SERIES_MEASUREMENT' || currentStep === 'SHORT_CIRCUIT_INTERCEPT') && (
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  实训台检修灯回路 · 电流表接法操作区
-                </span>
-                <button
-                  type="button"
-                  onClick={handleSwitchToggle}
-                  className={`px-3 py-1 rounded text-xs font-bold transition-colors cursor-pointer ${
-                    isSwitchClosed ? 'bg-emerald-600 text-white' : 'bg-slate-300 text-slate-700'
-                  }`}
-                >
-                  {isSwitchClosed ? '回路开关：已接通' : '回路开关：已断开'}
-                </button>
+      {/* STEP 1: Series Insertion Workbench */}
+      {currentStep === 'SERIES_MEASUREMENT' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          {/* Left 7 Cols: Automotive Circuit Wiring */}
+          <div className="lg:col-span-7 flex flex-col gap-3.5 p-4 bg-white border border-slate-200 rounded-xl shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-700">
+                12V 检修灯供电回路 · 串联断口接入操作
+              </span>
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
+                回路状态：{isSwitchClosed ? '开关已闭合 (通电)' : '开关已断开 (断电)'}
+              </span>
+            </div>
+
+            {/* Circuit Diagram Visual SVG */}
+            <div className="w-full h-44 bg-slate-900 rounded-xl flex items-center justify-center p-4 relative overflow-hidden border border-slate-800 shadow-inner">
+              <svg viewBox="0 0 380 100" className="w-full max-w-md">
+                {/* Battery */}
+                <rect x="20" y="30" width="40" height="40" rx="6" fill="#1e293b" stroke="#3b82f6" strokeWidth="2" />
+                <text x="40" y="55" fill="#93c5fd" fontSize="10" textAnchor="middle" fontWeight="bold">12V</text>
+
+                {/* Wire 1 */}
+                <line x1="60" y1="50" x2="110" y2="50" stroke="#ef4444" strokeWidth="3" />
+
+                {/* Switch */}
+                <circle cx="110" cy="50" r="4" fill="#cbd5e1" />
+                <line
+                  x1="110"
+                  y1="50"
+                  x2={isSwitchClosed ? 150 : 142}
+                  y2={isSwitchClosed ? 50 : 32}
+                  stroke="#38bdf8"
+                  strokeWidth="3.5"
+                />
+                <circle cx="150" cy="50" r="4" fill="#cbd5e1" />
+
+                {/* Break point / Connector */}
+                {!isCircuitBroken ? (
+                  <g>
+                    <line x1="150" y1="50" x2="230" y2="50" stroke="#ef4444" strokeWidth="3" />
+                    <rect x="180" y="42" width="20" height="16" rx="3" fill="#64748b" />
+                    <text x="190" y="54" fill="#f8fafc" fontSize="8" textAnchor="middle">插头</text>
+                  </g>
+                ) : isMeterInsertedInBreak ? (
+                  <g>
+                    {/* Meter inserted in break */}
+                    <path d="M 150 50 Q 170 20 190 20" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeDasharray="4 2" />
+                    <path d="M 230 50 Q 210 20 190 20" fill="none" stroke="#1e293b" strokeWidth="2.5" strokeDasharray="4 2" />
+                    <rect x="175" y="10" width="30" height="20" rx="4" fill="#b91c1c" stroke="#fca5a5" strokeWidth="1.5" />
+                    <text x="190" y="24" fill="#fff" fontSize="9" textAnchor="middle" fontWeight="bold">10A表</text>
+                  </g>
+                ) : (
+                  <g>
+                    {/* Open break */}
+                    <circle cx="170" cy="50" r="5" fill="#ef4444" />
+                    <text x="170" y="65" fill="#fca5a5" fontSize="8" textAnchor="middle">断口A</text>
+                    <circle cx="210" cy="50" r="5" fill="#ef4444" />
+                    <text x="210" y="65" fill="#fca5a5" fontSize="8" textAnchor="middle">断口B</text>
+                  </g>
+                )}
+
+                {/* Wire to Lamp */}
+                <line x1="230" y1="50" x2="280" y2="50" stroke="#ef4444" strokeWidth="3" />
+
+                {/* Lamp */}
+                <circle cx="300" cy="50" r="18" fill={isSwitchClosed && isMeterInsertedInBreak ? '#facc15' : '#334155'} stroke="#eab308" strokeWidth="2" />
+                <text x="300" y="54" fill="#1e293b" fontSize="9" textAnchor="middle" fontWeight="bold">灯泡 6Ω</text>
+
+                {/* Ground Return Wire */}
+                <line x1="318" y1="50" x2="340" y2="50" stroke="#64748b" strokeWidth="3" />
+                <line x1="340" y1="50" x2="340" y2="85" stroke="#64748b" strokeWidth="3" />
+                <line x1="340" y1="85" x2="40" y2="85" stroke="#64748b" strokeWidth="3" />
+                <line x1="40" y1="85" x2="40" y2="70" stroke="#64748b" strokeWidth="3" />
+              </svg>
+            </div>
+
+            {/* Step-by-Step Operator Controls */}
+            <div className="grid grid-cols-3 gap-2.5 pt-1 text-xs">
+              <Button
+                variant={isCircuitBroken ? 'secondary' : 'default'}
+                disabled={isCircuitBroken}
+                onClick={handleBreakConnector}
+                className="bg-amber-600 hover:bg-amber-700 text-white font-bold cursor-pointer"
+              >
+                1. 拔开插头形成断口
+              </Button>
+              <Button
+                variant={isMeterInsertedInBreak ? 'secondary' : 'default'}
+                disabled={!isCircuitBroken || isMeterInsertedInBreak}
+                onClick={handleInsertMeter}
+                className="bg-red-600 hover:bg-red-700 text-white font-bold cursor-pointer"
+              >
+                2. 串联接入 10A 电流表
+              </Button>
+              <Button
+                disabled={!isMeterInsertedInBreak}
+                onClick={handleToggleSwitch}
+                className={`font-bold text-white cursor-pointer ${
+                  isSwitchClosed ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'
+                }`}
+              >
+                3. {isSwitchClosed ? '断开开关' : '闭合开关通电'}
+              </Button>
+            </div>
+
+            {isMeterInsertedInBreak && isSwitchClosed && (
+              <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-lg text-xs text-emerald-900 font-semibold flex items-center gap-2">
+                <CheckCircle2 size={16} className="text-emerald-600" />
+                <span>电路已闭合通电！电流表作为回路一部分串入工作，测得正常回路工作电流 2.00A。</span>
               </div>
+            )}
+          </div>
 
-              {/* Circuit Schematic SVG */}
-              <div className="relative w-full h-56 bg-slate-900 rounded-lg p-3 flex items-center justify-center overflow-hidden">
-                <svg viewBox="0 0 460 180" className="w-full h-full">
-                  {/* Battery */}
-                  <rect x="20" y="50" width="50" height="80" rx="4" fill="#1e293b" stroke="#38bdf8" strokeWidth="2" />
-                  <text x="45" y="95" fill="#bae6fd" fontSize="10" textAnchor="middle">12V 源</text>
-                  <circle cx="45" cy="50" r="4" fill="#ef4444" />
-                  <text x="45" y="42" fill="#ef4444" fontSize="9" textAnchor="middle">+</text>
-                  <circle cx="45" cy="130" r="4" fill="#38bdf8" />
-                  <text x="45" y="145" fill="#38bdf8" fontSize="9" textAnchor="middle">-</text>
+          {/* Right 5 Cols: Bench DMM Ammeter (Active Tool) */}
+          <div className="lg:col-span-5 flex flex-col gap-3 p-4 bg-slate-900 text-white rounded-xl shadow-md border border-slate-700">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                <Gauge size={16} />
+                数字万用表 · 10A 电流挡
+              </span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-red-900 text-red-200 border border-red-700">
+                10A 插孔 · 串联回路
+              </span>
+            </div>
 
-                  {/* Switch */}
-                  <line x1="45" y1="50" x2="130" y2="50" stroke="#38bdf8" strokeWidth="2.5" />
-                  <rect x="130" y="35" width="50" height="30" rx="4" fill="#1e293b" stroke="#64748b" strokeWidth="1.5" />
-                  <line x1="140" y1="50" x2={isSwitchClosed ? '170' : '160'} y2={isSwitchClosed ? '50' : '35'} stroke="#38bdf8" strokeWidth="3" />
-
-                  {/* Meter Insertion Gap */}
-                  {meterPlacement === 'IN_SERIES' ? (
-                    <g>
-                      <line x1="180" y1="50" x2="220" y2="50" stroke="#ef4444" strokeWidth="2.5" />
-                      <rect x="220" y="30" width="70" height="40" rx="6" fill="#7f1d1d" stroke="#ef4444" strokeWidth="2" />
-                      <text x="255" y="55" fill="#fca5a5" fontSize="11" fontWeight="bold" textAnchor="middle">串联 A 表</text>
-                      <line x1="290" y1="50" x2="340" y2="50" stroke="#0284c7" strokeWidth="2.5" />
-                    </g>
-                  ) : meterPlacement === 'PARALLEL_BRIDGE' ? (
-                    <g>
-                      <line x1="180" y1="50" x2="340" y2="50" stroke="#38bdf8" strokeWidth="2.5" />
-                      {/* Dangerous Direct Bridge wires */}
-                      <path d="M 45 50 Q 180 15 250 80" fill="none" stroke="#ef4444" strokeWidth="3" strokeDasharray="4 2" />
-                      <path d="M 45 130 Q 180 165 250 80" fill="none" stroke="#38bdf8" strokeWidth="3" strokeDasharray="4 2" />
-                      <rect x="230" y="60" width="80" height="40" rx="6" fill="#b91c1c" stroke="#fca5a5" strokeWidth="2" />
-                      <text x="270" y="85" fill="#ffffff" fontSize="10" fontWeight="bold" textAnchor="middle">跨接短路!</text>
-                    </g>
-                  ) : (
-                    <g>
-                      {/* Broken circuit gap */}
-                      <line x1="180" y1="50" x2="230" y2="50" stroke="#38bdf8" strokeWidth="2.5" />
-                      <circle cx="230" cy="50" r="5" fill="#f59e0b" />
-                      <text x="230" y="38" fill="#fde68a" fontSize="9" textAnchor="middle">切断口 A</text>
-                      <circle cx="290" cy="50" r="5" fill="#f59e0b" />
-                      <text x="290" y="38" fill="#fde68a" fontSize="9" textAnchor="middle">切断口 B</text>
-                      <line x1="290" y1="50" x2="340" y2="50" stroke="#38bdf8" strokeWidth="2.5" />
-                    </g>
-                  )}
-
-                  {/* Lamp */}
-                  <rect x="340" y="35" width="60" height="80" rx="6" fill="#1e293b" stroke="#eab308" strokeWidth="2" />
-                  <circle
-                    cx="370"
-                    cy="75"
-                    r="18"
-                    fill={isSwitchClosed && meterPlacement === 'IN_SERIES' ? '#facc15' : '#475569'}
-                    opacity={isSwitchClosed && meterPlacement === 'IN_SERIES' ? 1 : 0.2}
-                  />
-                  <text x="370" y="80" fill="#0f172a" fontSize="10" fontWeight="bold" textAnchor="middle">
-                    6Ω 灯
-                  </text>
-
-                  {/* Return ground */}
-                  <line x1="370" y1="115" x2="45" y2="130" stroke="#64748b" strokeWidth="2.5" />
-                </svg>
+            <div className="flex flex-col justify-between h-24 p-3 bg-emerald-950 border-4 border-slate-800 rounded-lg shadow-inner font-mono text-emerald-400">
+              <div className="flex items-center justify-between text-xs opacity-75">
+                <span>DC 10A RANGE</span>
+                <span>{isMeterInsertedInBreak && isSwitchClosed ? 'CIRCUIT_CLOSED' : 'OPEN'}</span>
               </div>
-
-              {/* Meter Placement Selection */}
-              <div className="flex flex-col gap-2 p-3 bg-white border border-slate-200 rounded-lg text-xs">
-                <span className="font-bold text-slate-800">操作万用表表笔接线：</span>
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleMeterPlacement('DISCONNECTED')}
-                    className={`p-2 rounded font-bold transition-all cursor-pointer ${
-                      meterPlacement === 'DISCONNECTED'
-                        ? 'bg-slate-700 text-white'
-                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                    }`}
-                  >
-                    断开表笔 (未接入)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleMeterPlacement('IN_SERIES')}
-                    className={`p-2 rounded font-bold transition-all cursor-pointer ${
-                      meterPlacement === 'IN_SERIES'
-                        ? 'bg-emerald-600 text-white'
-                        : 'bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100'
-                    }`}
-                  >
-                    规范接法：串联接入切口两端
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleMeterPlacement('PARALLEL_BRIDGE')}
-                    className={`p-2 rounded font-bold transition-all cursor-pointer ${
-                      meterPlacement === 'PARALLEL_BRIDGE'
-                        ? 'bg-red-600 text-white'
-                        : 'bg-red-50 text-red-800 border border-red-300 hover:bg-red-100'
-                    }`}
-                  >
-                    危险测试：并联直接跨接电源两端 (V06)
-                  </button>
-                </div>
+              <div className="text-3xl font-black text-right tracking-widest text-emerald-300">
+                {dmmResult.displayText || '0.00 A'}
+              </div>
+              <div className="flex items-center justify-between text-[11px] opacity-75">
+                <span>SHUNT: 0.01Ω</span>
+                <span>DC AMPERES</span>
               </div>
             </div>
-          )}
 
-          {/* Step 3: Clamp meter task */}
-          {currentStep === 'CLAMP_METER_TASK' && (
-            <div className="flex flex-col gap-3">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                汽车非接触式钳形电流表实训
-              </span>
-              <div className="w-full h-44 bg-slate-900 rounded-lg p-4 flex flex-col items-center justify-center relative">
-                {/* Visual Wires & Clamp SVG */}
-                <svg viewBox="0 0 360 120" className="w-full">
-                  {/* Feed wire (red) */}
-                  <line x1="20" y1="40" x2="340" y2="40" stroke="#ef4444" strokeWidth="5" />
-                  <text x="30" y="30" fill="#fca5a5" fontSize="10">供电火线 (I = 2.0A →)</text>
-
-                  {/* Return wire (black) */}
-                  <line x1="20" y1="80" x2="340" y2="80" stroke="#38bdf8" strokeWidth="5" />
-                  <text x="30" y="100" fill="#bae6fd" fontSize="10">搭铁回路 (← I = 2.0A)</text>
-
-                  {/* Clamp Jaws representation */}
-                  {clampedOption === 'SINGLE_FEED' && (
-                    <ellipse cx="180" cy="40" rx="30" ry="18" fill="none" stroke="#f59e0b" strokeWidth="6" strokeDasharray="6 3" />
-                  )}
-                  {clampedOption === 'DUAL_WIRES' && (
-                    <ellipse cx="180" cy="60" rx="35" ry="38" fill="none" stroke="#f59e0b" strokeWidth="6" strokeDasharray="6 3" />
-                  )}
-                </svg>
-
-                <div className="text-xs text-slate-300 mt-1">
-                  {clampedOption === 'NONE' && '钳口未夹入任何导线'}
-                  {clampedOption === 'SINGLE_FEED' && '钳口已夹入：供电火线（单根导线）'}
-                  {clampedOption === 'DUAL_WIRES' && '钳口已夹入：供电火线 + 搭铁地线（双线同钳）'}
-                </div>
-              </div>
-
-              {/* Clamp Selection buttons */}
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <Button
-                  variant="outline"
-                  onClick={() => handleClampOption('SINGLE_FEED')}
-                  className={`font-bold cursor-pointer ${
-                    clampedOption === 'SINGLE_FEED' ? 'bg-amber-100 border-amber-500 text-amber-900' : ''
-                  }`}
-                >
-                  操作 1：单独钳入供电火线
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => handleClampOption('DUAL_WIRES')}
-                  className={`font-bold cursor-pointer ${
-                    clampedOption === 'DUAL_WIRES' ? 'bg-amber-100 border-amber-500 text-amber-900' : ''
-                  }`}
-                >
-                  操作 2：同时钳入火线与搭铁线（反例）
-                </Button>
-              </div>
-
-              {clampResult.educationalNote && (
-                <div className="p-2.5 bg-amber-50 border border-amber-200 rounded text-xs text-amber-900 font-medium">
-                  {clampResult.educationalNote}
-                </div>
-              )}
+            <div className="p-3 bg-slate-800/80 rounded-lg text-xs text-slate-300 leading-relaxed border border-slate-700">
+              <strong className="block text-amber-300 mb-1">电流测量铁律：</strong>
+              <p>1. 万用表必须断路后【串联】接入，绝不能并联在负载或电源两端！</p>
+              <p>2. 红表笔必须插入【10A】专用大电流插孔，避免烧毁 200mA 保险丝。</p>
             </div>
-          )}
+          </div>
+        </div>
+      )}
 
-          {/* Step 4: Battery disposal micro-task */}
-          {currentStep === 'BATTERY_DISPOSAL' && (
-            <div className="flex flex-col gap-3">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                废旧蓄电池规范归集与带载电压检测
-              </span>
-              <div className="p-4 bg-white border border-slate-200 rounded-lg flex flex-col gap-3 text-xs">
-                <p className="text-slate-700">
-                  维修工位更换下一只标称 12V 铅酸蓄电池。按车间电工安全规程，须先进行带载测量评估，再分类投放。
-                </p>
-                <div className="flex items-center gap-3">
-                  <Button
-                    size="sm"
-                    onClick={() => setBatteryTested(true)}
-                    className="cursor-pointer bg-blue-600 hover:bg-blue-700"
-                  >
-                    施加测试负载测量端电压
-                  </Button>
-                  {batteryTested && (
-                    <span className="font-bold text-amber-800">
-                      实测带载端电压：9.20 V（严重亏电且无法保持容量，判定为报废件）
-                    </span>
-                  )}
+      {/* STEP 2: Dangerous Short Circuit Intercept (V06 Counterexample) */}
+      {currentStep === 'SHORT_CIRCUIT_INTERCEPT' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          <div className="lg:col-span-7 flex flex-col gap-3.5 p-4 bg-white border border-slate-200 rounded-xl shadow-xs">
+            <span className="text-xs font-bold text-slate-700">
+              安全教学反例实验台 · 验证基准 V06（电流挡严禁并联跨接）
+            </span>
+
+            <div className="w-full h-44 bg-slate-900 rounded-xl flex items-center justify-center p-4 relative overflow-hidden border border-slate-800">
+              <svg viewBox="0 0 320 100" className="w-full max-w-xs">
+                {/* 12V Battery */}
+                <rect x="50" y="20" width="80" height="60" rx="8" fill="#1e293b" stroke="#ef4444" strokeWidth="2.5" />
+                <text x="90" y="55" fill="#fca5a5" fontSize="13" textAnchor="middle" fontWeight="bold">12V 蓄电池</text>
+
+                {/* Probes directly across terminals */}
+                <path d="M 65 20 Q 90 -5 160 30" fill="none" stroke="#ef4444" strokeWidth="3" />
+                <path d="M 115 20 Q 140 -5 160 30" fill="none" stroke="#334155" strokeWidth="3" />
+
+                {/* Meter */}
+                <rect x="160" y="20" width="90" height="55" rx="8" fill="#7f1d1d" stroke="#ef4444" strokeWidth="2" />
+                <text x="205" y="45" fill="#fef2f2" fontSize="10" textAnchor="middle" fontWeight="bold">电流表 0.01Ω</text>
+                <text x="205" y="62" fill="#fca5a5" fontSize="9" textAnchor="middle">并联跨接</text>
+
+                {/* Arc spark explosion icon if attempted */}
+                {isV06BridgeAttempted && (
+                  <g className="animate-ping">
+                    <circle cx="90" cy="20" r="14" fill="#f59e0b" opacity="0.6" />
+                    <circle cx="90" cy="20" r="8" fill="#ef4444" />
+                  </g>
+                )}
+              </svg>
+            </div>
+
+            <Button
+              onClick={handleAttemptBridge}
+              className="bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 cursor-pointer shadow-sm"
+            >
+              模拟尝试：将电流表并联跨接在 12V 电源两端
+            </Button>
+
+            {isV06BridgeAttempted && (
+              <div className="p-3.5 bg-red-100 border-2 border-red-500 rounded-xl text-xs text-red-950 flex items-start gap-2.5">
+                <AlertTriangle size={22} className="text-red-700 shrink-0 mt-0.5" />
+                <div>
+                  <strong className="text-sm block">车间智能安防系统已执行强制拦截 (基准 V06)</strong>
+                  <p className="mt-1 leading-relaxed text-red-900">
+                    电流表内部阻抗极小（只有 0.01Ω 分流电阻），若直接并联在 12V 蓄电池两端，短路电流可达 1200A！
+                    会导致表笔瞬间飞溅电弧爆熔、蓄电池极板损坏！车间电子短路断路器已执行纳秒级保护跳闸，禁止通电！
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="lg:col-span-5 flex flex-col gap-3 p-4 bg-slate-900 text-white rounded-xl shadow-md border border-slate-700">
+            <span className="text-xs font-bold text-red-400 flex items-center gap-1.5">
+              <ShieldAlert size={16} />
+              V06 短路阻断状态
+            </span>
+
+            <div className="flex flex-col justify-between h-24 p-3 bg-red-950/80 border-4 border-red-800 rounded-lg shadow-inner font-mono text-red-300">
+              <div className="flex items-center justify-between text-xs opacity-75">
+                <span>SAFETY INTERLOCK</span>
+                <span>V06 ACTIVE</span>
+              </div>
+              <div className="text-2xl font-black text-right tracking-wider text-red-200">
+                {isV06BridgeAttempted ? 'SHORT INTERCEPT' : 'READY'}
+              </div>
+              <div className="flex items-center justify-between text-[11px] opacity-75">
+                <span>CIRCUIT TRIPPED</span>
+                <span>0.00 A (BLOCKED)</span>
+              </div>
+            </div>
+
+            <div className="p-3 bg-slate-800/80 rounded-lg text-xs text-slate-300 leading-relaxed border border-slate-700">
+              考核要求：理解为什么电压表可以并联（内阻高达 10MΩ，分流几乎为 0），而电流表绝对不能并联（内阻接近 0Ω，相当于一根纯铜线短路）！
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* STEP 3: Clamp Meter Non-Contact & Flux Cancellation */}
+      {currentStep === 'CLAMP_METER_TASK' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          <div className="lg:col-span-7 flex flex-col gap-3.5 p-4 bg-white border border-slate-200 rounded-xl shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-700">汽车专用数字钳形电流表工位</span>
+              <span className="text-xs font-mono text-amber-600 font-bold">NON_CONTACT_INDUCTION</span>
+            </div>
+
+            {/* Wire harness visual */}
+            <div className="w-full h-44 bg-slate-900 rounded-xl flex items-center justify-center p-4 relative border border-slate-800">
+              <svg viewBox="0 0 320 100" className="w-full max-w-xs">
+                {/* Red wire (+2A) */}
+                <line x1="30" y1="35" x2="290" y2="35" stroke="#ef4444" strokeWidth="6" strokeLinecap="round" />
+                <text x="45" y="25" fill="#fca5a5" fontSize="9">供电母线 (+2.0A)</text>
+
+                {/* Black wire (-2A) */}
+                <line x1="30" y1="65" x2="290" y2="65" stroke="#64748b" strokeWidth="6" strokeLinecap="round" />
+                <text x="45" y="85" fill="#cbd5e1" fontSize="9">搭铁回路 (-2.0A)</text>
+
+                {/* Clamp Jaw graphic */}
+                {clampedMode === 'SINGLE' && (
+                  <g>
+                    <rect x="150" y="20" width="30" height="30" rx="8" fill="none" stroke="#f59e0b" strokeWidth="4" />
+                    <rect x="180" y="28" width="40" height="14" rx="3" fill="#f59e0b" />
+                    <text x="200" y="39" fill="#1e293b" fontSize="8" textAnchor="middle" fontWeight="bold">钳口</text>
+                  </g>
+                )}
+
+                {clampedMode === 'DUAL' && (
+                  <g>
+                    <rect x="150" y="18" width="30" height="64" rx="8" fill="none" stroke="#f59e0b" strokeWidth="4" />
+                    <rect x="180" y="42" width="40" height="14" rx="3" fill="#f59e0b" />
+                    <text x="200" y="53" fill="#1e293b" fontSize="8" textAnchor="middle" fontWeight="bold">双线卡入</text>
+                  </g>
+                )}
+              </svg>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                variant={clampedMode === 'SINGLE' ? 'default' : 'outline'}
+                onClick={handleClampSingle}
+                className="font-bold py-2.5 cursor-pointer bg-amber-600 hover:bg-amber-700 text-white"
+              >
+                1. 钳形表卡入【单根供电线】
+              </Button>
+              <Button
+                variant={clampedMode === 'DUAL' ? 'default' : 'outline'}
+                onClick={handleClampDual}
+                className="font-bold py-2.5 cursor-pointer bg-slate-700 hover:bg-slate-800 text-white"
+              >
+                2. 钳形表同时卡入【双导线并行】
+              </Button>
+            </div>
+
+            {clampMeter.educationalNote && (
+              <div className="p-3 bg-amber-50 border border-amber-300 rounded-lg text-xs text-amber-900 leading-relaxed font-semibold">
+                {clampMeter.educationalNote}
+              </div>
+            )}
+          </div>
+
+          <div className="lg:col-span-5 flex flex-col gap-3 p-4 bg-slate-900 text-white rounded-xl shadow-md border border-slate-700">
+            <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+              <Gauge size={16} />
+              数字钳形表屏幕显示
+            </span>
+
+            <div className="flex flex-col justify-between h-24 p-3 bg-emerald-950 border-4 border-slate-800 rounded-lg shadow-inner font-mono text-emerald-400">
+              <div className="flex items-center justify-between text-xs opacity-75">
+                <span>NON-CONTACT CLAMP</span>
+                <span>{clampedMode === 'DUAL' ? 'FLUX CANCELLED' : 'MEASURING'}</span>
+              </div>
+              <div className="text-3xl font-black text-right tracking-widest text-emerald-300">
+                {clampMeter.displayText || '0.00 A'}
+              </div>
+              <div className="flex items-center justify-between text-[11px] opacity-75">
+                <span>HALL_EFFECT</span>
+                <span>DC AMPERES</span>
+              </div>
+            </div>
+
+            <div className="p-3 bg-slate-800/80 rounded-lg text-xs text-slate-300 leading-relaxed border border-slate-700">
+              <strong className="text-amber-300 block mb-1">安培环路定律教学精要：</strong>
+              钳形表通过内部霍尔传感器感应导线周围的环形磁场。若同时钳入前进与回流双线，两根线产生的反向磁场大小相等方向相反，净磁通量为零，示数归零！因此在实车排故中，必须只钳单根电线！
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* STEP 4: Battery Load Testing & Hazardous Recycling */}
+      {currentStep === 'BATTERY_DISPOSAL' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          <div className="lg:col-span-7 flex flex-col gap-3.5 p-4 bg-white border border-slate-200 rounded-xl shadow-xs">
+            <span className="text-xs font-bold text-slate-700">
+              实车退役 12V 铅酸蓄电池 · 负荷测试与环保归集
+            </span>
+
+            <div className="w-full h-44 bg-slate-900 rounded-xl flex items-center justify-around p-4 relative border border-slate-800">
+              {/* Battery */}
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-24 h-20 bg-slate-800 border-2 border-slate-600 rounded-lg flex flex-col items-center justify-center text-slate-300 font-bold shadow-md">
+                  <Zap size={20} className="text-amber-400 mb-1" />
+                  <span className="text-xs">12V 60Ah</span>
+                  <span className="text-[10px] text-red-400">退役蓄电池</span>
+                </div>
+              </div>
+
+              {/* Arrow */}
+              <div className="text-slate-500 font-bold text-xs flex flex-col items-center">
+                <span>带载复核后</span>
+                <span>→ 环保分类</span>
+              </div>
+
+              {/* Hazard Recycling Bin */}
+              <div
+                className={`w-28 h-24 rounded-xl border-2 flex flex-col items-center justify-center gap-1 transition-all ${
+                  batteryDisposed
+                    ? 'bg-emerald-950 border-emerald-500 text-emerald-300'
+                    : 'bg-yellow-950/60 border-yellow-500 text-yellow-300'
+                }`}
+              >
+                <Trash2 size={24} />
+                <span className="text-[11px] font-bold text-center">防酸耐腐蚀危废箱</span>
+                <span className="text-[9px] opacity-75">{batteryDisposed ? '已入箱保存' : '待归集'}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                onClick={handleBatteryTest}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 cursor-pointer"
+              >
+                1. 带载 100A 放电测试端电压
+              </Button>
+              <Button
+                disabled={!batteryLoadTested || batteryDisposed}
+                onClick={handleBatteryRecycle}
+                className="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 cursor-pointer"
+              >
+                2. 确认报废并归集入危废箱
+              </Button>
+            </div>
+
+            {batteryDisposed && (
+              <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-lg text-xs text-emerald-900 font-semibold flex items-center gap-2">
+                <CheckCircle2 size={16} className="text-emerald-600" />
+                <span>废旧蓄电池已安全归入专用防泄漏危废箱，避免酸液重金属污染，完成车间环保闭环。</span>
+              </div>
+            )}
+          </div>
+
+          <div className="lg:col-span-5 flex flex-col gap-3 p-4 bg-slate-900 text-white rounded-xl shadow-md border border-slate-700">
+            <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+              <Gauge size={16} />
+              负荷测试仪读数
+            </span>
+
+            <div className="flex flex-col justify-between h-24 p-3 bg-emerald-950 border-4 border-slate-800 rounded-lg shadow-inner font-mono text-emerald-400">
+              <div className="flex items-center justify-between text-xs opacity-75">
+                <span>LOAD TEST (100A)</span>
+                <span>{batteryLoadTested ? 'TEST_COMPLETED' : 'STANDBY'}</span>
+              </div>
+              <div className="text-3xl font-black text-right tracking-widest text-emerald-300">
+                {batteryLoadTested ? '9.20 V' : '---'}
+              </div>
+              <div className="flex items-center justify-between text-[11px] opacity-75">
+                <span>{batteryLoadTested ? 'BELOW 10.5V THRESHOLD' : 'STANDBY'}</span>
+                <span>FAIL_REPLACE</span>
+              </div>
+            </div>
+
+            <div className="p-3 bg-slate-800/80 rounded-lg text-xs text-slate-300 leading-relaxed border border-slate-700">
+              车间标准：蓄电池在 100A 负荷放电 15 秒后，端电压必须保持在 10.5V 以上。本电池骤降至 9.2V，证明极板已严重硫化失效，禁止继续装车，必须按危险废弃物合规回收。
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* STEP 5: Transfer Parasitic Drain / KCL */}
+      {currentStep === 'TRANSFER_PARALLEL_KCL' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          {practiceMode === 'transfer' ? (
+            <>
+              {/* Parasitic Drain Hunt */}
+              <div className="lg:col-span-7 flex flex-col gap-3.5 p-4 bg-white border border-slate-200 rounded-xl shadow-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-700">
+                    实车停放亏电排查 · 拔保险丝法排查整车休眠暗电流
+                  </span>
+                  <span className="text-xs text-amber-600 font-mono font-bold">SLEEP_DRAIN_DIAG</span>
                 </div>
 
-                {batteryTested && (
-                  <div className="pt-2 border-t border-slate-200 flex items-center justify-between">
-                    <span className="font-bold text-slate-700">规范归集处理：</span>
-                    <Button
-                      size="sm"
-                      onClick={handleBatteryDisposal}
-                      className="cursor-pointer bg-emerald-600 hover:bg-emerald-700 flex items-center gap-1.5"
-                    >
-                      <Trash2 size={15} />
-                      <span>放入专用废蓄电池危废回收箱</span>
-                    </Button>
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 leading-relaxed">
+                  <strong>故障情境：</strong>
+                  车主反映车辆停放 2 天后蓄电池亏电无法点火。拔掉钥匙并等待车辆进入休眠，万用表电流挡串联在蓄电池负极搭铁线上，测得休眠暗电流高达 480mA（正常标准应小于 50mA）。请逐个拔出保险丝排查漏电支路！
+                </div>
+
+                {/* Fuse box UI */}
+                <div className="grid grid-cols-2 gap-2.5">
+                  {[
+                    { id: 'F1', name: 'F1 (10A) · 组合仪表', drain: 15 },
+                    { id: 'F2', name: 'F2 (15A) · 后装行车记录仪', drain: 420 },
+                    { id: 'F3', name: 'F3 (20A) · 车身电脑 BCM', drain: 25 },
+                    { id: 'F4', name: 'F4 (15A) · 顶灯与天窗模块', drain: 20 },
+                  ].map((fuse) => {
+                    const isPulled = pulledFuses.has(fuse.id);
+                    return (
+                      <button
+                        key={fuse.id}
+                        type="button"
+                        onClick={() => handleToggleFuse(fuse.id)}
+                        className={`p-3 rounded-xl border-2 transition-all cursor-pointer flex flex-col gap-1 text-left ${
+                          isPulled
+                            ? 'border-red-500 bg-red-50/70 text-red-900 shadow-xs'
+                            : 'border-slate-200 bg-white hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-xs">{fuse.name}</span>
+                          <span
+                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                              isPulled ? 'bg-red-200 text-red-900' : 'bg-slate-100 text-slate-600'
+                            }`}
+                          >
+                            {isPulled ? '已拔出断开' : '在位插接'}
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-slate-500">
+                          {isPulled ? `回路已断开（消除约 ${fuse.drain}mA 负荷）` : '点击拔出此保险丝观察电流'}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {pulledFuses.has('F2') && (
+                  <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-lg text-xs text-emerald-900 font-semibold flex items-center gap-2">
+                    <CheckCircle2 size={16} className="text-emerald-600" />
+                    <span>拔下 F2（加装行车记录仪）后，休眠电流从 480mA 骤降至 60mA，成功锁定漏电元凶！</span>
                   </div>
                 )}
-                {batteryDisposed && (
-                  <span className="text-emerald-600 font-bold flex items-center gap-1">
-                    <CheckCircle2 size={15} /> 已完成环保规范分类归集！不可随意弃置或随生活垃圾丢弃。
-                  </span>
-                )}
               </div>
-            </div>
-          )}
 
-          {/* Step 5: Transfer Parallel KCL */}
-          {currentStep === 'TRANSFER_PARALLEL_KCL' && (
-            <div className="flex flex-col gap-3">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                独立迁移题 · 双大灯并联支路电流与总电流 KCL 验证
-              </span>
-              <div className="p-4 bg-white border border-slate-200 rounded-lg flex flex-col gap-3 text-xs">
-                <p className="text-slate-700 font-bold">
-                  工单情境：汽车左前大灯支路电流 I₁ = 4.5A，右前大灯支路电流 I₂ = 4.5A。
-                  若在总供电保险丝后测总电流，预期读数应为多少？
-                </p>
-                <div className="flex flex-col gap-2">
-                  <label className="flex items-center gap-2 cursor-pointer">
+              {/* Right 5 Cols: Bench DMM Ammeter */}
+              <div className="lg:col-span-5 flex flex-col gap-3 p-4 bg-slate-900 text-white rounded-xl shadow-md border border-slate-700">
+                <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                  <Gauge size={16} />
+                  电瓶负极串联暗电流示数
+                </span>
+
+                <div className="flex flex-col justify-between h-24 p-3 bg-emerald-950 border-4 border-slate-800 rounded-lg shadow-inner font-mono text-emerald-400">
+                  <div className="flex items-center justify-between text-xs opacity-75">
+                    <span>BATTERY GND SERIES</span>
+                    <span>{pulledFuses.has('F2') ? 'NORMAL_SLEEP' : 'EXCESSIVE_DRAIN'}</span>
+                  </div>
+                  <div className="text-3xl font-black text-right tracking-widest text-emerald-300">
+                    {dmmResult.displayText}
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] opacity-75">
+                    <span>THRESHOLD: &lt;50mA</span>
+                    <span>STANDBY</span>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-slate-800/80 rounded-lg text-xs text-slate-300 leading-relaxed border border-slate-700">
+                  排故诊断结论：后装行车记录仪常电接法错误，未随钥匙关闭休眠，导致车辆持续放电。维修方案应将供电线改接至 ACC 档受控保险丝。
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Independent Mode: KCL Parallel Dual Headlamps */}
+              <div className="lg:col-span-7 flex flex-col gap-3.5 p-4 bg-white border border-slate-200 rounded-xl shadow-xs">
+                <span className="text-xs font-bold text-slate-700">并联双前大灯支路基尔霍夫电流定律 (KCL) 验证</span>
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs leading-relaxed text-slate-700">
+                  实车双大灯并联供电。经万用表测量：左前大灯支路电流 I₁ = 1.50A，右前大灯支路电流 I₂ = 1.50A。
+                  根据基尔霍夫电流定律（节点流入电流等于流出电流之和），总保险丝主干路电流为多少？
+                </div>
+
+                <div className="flex flex-col gap-2 text-xs">
+                  <label className="flex items-center gap-2 p-3 rounded-lg border bg-white cursor-pointer hover:bg-slate-50">
                     <input
                       type="radio"
-                      name="kcl_transfer"
-                      checked={kclAnswer === 'KCL_CORRECT'}
-                      onChange={() => handleKclAnswer('KCL_CORRECT')}
+                      name="kcl_opt"
+                      checked={kclAnswer === 'KCL_3A'}
+                      onChange={() => handleKclAnswerSubmit('KCL_3A')}
                     />
                     <span className="font-bold text-emerald-800">
-                      A. 9.0 A (基尔霍夫电流定律 KCL：流入节点的总电流等于流出各支路电流之和 4.5 + 4.5 = 9.0A)
+                      A. 3.00A：总干路电流等于各并联支路电流之和 (I_总 = 1.5A + 1.5A = 3.0A)
                     </span>
                   </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
+                  <label className="flex items-center gap-2 p-3 rounded-lg border bg-white cursor-pointer hover:bg-slate-50">
                     <input
                       type="radio"
-                      name="kcl_transfer"
-                      checked={kclAnswer === 'KCL_WRONG_1'}
-                      onChange={() => handleKclAnswer('KCL_WRONG_1')}
+                      name="kcl_opt"
+                      checked={kclAnswer === 'KCL_15A'}
+                      onChange={() => handleKclAnswerSubmit('KCL_15A')}
                     />
-                    <span>B. 4.5 A (并联各处电流相等)</span>
+                    <span>B. 1.50A：并联各处电流相等</span>
                   </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
+                  <label className="flex items-center gap-2 p-3 rounded-lg border bg-white cursor-pointer hover:bg-slate-50">
                     <input
                       type="radio"
-                      name="kcl_transfer"
-                      checked={kclAnswer === 'KCL_WRONG_2'}
-                      onChange={() => handleKclAnswer('KCL_WRONG_2')}
+                      name="kcl_opt"
+                      checked={kclAnswer === 'KCL_075A'}
+                      onChange={() => handleKclAnswerSubmit('KCL_075A')}
                     />
-                    <span>C. 2.25 A (电流被平分折半)</span>
+                    <span>C. 0.75A：总电流被两灯平分衰减</span>
                   </label>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
 
-        {/* Right 5 Columns: Multimeter / Instrument Display */}
-        <div className="lg:col-span-5 flex flex-col gap-3 p-4 bg-amber-500/10 border-2 border-amber-500/30 rounded-xl">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
-              <Gauge size={16} className="text-amber-600" />
-              {currentStep === 'CLAMP_METER_TASK' ? '数字钳形电流表 (Clamp Meter)' : '数字万用表 · 10A 电流挡'}
-            </span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-200 text-amber-900">
-              10A FUSED
-            </span>
-          </div>
-
-          {/* LCD Screen */}
-          <div className="flex flex-col justify-between h-24 p-3 bg-emerald-950 border-4 border-slate-700 rounded-lg shadow-inner font-mono text-emerald-400">
-            <div className="flex items-center justify-between text-xs opacity-70">
-              <span>{currentStep === 'CLAMP_METER_TASK' ? 'CLAMP DC' : 'DC 10A'}</span>
-              <span>{dmmResult.status === 'REFUSED_SHORT_CIRCUIT' ? 'INTERCEPT' : 'AUTO'}</span>
-            </div>
-            <div className="text-3xl font-black text-right tracking-widest text-emerald-300">
-              {currentStep === 'CLAMP_METER_TASK' ? clampResult.displayText || '0.00 A' : dmmResult.displayText || '0.00 A'}
-            </div>
-            <div className="flex items-center justify-between text-[11px] opacity-70">
-              <span>{currentStep === 'CLAMP_METER_TASK' ? 'HALL FLUX' : dmmResult.status}</span>
-              <span>A</span>
-            </div>
-          </div>
-
-          {/* V06 Warning Message Banner */}
-          {dmmResult.status === 'REFUSED_SHORT_CIRCUIT' && (
-            <div className="p-2.5 bg-red-100 border border-red-300 rounded text-xs text-red-900 font-bold flex items-start gap-2">
-              <ShieldAlert size={18} className="text-red-700 shrink-0 mt-0.5" />
-              <div>
-                <p>安全规则强制拦截 (基准 V06)：</p>
-                <p className="font-normal text-red-800">
-                  {dmmResult.warningMessage}
-                </p>
+              <div className="lg:col-span-5 flex flex-col gap-3 p-4 bg-slate-900 text-white rounded-xl shadow-md border border-slate-700">
+                <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                  <Gauge size={16} />
+                  总干路实测读数
+                </span>
+                <div className="flex flex-col justify-between h-24 p-3 bg-emerald-950 border-4 border-slate-800 rounded-lg shadow-inner font-mono text-emerald-400">
+                  <div className="flex items-center justify-between text-xs opacity-75">
+                    <span>MAIN FEED FUSE</span>
+                    <span>KCL VERIFIED</span>
+                  </div>
+                  <div className="text-3xl font-black text-right tracking-widest text-emerald-300">
+                    3.00 A
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] opacity-75">
+                    <span>TOTAL CURRENT</span>
+                    <span>DC AMPERES</span>
+                  </div>
+                </div>
               </div>
-            </div>
+            </>
           )}
-
-          {/* Jacks & Dial reminder */}
-          <div className="p-3 bg-white border border-slate-200 rounded-lg text-xs flex flex-col gap-1.5">
-            <span className="font-bold text-slate-800 flex items-center gap-1">
-              <Sparkles size={14} className="text-amber-500" />
-              电流测量核心规程
-            </span>
-            <p className="text-slate-600">
-              1. <strong>串联接入</strong>：电流表内阻极小，必须串接在被测支路中，让电流流过表体内部采样电阻。
-            </p>
-            <p className="text-slate-600">
-              2. <strong>严禁并联跨接电源 (V06)</strong>：若将表笔直接并联在 12V 蓄电池正负极，瞬间将产生数百安培短路短接电流，导致表内熔丝爆炸熔断或损坏车辆元器件。
-            </p>
-            <p className="text-slate-600">
-              3. <strong>钳形表单线原则</strong>：非接触钳测只夹单根导线；双线同钳将发生磁场抵消导致示数归零。
-            </p>
-          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

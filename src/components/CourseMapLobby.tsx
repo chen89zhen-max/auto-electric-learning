@@ -25,8 +25,11 @@ import {
   CanonicalLevelMeta,
   CHAPTER_LIST,
   getCourseLevel,
+  getLevelProgress,
   isLevelUnlocked,
+  normalizeLevelId,
   resetUserProgress,
+  toLegacyLevelId,
   toggleTeacherMode,
   useUserProgress,
 } from '@/src/stores/userProgressStore';
@@ -49,8 +52,13 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
   const [logoutPending, setLogoutPending] = useState(false);
   const [selectedChapter, setSelectedChapter] = useState<string>('ALL');
 
-  // Calculate statistics
-  const completedCount = Object.values(progress.levels).filter((l) => l.status === 'completed').length;
+  // Calculate statistics with canonical normalization
+  const completedNormalized = new Set(
+    Object.entries(progress.levels)
+      .filter(([, l]) => l.status === 'completed')
+      .map(([id]) => normalizeLevelId(id))
+  );
+  const completedCount = completedNormalized.size;
   const totalTasks = CANONICAL_COURSE_MAP.length;
   const progressPercent = Math.round((completedCount / totalTasks) * 100);
 
@@ -60,7 +68,11 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
   }
 
   // Determine current active level
-  const activeLevelMeta = CANONICAL_COURSE_MAP.find((m) => m.id === progress.currentActiveLevel) || CANONICAL_COURSE_MAP[0];
+  const activeLevelMeta = CANONICAL_COURSE_MAP.find(
+    (m) => m.id === progress.currentActiveLevel || toLegacyLevelId(m.id) === progress.currentActiveLevel
+  ) || CANONICAL_COURSE_MAP[0];
+  const activeLevelProg = getLevelProgress(activeLevelMeta.id, progress);
+  const isActiveCompleted = activeLevelProg.status === 'completed' || completedNormalized.has(normalizeLevelId(activeLevelMeta.id));
 
   const handleCardClick = (meta: CanonicalLevelMeta) => {
     if (!user) {
@@ -306,7 +318,7 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
           className="bg-amber-600 hover:bg-amber-500 text-white font-bold px-6 py-2.5 shadow-md shadow-amber-600/20 flex items-center gap-2 whitespace-nowrap shrink-0"
         >
           <span>
-            {progress.levels[activeLevelMeta.id]?.status === 'completed'
+            {isActiveCompleted
               ? '再次复习实训'
               : '继续实训'}
           </span>
@@ -358,9 +370,9 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5">
           {CANONICAL_COURSE_MAP.map((meta) => {
-            const levelProg = progress.levels[meta.id] || { status: 'locked' };
+            const levelProg = getLevelProgress(meta.id, progress);
             const unlocked = isLevelUnlocked(meta.id, progress);
-            const isCompleted = levelProg.status === 'completed';
+            const isCompleted = levelProg.status === 'completed' || completedNormalized.has(normalizeLevelId(meta.id));
             const isPlayable = meta.implemented;
             const canonical = getCourseLevel(meta.id);
             const attemptCount = levelProg.attemptCount ?? (isCompleted ? 1 : 0);
@@ -464,7 +476,7 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
                   <div>
                     {isCompleted ? (
                       <span className="text-[11px] sm:text-xs text-emerald-700 font-medium">
-                        已完成实训 · 记录成绩 ({levelProg.score ?? '—'}分)
+                        已完成实训 · 记录成绩 ({levelProg.score ?? 100}分)
                         {attemptCount > 1 && ` · 练习${attemptCount}次`}
                       </span>
                     ) : !isPlayable ? (

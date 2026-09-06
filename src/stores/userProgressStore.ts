@@ -455,23 +455,35 @@ export function setCurrentActiveLevel(levelId: string): void {
   }
 }
 
+export function getLevelProgress(levelId: string, progress: UserProgressData): LevelProgress {
+  if (progress.levels[levelId]) return progress.levels[levelId];
+  const legacyId = toLegacyLevelId(levelId);
+  if (legacyId && progress.levels[legacyId]) return progress.levels[legacyId];
+  const canonicalId = normalizeLevelId(levelId);
+  if (canonicalId && progress.levels[canonicalId]) return progress.levels[canonicalId];
+  return { status: 'locked' };
+}
+
 export function isLevelUnlocked(levelId: string, progress: UserProgressData): boolean {
   if (progress.teacherMode) return true;
-  const meta = COURSE_MAP.find((c) => c.id === levelId as LevelId);
-  if (!meta) {
-    const canonical = getCourseLevel(levelId);
-    if (!canonical || !canonical.implemented) return false;
+  const canonical = getCourseLevel(levelId);
+  if (canonical) {
+    if (!canonical.implemented) return false;
     const completed = Object.entries(progress.levels)
       .filter(([, value]) => value.status === 'completed')
       .map(([id]) => normalizeLevelId(id));
     return checkLevelPrerequisites(canonical.canonicalId, completed).allowed;
   }
+  const meta = COURSE_MAP.find((c) => c.id === levelId as LevelId);
+  if (!meta) return false;
   if (!meta.prerequisiteId) {
-    return progress.levels[levelId]?.status === 'unlocked' || progress.levels[levelId]?.status === 'completed';
+    const prog = getLevelProgress(levelId, progress);
+    return prog.status === 'unlocked' || prog.status === 'completed';
   }
-  const prereqStatus = progress.levels[meta.prerequisiteId]?.status;
-  if (prereqStatus !== 'completed') return false;
-  return progress.levels[levelId]?.status === 'unlocked' || progress.levels[levelId]?.status === 'completed';
+  const prereqProg = getLevelProgress(meta.prerequisiteId, progress);
+  if (prereqProg.status !== 'completed') return false;
+  const prog = getLevelProgress(levelId, progress);
+  return prog.status === 'unlocked' || prog.status === 'completed';
 }
 
 function subscribe(callback: () => void) {
