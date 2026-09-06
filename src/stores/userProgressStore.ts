@@ -1,10 +1,36 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createBaseUserProgress, type LevelId, type LevelProgress, type UserProgressData } from '@/src/types/progress';
+import {
+  createBaseUserProgress,
+  type LevelId,
+  type LevelProgress,
+  type UserProgressData,
+  type AttemptSummaryRecord,
+} from '@/src/types/progress';
+import {
+  CANONICAL_COURSE_REGISTRY,
+  getCourseLevel,
+  normalizeLevelId,
+  toLegacyLevelId,
+  isLevelPublished,
+  getLevelsByChapter,
+  CHAPTER_LIST,
+  type CourseLevelDefinition,
+  type ChapterDefinition,
+} from '@/src/courses/registry';
 
-export type { LevelId, LevelProgress, UserProgressData };
-export { createBaseUserProgress };
+export type { LevelId, LevelProgress, UserProgressData, CourseLevelDefinition, ChapterDefinition };
+export {
+  createBaseUserProgress,
+  CANONICAL_COURSE_REGISTRY,
+  getCourseLevel,
+  normalizeLevelId,
+  toLegacyLevelId,
+  isLevelPublished,
+  getLevelsByChapter,
+  CHAPTER_LIST,
+};
 
 export interface LevelMeta {
   id: LevelId;
@@ -247,10 +273,18 @@ export function saveUserProgress(
 export async function submitLevelCompletion(
   levelId: LevelId,
   score = 100,
-  evidence: Record<string, unknown> = {}
+  evidence: Record<string, unknown> = {},
+  options: { allowReplay?: boolean } = {}
 ): Promise<UserProgressData> {
   const current = getUserProgress();
-  if (current.levels[levelId]?.status === 'completed') return current;
+  // If in teacher demo mode, do not write to student records
+  if (current.teacherMode) return current;
+
+  // If already completed and allowReplay is not requested, return current state without network call
+  if (current.levels[levelId]?.status === 'completed' && !options.allowReplay && !evidence?.isReplay) {
+    return current;
+  }
+
   const revision = identityRevision;
   let pending = pendingCompletions.get(levelId);
   if (!pending) {
@@ -310,21 +344,40 @@ export function markLevelComplete(levelId: LevelId, score = 100): UserProgressDa
   const nextMeta = nextLevel ? COURSE_MAP.find((c) => c.id === nextLevel) : null;
   const canUnlockNext = nextMeta && nextMeta.implemented;
 
-  const updatedLevels = { ...current.levels };
-  updatedLevels[levelId] = {
-    ...updatedLevels[levelId],
-    status: 'completed',
-    completedAt: new Date().toLocaleDateString('zh-CN', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    }),
+  const existingLevel = current.levels[levelId] || { status: 'locked' };
+  const isReplay = existingLevel.status === 'completed';
+  const newCount = (existingLevel.attemptCount ?? (isReplay ? 1 : 0)) + 1;
+  const now = new Date();
+  const completedAtText = now.toLocaleDateString('zh-CN', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  const attemptRecord: AttemptSummaryRecord = {
+    attemptId: `local_${Date.now()}`,
+    completedAt: now.toISOString(),
     score,
+    mode: 'guided',
   };
 
-  // Automatically unlock next level ONLY if it is implemented!
-  if (canUnlockNext && nextLevel && updatedLevels[nextLevel]?.status === 'locked') {
+  const updatedLevels = { ...current.levels };
+  updatedLevels[levelId] = {
+    ...existingLevel,
+    status: 'completed',
+    completedAt: existingLevel.completedAt || completedAtText,
+    score: existingLevel.score ?? score, // Preserve first score
+    attemptCount: newCount,
+    firstRecord: existingLevel.firstRecord ?? attemptRecord,
+    recentRecord: attemptRecord,
+    bestRecord: existingLevel.bestRecord && existingLevel.bestRecord.score >= score
+      ? existingLevel.bestRecord
+      : attemptRecord,
+  };
+
+  // Automatically unlock next level ONLY if it is implemented and this is initial completion!
+  if (!isReplay && canUnlockNext && nextLevel && updatedLevels[nextLevel]?.status === 'locked') {
     updatedLevels[nextLevel] = {
       ...updatedLevels[nextLevel],
       status: 'unlocked',
@@ -333,7 +386,7 @@ export function markLevelComplete(levelId: LevelId, score = 100): UserProgressDa
 
   const updatedData: UserProgressData = {
     ...current,
-    currentActiveLevel: canUnlockNext && nextLevel ? nextLevel : levelId,
+    currentActiveLevel: canUnlockNext && nextLevel && !isReplay ? nextLevel : levelId,
     levels: updatedLevels,
   };
 

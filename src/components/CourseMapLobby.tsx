@@ -17,12 +17,15 @@ import {
   LayoutDashboard,
   LogIn,
   LogOut,
+  Layers,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   COURSE_MAP,
   LevelId,
   LevelMeta,
+  CHAPTER_LIST,
+  getCourseLevel,
   isLevelUnlocked,
   resetUserProgress,
   toggleTeacherMode,
@@ -45,6 +48,7 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
   const [lockedNotice, setLockedNotice] = useState<string | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [logoutPending, setLogoutPending] = useState(false);
+  const [selectedChapter, setSelectedChapter] = useState<string>('ALL');
 
   // Calculate statistics
   const completedCount = Object.values(progress.levels).filter((l) => l.status === 'completed').length;
@@ -60,7 +64,10 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
   const activeLevelMeta = COURSE_MAP.find((m) => m.id === progress.currentActiveLevel) || COURSE_MAP[0];
 
   const handleCardClick = (meta: LevelMeta) => {
-    if (!user) { setShowAuthDialog(true); return; }
+    if (!user) {
+      setShowAuthDialog(true);
+      return;
+    }
     const unlocked = isLevelUnlocked(meta.id, progress);
     if (!unlocked) {
       setLockedNotice(`🔒 ${meta.title} 尚未解锁！请先完成：${meta.prerequisiteName || '前置关卡'}`);
@@ -68,8 +75,10 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
       return;
     }
     if (!meta.implemented) {
-      setLockedNotice(`🛠️ ${meta.title} 正在依据教材89页课程大纲开发中，敬请期待！`);
-      setTimeout(() => setLockedNotice(null), 3000);
+      const canonical = getCourseLevel(meta.id);
+      const textbookInfo = canonical?.textbookTask ? `（对应${canonical.textbookTask}）` : '';
+      setLockedNotice(`🛠️ ${meta.title}${textbookInfo} 正在依据教材大纲与仿真模型规范开发中，尚未开放实训。`);
+      setTimeout(() => setLockedNotice(null), 3500);
       return;
     }
     onSelectLevel(meta.id);
@@ -111,7 +120,7 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
               </span>
               {progress.teacherMode && (
                 <span className="text-[10px] font-bold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full border border-purple-200">
-                  教师演示模式已开启 (全关卡解锁)
+                  教师演示模式 (仅供课堂展示，不产生学生成绩)
                 </span>
               )}
             </div>
@@ -223,7 +232,7 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
                     ? 'bg-purple-50 text-purple-700 border-purple-300'
                     : 'bg-white text-slate-600 hover:bg-slate-50'
                 }`}
-                title="切换教师演示模式：解锁全部关卡便于测试与教学备课"
+                title="切换教师演示模式：解锁关卡结构便于备课，不记录学生成绩"
               >
                 {progress.teacherMode ? <ToggleRight size={16} className="text-purple-600" /> : <ToggleLeft size={16} />}
                 演示模式
@@ -235,7 +244,8 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
               variant="outline"
               onClick={() => setShowResetConfirm(true)}
               className="text-xs border-slate-200 bg-white text-slate-500 hover:text-rose-600 hover:bg-rose-50"
-              disabled={!!user} title={user ? "正式学习记录由教师申请重训，管理员按流程处理" : "清理本机访客缓存"}
+              disabled={!!user}
+              title={user ? '正式学习记录由教师申请重训，管理员按流程处理' : '清理本机访客缓存'}
             >
               <RotateCcw size={14} className="mr-1" />
               清理缓存
@@ -305,7 +315,37 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
         </Button>
       </section>
 
-      {/* Full 10-Task Curriculum Grid */}
+      {/* Chapter Filter Tabs */}
+      <div className="w-full max-w-[1480px] mb-4 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        <button
+          type="button"
+          onClick={() => setSelectedChapter('ALL')}
+          className={`text-xs font-bold px-3.5 py-1.5 rounded-xl border transition-all shrink-0 flex items-center gap-1.5 ${
+            selectedChapter === 'ALL'
+              ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+          }`}
+        >
+          <Layers size={14} />
+          <span>全景课程地图</span>
+        </button>
+        {CHAPTER_LIST.map((ch) => (
+          <button
+            type="button"
+            key={ch.id}
+            onClick={() => setSelectedChapter(ch.id)}
+            className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition-all shrink-0 ${
+              selectedChapter === ch.id
+                ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
+                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            <span>{ch.num}: {ch.title}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Full Curriculum Grid */}
       <main className="w-full max-w-[1480px]">
         <div className="flex items-center justify-between mb-3.5 px-1">
           <h2 className="text-sm sm:text-base font-bold text-slate-700 flex items-center gap-2">
@@ -323,6 +363,13 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
             const unlocked = isLevelUnlocked(meta.id, progress);
             const isCompleted = levelProg.status === 'completed';
             const isPlayable = meta.implemented;
+            const canonical = getCourseLevel(meta.id);
+            const attemptCount = levelProg.attemptCount ?? (isCompleted ? 1 : 0);
+
+            // Chapter filter check
+            if (selectedChapter !== 'ALL' && canonical && canonical.chapterId !== selectedChapter) {
+              return null;
+            }
 
             return (
               <button
@@ -333,7 +380,9 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
                   isCompleted
                     ? 'bg-emerald-50/40 border-emerald-300/80 shadow-xs hover:shadow-md hover:border-emerald-400'
                     : unlocked
-                    ? 'bg-white border-amber-400 shadow-md shadow-amber-500/10 hover:border-amber-500 ring-2 ring-amber-400/20'
+                    ? isPlayable
+                      ? 'bg-white border-amber-400 shadow-md shadow-amber-500/10 hover:border-amber-500 ring-2 ring-amber-400/20'
+                      : 'bg-white border-slate-300 shadow-xs hover:border-slate-400'
                     : 'bg-slate-50/60 border-slate-200 opacity-75 hover:opacity-90'
                 }`}
               >
@@ -344,7 +393,7 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
                       className={`w-11 h-11 rounded-xl font-mono text-base font-bold flex items-center justify-center border shrink-0 ${
                         isCompleted
                           ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                          : unlocked
+                          : unlocked && isPlayable
                           ? 'bg-amber-100 text-amber-800 border-amber-300'
                           : 'bg-slate-100 text-slate-400 border-slate-200'
                       }`}
@@ -359,6 +408,11 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
                         <span className="text-[10px] sm:text-xs text-slate-400">
                           {meta.duration}
                         </span>
+                        {canonical && (
+                          <span className="text-[10px] text-slate-400 border-l pl-2 border-slate-200">
+                            {canonical.chapterTitle.split('：')[0]}
+                          </span>
+                        )}
                       </div>
                       <h3 className="text-base sm:text-lg font-bold text-slate-800 mt-1">
                         {meta.title}
@@ -372,6 +426,10 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
                       <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-2.5 py-1 rounded-full border border-emerald-300 flex items-center gap-1">
                         <CheckCircle2 size={14} />
                         已完成
+                      </span>
+                    ) : !isPlayable ? (
+                      <span className="text-xs bg-slate-100 text-slate-600 font-bold px-2.5 py-1 rounded-full border border-slate-300 flex items-center gap-1">
+                        🛠️ 建设中
                       </span>
                     ) : unlocked ? (
                       <span className="text-xs bg-amber-100 text-amber-800 font-bold px-2.5 py-1 rounded-full border border-amber-300 flex items-center gap-1">
@@ -395,6 +453,11 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
                   <p className="text-xs sm:text-sm text-slate-500 mt-1 line-clamp-2 leading-relaxed">
                     {meta.description}
                   </p>
+                  {canonical?.textbookTask && (
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      对应教材：{canonical.textbookTask}
+                    </p>
+                  )}
                 </div>
 
                 {/* Card Footer */}
@@ -402,7 +465,12 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
                   <div>
                     {isCompleted ? (
                       <span className="text-[11px] sm:text-xs text-emerald-700 font-medium">
-                        已完成实训 · 记录成绩 ({progress.levels[meta.id]?.score ?? '—'}分)
+                        已完成实训 · 记录成绩 ({levelProg.score ?? '—'}分)
+                        {attemptCount > 1 && ` · 练习${attemptCount}次`}
+                      </span>
+                    ) : !isPlayable ? (
+                      <span className="text-[11px] sm:text-xs text-slate-500 font-medium">
+                        按教材大纲规划中 · 建设中
                       </span>
                     ) : unlocked ? (
                       <span className="text-[11px] sm:text-xs text-amber-700 font-bold">
@@ -429,7 +497,7 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
                       </span>
                     ) : (
                       <span className="text-[11px] sm:text-xs text-slate-400 font-medium">
-                        开发制作中
+                        开发建设中
                       </span>
                     )}
                   </div>

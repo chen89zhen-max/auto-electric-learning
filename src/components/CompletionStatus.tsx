@@ -17,9 +17,17 @@ export function CompletionStatus({ levelId, report, metrics, nextTask }: {
     setStatus('saving');
     try {
       const { report: result, metrics: processMetrics, replay } = initial.current;
+      const defaultEvidence: Record<string, string> =
+        levelId === 'LEVEL_00' ? { SAFETY_SPECIFICATION: 'GUIDED_COMPLETE', CIRCUIT_READING: 'GUIDED_COMPLETE' }
+        : levelId === 'LEVEL_01' ? { SAFETY_SPECIFICATION: 'INDEPENDENT_COMPLETE', DIAGNOSTIC_STRATEGY: 'GUIDED_COMPLETE', EVIDENCE_EXPRESSION: 'GUIDED_COMPLETE' }
+        : { CIRCUIT_READING: 'INDEPENDENT_COMPLETE', SAFETY_SPECIFICATION: 'INDEPENDENT_COMPLETE', TOOL_MEASUREMENT: 'GUIDED_COMPLETE' };
+
       const projection = await submitLevelCompletion(levelId, result ? scoreFromDimensions(result.dimensions) : 100, {
-        source: levelId, ...(result ? { dimensions: result.dimensions } : {}), ...(processMetrics ? { metrics: processMetrics } : {}),
-      });
+        source: levelId,
+        evidence: defaultEvidence,
+        ...(result ? { dimensions: result.dimensions } : {}),
+        ...(processMetrics ? { metrics: processMetrics } : {}),
+      }, { allowReplay: true });
       if (!alive.current) return;
       setMessage(replay ? `本次为重复练习，保留首次成绩 ${projection.levels[levelId].score ?? '—'} 分` : `学习结果已保存 · ${projection.levels[levelId].score ?? '—'} 分`);
       setStatus('saved');

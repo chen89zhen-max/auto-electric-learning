@@ -138,12 +138,17 @@ CREATE TABLE IF NOT EXISTS learning_attempts (
   completed_at INTEGER,
   score INTEGER,
   status TEXT NOT NULL CHECK(status IN ('in_progress', 'completed', 'abandoned')),
+  mode TEXT NOT NULL DEFAULT 'guided',
+  seed TEXT DEFAULT NULL,
+  evidence_data TEXT DEFAULT NULL,
+  rubric_version TEXT DEFAULT 'v1',
   FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_learning_attempts_student ON learning_attempts(student_id, level_id);
 CREATE INDEX IF NOT EXISTS idx_learning_attempts_class ON learning_attempts(class_id);
+CREATE INDEX IF NOT EXISTS idx_learning_attempts_replay ON learning_attempts(student_id, level_id, started_at);
 
 CREATE TABLE IF NOT EXISTS learning_events (
   id TEXT PRIMARY KEY,

@@ -3,6 +3,7 @@ import path from 'node:path';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { GET as healthGet } from '@/app/api/health/route';
 import { createSqliteAdapter, setDatabaseInstance } from '@/src/server/db/database';
+import { LATEST_SCHEMA_VERSION } from '@/src/server/db/migrationRunner';
 
 const root = process.cwd();
 const read = (file: string) => fs.readFileSync(path.join(root, file), 'utf8');
@@ -49,7 +50,7 @@ describe('Synology single-instance deployment configuration', () => {
     const response = await healthGet();
     const body = await response.json() as Record<string, unknown>;
     expect(response.status).toBe(200);
-    expect(body).toMatchObject({ status: 'ok', database: 'ready', schemaVersion: 6 });
+    expect(body).toMatchObject({ status: 'ok', database: 'ready', schemaVersion: LATEST_SCHEMA_VERSION });
     expect(JSON.stringify(body)).not.toMatch(/app\.db|path|rowCount|users/i);
   });
 });
