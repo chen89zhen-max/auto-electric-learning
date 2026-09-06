@@ -43,7 +43,7 @@ describe('实训人物与导师美术组件渲染验证', () => {
     const standingHtml = renderToStaticMarkup(<TrainingPerson pose="standing" action={false} />);
     expect(standingHtml).toContain('穿着现代电工工装的见习技师小张');
     expect(standingHtml).toContain('standing-person');
-    expect(standingHtml).toContain('实训生');
+    expect(standingHtml).toContain('technician_standing.png');
 
     // 挥手动作
     const wavingHtml = renderToStaticMarkup(<TrainingPerson pose="standing" action={true} />);
@@ -53,6 +53,7 @@ describe('实训人物与导师美术组件渲染验证', () => {
     const lyingHtml = renderToStaticMarkup(<TrainingPerson pose="lying" />);
     expect(lyingHtml).toContain('倒地学员小张');
     expect(lyingHtml).toContain('lying-person');
+    expect(lyingHtml).toContain('technician_lying.png');
 
     // CPR 按压实操模型（未按压 vs 下压动效）
     const cprRestHtml = renderToStaticMarkup(<TrainingPerson pose="cpr" action={false} />);
