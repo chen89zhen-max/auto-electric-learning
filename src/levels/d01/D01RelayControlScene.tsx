@@ -14,6 +14,7 @@ import { sounds } from '@/src/components/visuals/SoundEffects';
 import { type D01Step } from './d01Training';
 import { useLevelAssessment } from '@/src/assessment/useLevelAssessment';
 import type { LevelAssessmentResult, TrainingStageId } from '@/src/assessment/assessmentTypes';
+import { evaluateMeterGuard } from '@/src/game/instruments/meterGuard';
 
 interface D01RelayControlSceneProps {
   currentStep: D01Step;
@@ -136,16 +137,16 @@ export function D01RelayControlScene({
       BLIND_RELAY_FAULT_DIAGNOSIS: 'blind_test',
       ENGINEERING_REPAIR_AND_DELIVERY: 'transfer',
     };
-    if (meterKnob === 'OFF') {
+    const guard = evaluateMeterGuard({
+      currentMode: meterKnob,
+      expectedMode: expected,
+      circuitPowered: expected === 'DCV_20',
+      resistanceMeasurement: expected === 'OHM_200',
+    });
+    if (!guard.allowed) {
       sounds.warningBuzz();
       assessment.recordMeterBlocked(stageMap[currentStep]);
-      setMeterWarning('⚠️ 万用表处于关机 OFF 状态！请先拨动旋钮开机再进行打表测量。');
-      return false;
-    }
-    if (meterKnob !== expected) {
-      sounds.warningBuzz();
-      assessment.recordMeterBlocked(stageMap[currentStep]);
-      setMeterWarning(`⚠️ 当前量程不匹配！请将万用表拨至 ${expected === 'DCV_20' ? '直流电压 (DCV 20V)' : '电阻挡 (Ω 200Ω)'}。`);
+      setMeterWarning(guard.message);
       return false;
     }
     setMeterWarning(null);
@@ -941,6 +942,7 @@ export function D01RelayControlScene({
                   <Button
                     disabled={!s4Choice}
                     onClick={() => {
+                      if (!requireMeterPowered(meterKnob === 'OHM_200' ? 'OHM_200' : 'DCV_20')) return;
                       if (s4Choice === activeBlind.faultType) {
                         sounds.success();
                         setS4Submitted(true);

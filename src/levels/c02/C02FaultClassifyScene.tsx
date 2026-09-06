@@ -17,6 +17,7 @@ import { sounds } from '@/src/components/visuals/SoundEffects';
 import { type C02Step } from './c02Training';
 import { useLevelAssessment } from '@/src/assessment/useLevelAssessment';
 import type { LevelAssessmentResult, TrainingStageId } from '@/src/assessment/assessmentTypes';
+import { evaluateMeterGuard } from '@/src/game/instruments/meterGuard';
 
 interface C02FaultClassifySceneProps {
   currentStep: C02Step;
@@ -167,20 +168,27 @@ export function C02FaultClassifyScene({
     setMeterWarning(null);
   };
 
-  const requireMeterPowered = () => {
-    if (meterKnob === 'OFF') {
+  const requireMeterPowered = (expected: 'DCV_20' | 'OHM' = 'DCV_20'): boolean => {
+    const stageMap: Record<C02Step, TrainingStageId> = {
+      SYMPTOM_AND_TOOLS: 'cognition',
+      OPEN_CIRCUIT_ISOLATION: 'standard',
+      SHORT_CIRCUIT_FUSE_BLOWN: 'calculation',
+      BLIND_THREE_FAULT_ISOLATION: 'blind_test',
+      FAULT_REPAIR_AND_PREVENTION: 'transfer',
+    };
+    const guard = evaluateMeterGuard({
+      currentMode: meterKnob,
+      expectedMode: expected,
+      circuitPowered: currentStep !== 'SHORT_CIRCUIT_FUSE_BLOWN',
+      resistanceMeasurement: meterKnob === 'OHM',
+    });
+    if (!guard.allowed) {
       sounds.warningBuzz();
-      const stageMap: Record<C02Step, TrainingStageId> = {
-        SYMPTOM_AND_TOOLS: 'cognition',
-        OPEN_CIRCUIT_ISOLATION: 'standard',
-        SHORT_CIRCUIT_FUSE_BLOWN: 'calculation',
-        BLIND_THREE_FAULT_ISOLATION: 'blind_test',
-        FAULT_REPAIR_AND_PREVENTION: 'transfer',
-      };
       assessment.recordMeterBlocked(stageMap[currentStep]);
-      setMeterWarning('万用表尚未开机！请先将功能旋钮旋转至正确挡位！');
+      setMeterWarning(guard.message);
       return false;
     }
+    setMeterWarning(null);
     return true;
   };
 
@@ -1036,6 +1044,7 @@ export function C02FaultClassifyScene({
                   className="bg-amber-600 hover:bg-amber-700 text-white cursor-pointer"
                   onClick={() => {
                     if (!s4Decision) return;
+                    if (activeTool === 'MULTIMETER' && !requireMeterPowered(meterKnob === 'OHM' ? 'OHM' : 'DCV_20')) return;
                     const passed = s4Decision === activeBlind.actualFaultType;
                     if (passed) {
                       sounds.success();

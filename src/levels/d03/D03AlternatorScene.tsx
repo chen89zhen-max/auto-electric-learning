@@ -13,6 +13,7 @@ import { sounds } from '@/src/components/visuals/SoundEffects';
 import { useLevelAssessment } from '@/src/assessment/useLevelAssessment';
 import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
 import { type D03Step } from './d03Training';
+import { evaluateMeterGuard } from '@/src/game/instruments/meterGuard';
 
 interface D03AlternatorSceneProps {
   currentStep: D03Step;
@@ -138,15 +139,15 @@ export function D03AlternatorScene({
       BLIND_ALTERNATOR_FAULT_DIAGNOSIS: 'blind_test',
       ENGINEERING_REPAIR_AND_CHARGING_ACCEPTANCE: 'transfer',
     };
-    if (meterKnob === 'OFF') {
+    const guard = evaluateMeterGuard({
+      currentMode: meterKnob,
+      expectedMode: expected,
+      circuitPowered: expected !== 'OHM_200',
+      resistanceMeasurement: expected === 'OHM_200',
+    });
+    if (!guard.allowed) {
       sounds.warningBuzz();
-      setMeterWarning('⚠️ 万用表处于关机 OFF 状态！请先拨动旋钮开机再进行测量。');
-      assessment.recordMeterBlocked(stageMap[currentStep]);
-      return false;
-    }
-    if (meterKnob !== expected) {
-      sounds.warningBuzz();
-      setMeterWarning(`⚠️ 量程不匹配！当前测量需使用 ${expected} 挡位。`);
+      setMeterWarning(guard.message);
       assessment.recordMeterBlocked(stageMap[currentStep]);
       return false;
     }
@@ -1025,8 +1026,8 @@ export function D03AlternatorScene({
                   <Button
                     disabled={!s4Choice}
                     onClick={() => {
-                      if (meterKnob === 'OFF') {
-                        requireMeterPowered('DCV_20');
+                      const expectedMode = activeBlind.faultType === 'STATOR_PHASE_LOST' ? 'ACV_200' : 'OHM_200';
+                      if (!requireMeterPowered(expectedMode)) {
                         return;
                       }
                       if (s4Choice === activeBlind.faultType) {

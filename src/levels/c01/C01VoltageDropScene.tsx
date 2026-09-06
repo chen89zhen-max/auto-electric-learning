@@ -17,6 +17,7 @@ import { sounds } from '@/src/components/visuals/SoundEffects';
 import { type C01Step } from './c01Training';
 import { useLevelAssessment } from '@/src/assessment/useLevelAssessment';
 import type { LevelAssessmentResult, TrainingStageId } from '@/src/assessment/assessmentTypes';
+import { evaluateMeterGuard } from '@/src/game/instruments/meterGuard';
 
 interface C01VoltageDropSceneProps {
   currentStep: C01Step;
@@ -141,20 +142,27 @@ export function C01VoltageDropScene({
     setMeterWarning(null);
   };
 
-  const requireMeterPowered = () => {
-    if (meterKnob === 'OFF') {
+  const requireMeterPowered = (expected: 'DCV_20' | 'DCV_2' | 'OHM' = 'DCV_20'): boolean => {
+    const stageMap: Record<C01Step, TrainingStageId> = {
+      SYMPTOM_AND_HYPOTHESIS: 'cognition',
+      LOADED_VOLTAGE_DROP_TEST: 'standard',
+      UNLOADED_COUNTEREXAMPLE: 'calculation',
+      BLIND_FAULT_ISOLATION: 'blind_test',
+      REPAIR_AND_CLOSED_LOOP: 'transfer',
+    };
+    const guard = evaluateMeterGuard({
+      currentMode: meterKnob,
+      expectedMode: expected,
+      circuitPowered: true,
+      resistanceMeasurement: meterKnob === 'OHM',
+    });
+    if (!guard.allowed) {
       sounds.warningBuzz();
-      const stageMap: Record<C01Step, TrainingStageId> = {
-        SYMPTOM_AND_HYPOTHESIS: 'cognition',
-        LOADED_VOLTAGE_DROP_TEST: 'standard',
-        UNLOADED_COUNTEREXAMPLE: 'calculation',
-        BLIND_FAULT_ISOLATION: 'blind_test',
-        REPAIR_AND_CLOSED_LOOP: 'transfer',
-      };
       assessment.recordMeterBlocked(stageMap[currentStep]);
-      setMeterWarning('万用表尚未开机！请先将旋钮旋至直流电压挡 (DCV 20V)！');
+      setMeterWarning(guard.message);
       return false;
     }
+    setMeterWarning(null);
     return true;
   };
 
@@ -536,7 +544,6 @@ export function C01VoltageDropScene({
                     onClick={() => {
                       sounds.click();
                       setS1IsLoaded(true);
-                      if (meterKnob === 'OFF') setMeterKnob('DCV_20');
                     }}
                   >
                     <Zap size={14} className="mr-1" />
@@ -549,7 +556,6 @@ export function C01VoltageDropScene({
                     onClick={() => {
                       sounds.click();
                       setS1IsLoaded(false);
-                      if (meterKnob === 'OFF') setMeterKnob('DCV_20');
                     }}
                   >
                     拔下插头 (空载开路 12.0V)
@@ -566,7 +572,6 @@ export function C01VoltageDropScene({
                     onClick={() => {
                       sounds.click();
                       setS2ProbeMode('SUPPLY');
-                      if (meterKnob === 'OFF') setMeterKnob('DCV_20');
                     }}
                   >
                     供电侧跨接压降 (0.91V ⚠超标)
@@ -578,7 +583,6 @@ export function C01VoltageDropScene({
                     onClick={() => {
                       sounds.click();
                       setS2ProbeMode('GROUND');
-                      if (meterKnob === 'OFF') setMeterKnob('DCV_20');
                     }}
                   >
                     搭铁侧跨接压降 (0.18V 正常)
@@ -590,7 +594,6 @@ export function C01VoltageDropScene({
                     onClick={() => {
                       sounds.click();
                       setS2ProbeMode('BATTERY');
-                      if (meterKnob === 'OFF') setMeterKnob('DCV_20');
                     }}
                   >
                     蓄电池带载端压 (12.00V 正常)
@@ -607,7 +610,6 @@ export function C01VoltageDropScene({
                     onClick={() => {
                       sounds.click();
                       setS3IsLoaded(false);
-                      if (meterKnob === 'OFF') setMeterKnob('DCV_20');
                     }}
                   >
                     断开负载 (空载 I=0A / 压降为0V)
@@ -619,7 +621,6 @@ export function C01VoltageDropScene({
                     onClick={() => {
                       sounds.click();
                       setS3IsLoaded(true);
-                      if (meterKnob === 'OFF') setMeterKnob('DCV_20');
                     }}
                   >
                     闭合带载 (电流流过 / 压降 0.91V 现形)
@@ -640,7 +641,6 @@ export function C01VoltageDropScene({
                       setBlindCaseIndex((prev) => (prev + 1) % BLIND_CASES.length);
                       setS4Decision(null);
                       setS4Submitted(false);
-                      if (meterKnob === 'OFF') setMeterKnob('DCV_20');
                     }}
                   >
                     <RotateCw size={13} className="mr-1" />
@@ -1189,6 +1189,7 @@ export function C01VoltageDropScene({
                   className="bg-amber-600 hover:bg-amber-700 text-white cursor-pointer"
                   onClick={() => {
                     if (!s4Decision) return;
+                    if (!requireMeterPowered('DCV_20')) return;
                     const passed = s4Decision === activeBlindCase.faultLocation;
                     if (passed) {
                       sounds.success();
@@ -1261,9 +1262,9 @@ export function C01VoltageDropScene({
                 <Button
                   className="bg-amber-600 hover:bg-amber-700 text-white cursor-pointer"
                   onClick={() => {
+                    if (!requireMeterPowered('DCV_20')) return;
                     sounds.zap();
                     setRetestPerformed(true);
-                    if (meterKnob === 'OFF') setMeterKnob('DCV_20');
                   }}
                 >
                   <Sparkles size={16} className="mr-1" />

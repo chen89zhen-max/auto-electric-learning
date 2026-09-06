@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { sounds } from '@/src/components/visuals/SoundEffects';
 import { useLevelAssessment } from '@/src/assessment/useLevelAssessment';
 import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
+import { evaluateMeterGuard } from '@/src/game/instruments/meterGuard';
 import {
   type E01Step,
   E01_SAMPLES,
@@ -93,14 +94,14 @@ export function E01DiodeScene({
       BLIND_DIODE_FAULT_DIAGNOSIS: 'blind_test',
       ENGINEERING_REPAIR_AND_DELIVERY: 'transfer',
     };
-    if (meterKnob === 'OFF') {
-      setMeterWarning('⚠️ 万用表电源未开启！请先将旋钮打至相应测量挡位！');
-      sounds.playFailureSound?.();
-      assessment.recordMeterBlocked(stageMap[currentStep]);
-      return false;
-    }
-    if (meterKnob !== required) {
-      setMeterWarning(`⚠️ 挡位错误！当前需要打到 [${required}] 挡位进行测量！`);
+    const guard = evaluateMeterGuard({
+      currentMode: meterKnob,
+      expectedMode: required,
+      circuitPowered: currentStep === 'ENGINEERING_REPAIR_AND_DELIVERY' ? s5PowerOn : false,
+      resistanceMeasurement: required === 'OHM_2K' || required === 'DIODE',
+    });
+    if (!guard.allowed) {
+      setMeterWarning(guard.message);
       sounds.playFailureSound?.();
       assessment.recordMeterBlocked(stageMap[currentStep]);
       return false;

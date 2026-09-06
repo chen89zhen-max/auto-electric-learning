@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { sounds } from '@/src/components/visuals/SoundEffects';
 import { useLevelAssessment } from '@/src/assessment/useLevelAssessment';
 import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
+import { evaluateMeterGuard } from '@/src/game/instruments/meterGuard';
 import { type D05Step } from './d05Training';
 
 interface D05TransformerSceneProps {
@@ -83,15 +84,15 @@ export function D05TransformerScene({
       POLARITY_AND_SAME_NAME_TERMINALS: 'blind_test',
       ONBOARD_INVERTER_STEP_UP_DELIVERY: 'transfer',
     };
-    if (meterKnob === 'OFF') {
+    const guard = evaluateMeterGuard({
+      currentMode: meterKnob,
+      expectedMode: expected,
+      circuitPowered: expected !== 'OHM_200',
+      resistanceMeasurement: expected === 'OHM_200',
+    });
+    if (!guard.allowed) {
       sounds.warningBuzz();
-      setMeterWarning('⚠️ 万用表处于关机 OFF 状态！请先拨动旋钮开机再进行测量。');
-      assessment.recordMeterBlocked(stageMap[currentStep]);
-      return false;
-    }
-    if (meterKnob !== expected) {
-      sounds.warningBuzz();
-      setMeterWarning(`⚠️ 量程不匹配！当前测试需使用 ${expected} 挡位。`);
+      setMeterWarning(guard.message);
       assessment.recordMeterBlocked(stageMap[currentStep]);
       return false;
     }
@@ -937,6 +938,7 @@ export function D05TransformerScene({
                   <Button
                     disabled={!s5InverterOn || !s5LoadPlugged || !s5WorkOrderSigned}
                     onClick={() => {
+                      if (!requireMeterPowered('ACV_750')) return;
                       sounds.success();
                       setS5Submitted(true);
                       onStepComplete('ONBOARD_INVERTER_STEP_UP_DELIVERY', {

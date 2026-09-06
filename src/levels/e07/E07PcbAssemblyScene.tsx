@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { sounds } from '@/src/components/visuals/SoundEffects';
 import { useLevelAssessment } from '@/src/assessment/useLevelAssessment';
 import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
+import { evaluateMeterGuard } from '@/src/game/instruments/meterGuard';
 import {
   type E07Step,
   E07_DEFECTS,
@@ -101,7 +102,7 @@ export function E07PcbAssemblyScene({
   const [s5PowerTested, setS5PowerTested] = useState<boolean>(false);
   const [s5Submitted, setS5Submitted] = useState<boolean>(false);
 
-  const requireTool = (required: 'MAGNIFIER_10X' | 'BUZZER_OHM' | 'DCV_20'): boolean => {
+  const requireTool = (required: ('MAGNIFIER_10X' | 'BUZZER_OHM' | 'DCV_20') | ('MAGNIFIER_10X' | 'BUZZER_OHM' | 'DCV_20')[]): boolean => {
     const stageMap: Record<E07Step, 'cognition' | 'standard' | 'calculation' | 'blind_test' | 'transfer'> = {
       SOLDERING_SAFETY_AND_FIVE_STEPS: 'cognition',
       VIRTUAL_PCB_INSERTION_AND_WELD: 'standard',
@@ -109,15 +110,15 @@ export function E07PcbAssemblyScene({
       BLIND_PCB_DEFECT_INSPECTION: 'blind_test',
       ENGINEERING_REPAIR_AND_DELIVERY: 'transfer',
     };
-    if (meterKnob === 'OFF') {
+    const guard = evaluateMeterGuard({
+      currentMode: meterKnob,
+      expectedMode: required,
+      circuitPowered: false,
+      resistanceMeasurement: Array.isArray(required) ? required.includes('BUZZER_OHM') : required === 'BUZZER_OHM',
+    });
+    if (!guard.allowed) {
       assessment.recordMeterBlocked(stageMap[currentStep]);
-      setMeterWarning('⚠️ 检测工具电源未开！请先旋动旋钮选择检测工具！');
-      sounds.playFailureSound?.();
-      return false;
-    }
-    if (meterKnob !== required) {
-      assessment.recordMeterBlocked(stageMap[currentStep]);
-      setMeterWarning(`⚠️ 模式错误！当前需要切至 [${required}] 模式！`);
+      setMeterWarning(guard.message);
       sounds.playFailureSound?.();
       return false;
     }
@@ -790,7 +791,7 @@ export function E07PcbAssemblyScene({
                   <Button
                     disabled={Object.keys(s4Diagnoses).length < 4}
                     onClick={() => {
-                      if (!requireTool('BUZZER_OHM') && !requireTool('MAGNIFIER_10X')) return;
+                      if (!requireTool(['BUZZER_OHM', 'MAGNIFIER_10X'])) return;
                       const allCorrect = E07_DEFECTS.every(
                         (def) => s4Diagnoses[def.id] === def.actualDefect
                       );

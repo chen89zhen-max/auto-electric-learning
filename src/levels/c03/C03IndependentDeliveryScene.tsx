@@ -15,6 +15,7 @@ import { sounds } from '@/src/components/visuals/SoundEffects';
 import { type C03Step } from './c03Training';
 import { useLevelAssessment } from '@/src/assessment/useLevelAssessment';
 import type { LevelAssessmentResult, TrainingStageId } from '@/src/assessment/assessmentTypes';
+import { evaluateMeterGuard } from '@/src/game/instruments/meterGuard';
 
 interface C03IndependentDeliverySceneProps {
   currentStep: C03Step;
@@ -83,27 +84,36 @@ export function C03IndependentDeliveryScene({
     setMeterWarning(null);
   };
 
-  const requireMeterPowered = () => {
-    if (meterKnob === 'OFF') {
+  const requireMeterPowered = (expected: 'DCV_20' | 'OHM' = 'DCV_20'): boolean => {
+    const stageMap: Record<C03Step, TrainingStageId> = {
+      WORK_ORDER_INTAKE: 'cognition',
+      INDEPENDENT_STRATEGY: 'standard',
+      NON_DESTRUCTIVE_EXEC: 'calculation',
+      SOP_REPAIR_AND_REINSPECT: 'blind_test',
+      OWNER_DEFENSE_DELIVERY: 'transfer',
+    };
+    const guard = evaluateMeterGuard({
+      currentMode: meterKnob,
+      expectedMode: expected,
+      circuitPowered: true,
+      resistanceMeasurement: meterKnob === 'OHM',
+    });
+    if (!guard.allowed) {
       sounds.warningBuzz();
-      const stageMap: Record<C03Step, TrainingStageId> = {
-        WORK_ORDER_INTAKE: 'cognition',
-        INDEPENDENT_STRATEGY: 'standard',
-        NON_DESTRUCTIVE_EXEC: 'calculation',
-        SOP_REPAIR_AND_REINSPECT: 'blind_test',
-        OWNER_DEFENSE_DELIVERY: 'transfer',
-      };
       assessment.recordMeterBlocked(stageMap[currentStep]);
-      setMeterWarning('万用表尚未开机！请先旋至直流电压挡 (DCV 20V)！');
+      setMeterWarning(guard.message);
       return false;
     }
+    setMeterWarning(null);
     return true;
   };
 
   // Perform harness wiggle test
   const triggerWiggleTest = () => {
     sounds.click();
-    requireMeterPowered();
+    if (!requireMeterPowered('DCV_20')) {
+      return;
+    }
     setIsWiggling(true);
     setTimeout(() => {
       setIsWiggling(false);

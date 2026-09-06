@@ -18,6 +18,7 @@ import {
 } from './e03Training';
 import { useLevelAssessment } from '@/src/assessment/useLevelAssessment';
 import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
+import { evaluateMeterGuard } from '@/src/game/instruments/meterGuard';
 
 interface E03RectifierSceneProps {
   currentStep: E03Step;
@@ -80,7 +81,7 @@ export function E03RectifierScene({
     }
   }, [hintRequested, currentStep, assessment]);
 
-  const requireMeterKnob = (required: 'DCV_20' | 'ACV_20' | 'DIODE'): boolean => {
+  const requireMeterKnob = (required: ('DCV_20' | 'ACV_20' | 'DIODE') | ('DCV_20' | 'ACV_20' | 'DIODE')[]): boolean => {
     const stageMap: Record<E03Step, 'cognition' | 'standard' | 'calculation' | 'blind_test' | 'transfer'> = {
       RECTIFIER_TOPOLOGY_COGNITION: 'cognition',
       BRIDGE_WIRING_AND_MULTIMETER_TEST: 'standard',
@@ -88,15 +89,15 @@ export function E03RectifierScene({
       BLIND_RECTIFIER_FAULT_DIAGNOSIS: 'blind_test',
       ENGINEERING_REPAIR_AND_DELIVERY: 'transfer',
     };
-    if (meterKnob === 'OFF') {
+    const guard = evaluateMeterGuard({
+      currentMode: meterKnob,
+      expectedMode: required,
+      circuitPowered: currentStep === 'ENGINEERING_REPAIR_AND_DELIVERY' ? s5Repaired : false,
+      resistanceMeasurement: Array.isArray(required) ? required.includes('DIODE') : required === 'DIODE',
+    });
+    if (!guard.allowed) {
       assessment.recordMeterBlocked(stageMap[currentStep]);
-      setMeterWarning('⚠️ 万用表未开机！请先切至对应测量挡位！');
-      sounds.playFailureSound?.();
-      return false;
-    }
-    if (meterKnob !== required) {
-      assessment.recordMeterBlocked(stageMap[currentStep]);
-      setMeterWarning(`⚠️ 挡位错误！当前需要打到 [${required}] 挡位！`);
+      setMeterWarning(guard.message);
       sounds.playFailureSound?.();
       return false;
     }
@@ -720,6 +721,7 @@ export function E03RectifierScene({
                   <Button
                     disabled={Object.keys(s4Diagnoses).length < 4}
                     onClick={() => {
+                      if (!requireMeterKnob(['DIODE', 'DCV_20'])) return;
                       const allCorrect = E03_SAMPLES.every(
                         (smp) => s4Diagnoses[smp.id] === smp.actualType
                       );

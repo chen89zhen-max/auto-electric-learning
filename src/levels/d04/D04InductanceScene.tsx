@@ -14,6 +14,7 @@ import { sounds } from '@/src/components/visuals/SoundEffects';
 import { useLevelAssessment } from '@/src/assessment/useLevelAssessment';
 import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
 import { type D04Step } from './d04Training';
+import { evaluateMeterGuard } from '@/src/game/instruments/meterGuard';
 
 interface D04InductanceSceneProps {
   currentStep: D04Step;
@@ -138,15 +139,15 @@ export function D04InductanceScene({
       BLIND_IGNITION_FAULT_ISOLATION: 'blind_test',
       ENGINEERING_REPAIR_AND_SPARK_ACCEPTANCE: 'transfer',
     };
-    if (meterKnob === 'OFF') {
+    const guard = evaluateMeterGuard({
+      currentMode: meterKnob,
+      expectedMode: expected,
+      circuitPowered: expected === 'DCV_20',
+      resistanceMeasurement: expected === 'OHM_200' || expected === 'OHM_20K',
+    });
+    if (!guard.allowed) {
       sounds.warningBuzz();
-      setMeterWarning('⚠️ 万用表处于关机 OFF 状态！请先拨动旋钮开机再进行打表。');
-      assessment.recordMeterBlocked(stageMap[currentStep]);
-      return false;
-    }
-    if (meterKnob !== expected) {
-      sounds.warningBuzz();
-      setMeterWarning(`⚠️ 量程不匹配！当前测试需打到 ${expected} 挡。`);
+      setMeterWarning(guard.message);
       assessment.recordMeterBlocked(stageMap[currentStep]);
       return false;
     }
@@ -948,8 +949,8 @@ export function D04InductanceScene({
                   <Button
                     disabled={!s4Choice}
                     onClick={() => {
-                      if (meterKnob === 'OFF') {
-                        requireMeterPowered('OHM_200');
+                      const expectedMode = s4TestTarget === 'SECONDARY' ? 'OHM_20K' : 'OHM_200';
+                      if (!requireMeterPowered(expectedMode)) {
                         return;
                       }
                       if (s4Choice === activeBlind.faultType) {

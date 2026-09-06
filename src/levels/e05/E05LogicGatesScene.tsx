@@ -19,6 +19,7 @@ import {
 } from './e05Training';
 import { useLevelAssessment } from '@/src/assessment/useLevelAssessment';
 import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
+import { evaluateMeterGuard } from '@/src/game/instruments/meterGuard';
 
 interface E05LogicGatesSceneProps {
   currentStep: E05Step;
@@ -88,7 +89,7 @@ export function E05LogicGatesScene({
     }
   }, [hintRequested, currentStep, assessment]);
 
-  const requireMeterKnob = (required: 'DCV_20' | 'LOGIC_PROBE' | 'OHM_200'): boolean => {
+  const requireMeterKnob = (required: ('DCV_20' | 'LOGIC_PROBE' | 'OHM_200') | ('DCV_20' | 'LOGIC_PROBE' | 'OHM_200')[]): boolean => {
     const stageMap: Record<E05Step, 'cognition' | 'standard' | 'calculation' | 'blind_test' | 'transfer'> = {
       LOGIC_GATE_SYMBOLS_AND_TRUTH_TABLE: 'cognition',
       EXPERIMENT_BOX_TRUTH_VERIFICATION: 'standard',
@@ -96,15 +97,15 @@ export function E05LogicGatesScene({
       BLIND_LOGIC_IC_FAULT_DIAGNOSIS: 'blind_test',
       ENGINEERING_REPAIR_AND_DELIVERY: 'transfer',
     };
-    if (meterKnob === 'OFF') {
+    const guard = evaluateMeterGuard({
+      currentMode: meterKnob,
+      expectedMode: required,
+      circuitPowered: currentStep === 'ENGINEERING_REPAIR_AND_DELIVERY' ? s5Repaired : true,
+      resistanceMeasurement: Array.isArray(required) ? required.includes('OHM_200') : required === 'OHM_200',
+    });
+    if (!guard.allowed) {
       assessment.recordMeterBlocked(stageMap[currentStep]);
-      setMeterWarning('⚠️ 万用表电源未开启！请先旋动旋钮开启！');
-      sounds.playFailureSound?.();
-      return false;
-    }
-    if (meterKnob !== required) {
-      assessment.recordMeterBlocked(stageMap[currentStep]);
-      setMeterWarning(`⚠️ 挡位错误！当前必须处于 [${required}] 挡位！`);
+      setMeterWarning(guard.message);
       sounds.playFailureSound?.();
       return false;
     }
@@ -507,6 +508,7 @@ export function E05LogicGatesScene({
                   <Button
                     disabled={!s2Choice || Object.keys(s2VerifiedRows).length < 4}
                     onClick={() => {
+                      if (!requireMeterKnob(['LOGIC_PROBE', 'DCV_20'])) return;
                       if (s2Choice === 'A') {
                         setS2Submitted(true);
                         sounds.playSuccessSound?.();
@@ -823,6 +825,7 @@ export function E05LogicGatesScene({
                   <Button
                     disabled={Object.keys(s4Diagnoses).length < 4}
                     onClick={() => {
+                      if (!requireMeterKnob(['LOGIC_PROBE', 'DCV_20'])) return;
                       const allCorrect = E05_SAMPLES.every(
                         (smp) => s4Diagnoses[smp.id] === smp.actualType
                       );

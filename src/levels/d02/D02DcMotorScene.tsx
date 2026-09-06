@@ -13,6 +13,7 @@ import { sounds } from '@/src/components/visuals/SoundEffects';
 import { type D02Step } from './d02Training';
 import { useLevelAssessment } from '@/src/assessment/useLevelAssessment';
 import type { LevelAssessmentResult, TrainingStageId } from '@/src/assessment/assessmentTypes';
+import { evaluateMeterGuard } from '@/src/game/instruments/meterGuard';
 
 interface D02DcMotorSceneProps {
   currentStep: D02Step;
@@ -136,16 +137,16 @@ export function D02DcMotorScene({
       BLIND_DC_MOTOR_FAULT_ISOLATION: 'blind_test',
       ENGINEERING_REPAIR_AND_COMMISSIONING: 'transfer',
     };
-    if (meterKnob === 'OFF') {
+    const guard = evaluateMeterGuard({
+      currentMode: meterKnob,
+      expectedMode: expected,
+      circuitPowered: expected !== 'OHM_200',
+      resistanceMeasurement: expected === 'OHM_200',
+    });
+    if (!guard.allowed) {
       sounds.warningBuzz();
       assessment.recordMeterBlocked(stageMap[currentStep]);
-      setMeterWarning('⚠️ 万用表处于关机 OFF 状态！请先拨动旋钮开机再进行测量。');
-      return false;
-    }
-    if (meterKnob !== expected) {
-      sounds.warningBuzz();
-      assessment.recordMeterBlocked(stageMap[currentStep]);
-      setMeterWarning(`⚠️ 当前量程不匹配！请将万用表拨至目标挡位。`);
+      setMeterWarning(guard.message);
       return false;
     }
     setMeterWarning(null);
@@ -992,8 +993,8 @@ export function D02DcMotorScene({
                   <Button
                     disabled={!s4Choice}
                     onClick={() => {
-                      if (meterKnob === 'OFF') {
-                        requireMeterPowered('DCV_20');
+                      const expectedMode = activeBlind.faultType === 'BRUSH_WORN' ? 'OHM_200' : activeBlind.faultType === 'TRACK_JAM' ? 'DCA_20' : 'DCV_20';
+                      if (!requireMeterPowered(expectedMode)) {
                         return;
                       }
                       if (s4Choice === activeBlind.faultType) {

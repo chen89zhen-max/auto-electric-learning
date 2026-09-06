@@ -18,6 +18,7 @@ import {
 } from './e04Training';
 import { useLevelAssessment } from '@/src/assessment/useLevelAssessment';
 import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
+import { evaluateMeterGuard } from '@/src/game/instruments/meterGuard';
 
 interface E04TransistorSceneProps {
   currentStep: E04Step;
@@ -81,7 +82,7 @@ export function E04TransistorScene({
     }
   }, [hintRequested, currentStep, assessment]);
 
-  const requireMeterKnob = (required: 'DIODE' | 'HFE' | 'DCV_20'): boolean => {
+  const requireMeterKnob = (required: ('DIODE' | 'HFE' | 'DCV_20') | ('DIODE' | 'HFE' | 'DCV_20')[]): boolean => {
     const stageMap: Record<E04Step, 'cognition' | 'standard' | 'calculation' | 'blind_test' | 'transfer'> = {
       TRANSISTOR_PRINCIPLE_COGNITION: 'cognition',
       MULTIMETER_PIN_AND_BETA_TEST: 'standard',
@@ -89,15 +90,15 @@ export function E04TransistorScene({
       BLIND_TRANSISTOR_FAULT_DIAGNOSIS: 'blind_test',
       ENGINEERING_REPAIR_AND_DELIVERY: 'transfer',
     };
-    if (meterKnob === 'OFF') {
+    const guard = evaluateMeterGuard({
+      currentMode: meterKnob,
+      expectedMode: required,
+      circuitPowered: currentStep === 'ENGINEERING_REPAIR_AND_DELIVERY' ? s5Repaired : false,
+      resistanceMeasurement: false,
+    });
+    if (!guard.allowed) {
       assessment.recordMeterBlocked(stageMap[currentStep]);
-      setMeterWarning('⚠️ 万用表电源未开！请先切至所需挡位！');
-      sounds.playFailureSound?.();
-      return false;
-    }
-    if (meterKnob !== required) {
-      assessment.recordMeterBlocked(stageMap[currentStep]);
-      setMeterWarning(`⚠️ 挡位错误！当前需要打到 [${required}] 挡位！`);
+      setMeterWarning(guard.message);
       sounds.playFailureSound?.();
       return false;
     }
@@ -445,6 +446,7 @@ export function E04TransistorScene({
                   <Button
                     disabled={!s2Choice}
                     onClick={() => {
+                      if (!requireMeterKnob(['DIODE', 'HFE'])) return;
                       if (s2Choice === 'A') {
                         setS2Submitted(true);
                         sounds.playSuccessSound?.();
@@ -765,6 +767,7 @@ export function E04TransistorScene({
                   <Button
                     disabled={Object.keys(s4Diagnoses).length < 4}
                     onClick={() => {
+                      if (!requireMeterKnob('DCV_20')) return;
                       const allCorrect = E04_SAMPLES.every(
                         (smp) => s4Diagnoses[smp.id] === smp.actualType
                       );

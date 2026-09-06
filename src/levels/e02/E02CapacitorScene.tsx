@@ -19,6 +19,7 @@ import {
 } from './e02Training';
 import { useLevelAssessment } from '@/src/assessment/useLevelAssessment';
 import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
+import { evaluateMeterGuard } from '@/src/game/instruments/meterGuard';
 
 interface E02CapacitorSceneProps {
   currentStep: E02Step;
@@ -101,7 +102,7 @@ export function E02CapacitorScene({
   }, [hintRequested, currentStep, assessment]);
 
   // Multimeter guard
-  const requireMeterKnob = (required: 'CAP_F' | 'OHM_20K' | 'DCV_20'): boolean => {
+  const requireMeterKnob = (required: ('CAP_F' | 'OHM_20K' | 'DCV_20') | ('CAP_F' | 'OHM_20K' | 'DCV_20')[]): boolean => {
     const stageMap: Record<E02Step, 'cognition' | 'standard' | 'calculation' | 'blind_test' | 'transfer'> = {
       CAPACITOR_STORAGE_COGNITION: 'cognition',
       MULTIMETER_CAPACITANCE_TEST: 'standard',
@@ -109,15 +110,15 @@ export function E02CapacitorScene({
       BLIND_CAPACITOR_FAULT_DIAGNOSIS: 'blind_test',
       ENGINEERING_REPAIR_AND_DELIVERY: 'transfer',
     };
-    if (meterKnob === 'OFF') {
+    const guard = evaluateMeterGuard({
+      currentMode: meterKnob,
+      expectedMode: required,
+      circuitPowered: currentStep === 'ENGINEERING_REPAIR_AND_DELIVERY' ? s5Tested : false,
+      resistanceMeasurement: Array.isArray(required) ? required.some(r => r === 'OHM_20K' || r === 'CAP_F') : (required === 'OHM_20K' || required === 'CAP_F'),
+    });
+    if (!guard.allowed) {
       assessment.recordMeterBlocked(stageMap[currentStep]);
-      setMeterWarning('⚠️ 万用表未开机！请先切至对应挡位！');
-      sounds.playFailureSound?.();
-      return false;
-    }
-    if (meterKnob !== required) {
-      assessment.recordMeterBlocked(stageMap[currentStep]);
-      setMeterWarning(`⚠️ 挡位错误！当前必须打到 [${required}] 挡位！`);
+      setMeterWarning(guard.message);
       sounds.playFailureSound?.();
       return false;
     }
@@ -513,7 +514,7 @@ export function E02CapacitorScene({
                         alert('请先点击上方按钮执行安全放电！');
                         return;
                       }
-                      if (!requireMeterKnob('CAP_F') && !requireMeterKnob('OHM_20K')) return;
+                      if (!requireMeterKnob(['CAP_F', 'OHM_20K'])) return;
                       if (s2Choice === 'A') {
                         setS2Submitted(true);
                         sounds.playSuccessSound?.();
@@ -832,7 +833,7 @@ export function E02CapacitorScene({
                   <Button
                     disabled={Object.keys(s4Diagnoses).length < 4}
                     onClick={() => {
-                      if (!requireMeterKnob('CAP_F') && !requireMeterKnob('OHM_20K')) return;
+                      if (!requireMeterKnob(['CAP_F', 'OHM_20K'])) return;
                       const allCorrect = E02_SAMPLES.every(
                         (smp) => s4Diagnoses[smp.id] === smp.actualType
                       );

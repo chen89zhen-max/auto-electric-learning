@@ -18,6 +18,7 @@ import {
 } from './e06Training';
 import { useLevelAssessment } from '@/src/assessment/useLevelAssessment';
 import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
+import { evaluateMeterGuard } from '@/src/game/instruments/meterGuard';
 
 interface E06SpeedSensorSceneProps {
   currentStep: E06Step;
@@ -81,7 +82,7 @@ export function E06SpeedSensorScene({
     }
   }, [hintRequested, currentStep, assessment]);
 
-  const requireMeterKnob = (required: 'OHM_2K' | 'DCV_20' | 'OSCILLOSCOPE'): boolean => {
+  const requireMeterKnob = (required: ('OHM_2K' | 'DCV_20' | 'OSCILLOSCOPE') | ('OHM_2K' | 'DCV_20' | 'OSCILLOSCOPE')[]): boolean => {
     const stageMap: Record<E06Step, 'cognition' | 'standard' | 'calculation' | 'blind_test' | 'transfer'> = {
       MAGNETO_VS_HALL_COGNITION: 'cognition',
       MULTIMETER_AND_OSCILLOSCOPE_TEST: 'standard',
@@ -89,15 +90,15 @@ export function E06SpeedSensorScene({
       BLIND_SPEED_SENSOR_FAULT_DIAGNOSIS: 'blind_test',
       ENGINEERING_REPAIR_AND_DELIVERY: 'transfer',
     };
-    if (meterKnob === 'OFF') {
+    const guard = evaluateMeterGuard({
+      currentMode: meterKnob,
+      expectedMode: required,
+      circuitPowered: currentStep === 'ENGINEERING_REPAIR_AND_DELIVERY' ? s5TestDrove : false,
+      resistanceMeasurement: Array.isArray(required) ? required.includes('OHM_2K') : required === 'OHM_2K',
+    });
+    if (!guard.allowed) {
       assessment.recordMeterBlocked(stageMap[currentStep]);
-      setMeterWarning('⚠️ 测试仪表未开机！请先切至对应挡位！');
-      sounds.playFailureSound?.();
-      return false;
-    }
-    if (meterKnob !== required) {
-      assessment.recordMeterBlocked(stageMap[currentStep]);
-      setMeterWarning(`⚠️ 挡位错误！当前需要切到 [${required}] 挡位！`);
+      setMeterWarning(guard.message);
       sounds.playFailureSound?.();
       return false;
     }
@@ -727,6 +728,7 @@ export function E06SpeedSensorScene({
                   <Button
                     disabled={Object.keys(s4Diagnoses).length < 4}
                     onClick={() => {
+                      if (!requireMeterKnob(['OSCILLOSCOPE', 'OHM_2K'])) return;
                       const allCorrect = E06_SAMPLES.every(
                         (smp) => s4Diagnoses[smp.id] === smp.actualType
                       );
