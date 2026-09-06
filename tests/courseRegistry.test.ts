@@ -90,6 +90,11 @@ describe('Canonical Course Registry (P1)', () => {
     }
   });
 
+  it('uses the canonical A01 identifier when displaying 点亮检修灯', () => {
+    expect(getCourseLevel('A01')?.title).toBe('点亮检修灯');
+    expect(getCourseLevel('A01')?.num).toBe('A01');
+  });
+
   it('evaluates prerequisite satisfaction accurately', () => {
     // O00 has no prerequisites
     const o00Check = checkLevelPrerequisites('O00', []);

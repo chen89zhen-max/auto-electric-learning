@@ -136,7 +136,7 @@ export const CANONICAL_COURSE_REGISTRY: CourseLevelDefinition[] = [
     legacyId: 'LEVEL_02',
     chapterId: 'chapter_a',
     chapterTitle: '篇章一：把电路看明白',
-    num: '02',
+    num: 'A01',
     title: '点亮检修灯',
     subtitle: '电路的认知与车身搭铁',
     description: '认识电源、负载、开关与熔断器，掌握双线闭合回路与汽车单线车身搭铁。',
