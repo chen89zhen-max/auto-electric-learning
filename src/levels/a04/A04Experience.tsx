@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ClipboardList,
   GraduationCap,
@@ -14,6 +14,7 @@ import { FullscreenButton } from '@/src/components/FullscreenButton';
 import { AbilityReport } from '@/src/components/AbilityReport';
 import { MasterChenAvatar } from '@/src/components/visuals/MasterChenAvatar';
 import { sounds } from '@/src/components/visuals/SoundEffects';
+import { speakText, stopSpeaking } from '@/src/components/visuals/SpeechTts';
 import { getStudentDisplayName } from '@/src/stores/authStore';
 import { A04CurrentScene } from './scenes/A04CurrentScene';
 import { A04_STAGE_CONTENT, type A04Step } from './a04Training';
@@ -26,13 +27,22 @@ interface A04ExperienceProps {
 export function A04Experience({ onReturnLobby }: A04ExperienceProps) {
   const [currentStep, setCurrentStep] = useState<A04Step>('SERIES_MEASUREMENT');
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
-  const [practiceMode, setPracticeMode] = useState<PracticeMode>('guided');
+  const [practiceMode] = useState<PracticeMode>('guided');
   const [stepEvidences, setStepEvidences] = useState<Record<string, unknown>>({});
   const [sceneRevision, setSceneRevision] = useState(0);
   const [showWorkOrder, setShowWorkOrder] = useState(false);
   const [hintRequested, setHintRequested] = useState(false);
 
   const guidance = A04_STAGE_CONTENT[currentStep];
+
+  // Auto-speak Master Chen's prompt or hint on new dialog
+  useEffect(() => {
+    const textToSpeak = hintRequested ? guidance.hint : guidance.mentorPrompt;
+    speakText(textToSpeak);
+    return () => {
+      stopSpeaking();
+    };
+  }, [currentStep, hintRequested, guidance.mentorPrompt, guidance.hint]);
 
   const handleStepComplete = (step: A04Step, evidence: Record<string, unknown>) => {
     setStepEvidences((prev) => ({
@@ -91,35 +101,9 @@ export function A04Experience({ onReturnLobby }: A04ExperienceProps) {
             <span>实训成长称号 · {getStudentDisplayName('见习学员')}</span>
           </div>
 
-          <div className="flex items-center gap-1 bg-slate-200 p-0.5 rounded-lg text-xs font-bold">
-            <button
-              type="button"
-              onClick={() => setPracticeMode('guided')}
-              className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                practiceMode === 'guided' ? 'bg-white text-red-700 shadow-xs' : 'text-slate-600'
-              }`}
-            >
-              跟练模式
-            </button>
-            <button
-              type="button"
-              onClick={() => setPracticeMode('independent')}
-              className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                practiceMode === 'independent' ? 'bg-white text-red-700 shadow-xs' : 'text-slate-600'
-              }`}
-            >
-              独立模式
-            </button>
-            <button
-              type="button"
-              onClick={() => setPracticeMode('transfer')}
-              className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                practiceMode === 'transfer' ? 'bg-white text-red-700 shadow-xs' : 'text-slate-600'
-              }`}
-            >
-              迁移模式
-            </button>
-          </div>
+          <span className="px-2.5 py-1 rounded-md bg-red-100 text-red-900 border border-red-300 text-xs font-bold">
+            5阶段递进实训
+          </span>
 
           <FullscreenButton />
           <button
@@ -185,13 +169,9 @@ export function A04Experience({ onReturnLobby }: A04ExperienceProps) {
             <div className="scene-panel">
               <div className="scene-heading">
                 <span className="status-dot bg-red-500 shadow-red-500/20" />
-                <span>3号实训工位 · 汽车回路电流分析台</span>
+                <span>4号实训工位 · 汽车电子电流分析检测台</span>
                 <span className="scene-meta">
-                  {practiceMode === 'guided'
-                    ? '半引导实训'
-                    : practiceMode === 'independent'
-                    ? '自主实训'
-                    : '迁移实训'}
+                  5阶段综合实训
                 </span>
               </div>
               <div className="scene-content" key={sceneRevision}>
@@ -240,11 +220,15 @@ export function A04Experience({ onReturnLobby }: A04ExperienceProps) {
                   </p>
                   <button
                     type="button"
-                    className="text-red-700/60 hover:text-red-800 transition-colors p-1 cursor-pointer"
-                    title="播报提示音"
-                    onClick={() => sounds.click()}
+                    className="text-red-700/70 hover:text-red-900 transition-colors p-1.5 cursor-pointer rounded hover:bg-red-100"
+                    title="重播陈师傅语音"
+                    onClick={() => {
+                      sounds.click();
+                      const textToSpeak = hintRequested ? guidance.hint : guidance.mentorPrompt;
+                      speakText(textToSpeak);
+                    }}
                   >
-                    <Volume2 size={16} />
+                    <Volume2 size={18} />
                   </button>
                 </div>
               </div>
@@ -260,7 +244,7 @@ export function A04Experience({ onReturnLobby }: A04ExperienceProps) {
 
               <div className="tutor-context">
                 <span>当前实训环节</span>
-                <strong>A04 · 电流测量 · {practiceMode === 'guided' ? '半引导实训' : practiceMode === 'independent' ? '自主实训' : '实车排故'}</strong>
+                <strong>A04 · 电流分析与测量 · {guidance.title.split('：')[0]}</strong>
               </div>
             </aside>
           </>

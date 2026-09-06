@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ClipboardList,
   GraduationCap,
@@ -14,6 +14,7 @@ import { FullscreenButton } from '@/src/components/FullscreenButton';
 import { AbilityReport } from '@/src/components/AbilityReport';
 import { MasterChenAvatar } from '@/src/components/visuals/MasterChenAvatar';
 import { sounds } from '@/src/components/visuals/SoundEffects';
+import { speakText, stopSpeaking } from '@/src/components/visuals/SpeechTts';
 import { getStudentDisplayName } from '@/src/stores/authStore';
 import { A03ResistanceScene } from './scenes/A03ResistanceScene';
 import { A03_STAGE_CONTENT, type A03Step } from './a03Training';
@@ -26,13 +27,22 @@ interface A03ExperienceProps {
 export function A03Experience({ onReturnLobby }: A03ExperienceProps) {
   const [currentStep, setCurrentStep] = useState<A03Step>('COLOR_CODE_CALC');
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
-  const [practiceMode, setPracticeMode] = useState<PracticeMode>('guided');
+  const [practiceMode] = useState<PracticeMode>('guided');
   const [stepEvidences, setStepEvidences] = useState<Record<string, unknown>>({});
   const [sceneRevision, setSceneRevision] = useState(0);
   const [showWorkOrder, setShowWorkOrder] = useState(false);
   const [hintRequested, setHintRequested] = useState(false);
 
   const guidance = A03_STAGE_CONTENT[currentStep];
+
+  // Auto-speak Master Chen's prompt or hint on new dialog
+  useEffect(() => {
+    const textToSpeak = hintRequested ? guidance.hint : guidance.mentorPrompt;
+    speakText(textToSpeak);
+    return () => {
+      stopSpeaking();
+    };
+  }, [currentStep, hintRequested, guidance.mentorPrompt, guidance.hint]);
 
   const handleStepComplete = (step: A03Step, evidence: Record<string, unknown>) => {
     setStepEvidences((prev) => ({
@@ -49,9 +59,12 @@ export function A03Experience({ onReturnLobby }: A03ExperienceProps) {
       setCurrentStep('POTENTIOMETER_TEST');
       setHintRequested(false);
     } else if (currentStep === 'POTENTIOMETER_TEST') {
-      setCurrentStep('TRANSFER_SORTING');
+      setCurrentStep('INDEPENDENT_EVAL');
       setHintRequested(false);
-    } else if (currentStep === 'TRANSFER_SORTING') {
+    } else if (currentStep === 'INDEPENDENT_EVAL') {
+      setCurrentStep('TRANSFER_NTC');
+      setHintRequested(false);
+    } else if (currentStep === 'TRANSFER_NTC') {
       setIsCompleted(true);
     }
   };
@@ -88,35 +101,9 @@ export function A03Experience({ onReturnLobby }: A03ExperienceProps) {
             <span>实训成长称号 · {getStudentDisplayName('见习学员')}</span>
           </div>
 
-          <div className="flex items-center gap-1 bg-slate-200 p-0.5 rounded-lg text-xs font-bold">
-            <button
-              type="button"
-              onClick={() => setPracticeMode('guided')}
-              className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                practiceMode === 'guided' ? 'bg-white text-amber-700 shadow-xs' : 'text-slate-600'
-              }`}
-            >
-              跟练模式
-            </button>
-            <button
-              type="button"
-              onClick={() => setPracticeMode('independent')}
-              className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                practiceMode === 'independent' ? 'bg-white text-amber-700 shadow-xs' : 'text-slate-600'
-              }`}
-            >
-              独立模式
-            </button>
-            <button
-              type="button"
-              onClick={() => setPracticeMode('transfer')}
-              className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                practiceMode === 'transfer' ? 'bg-white text-amber-700 shadow-xs' : 'text-slate-600'
-              }`}
-            >
-              迁移模式
-            </button>
-          </div>
+          <span className="px-2.5 py-1 rounded-md bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold">
+            5阶段递进实训
+          </span>
 
           <FullscreenButton />
           <button
@@ -151,9 +138,9 @@ export function A03Experience({ onReturnLobby }: A03ExperienceProps) {
                 dimensions={[
                   { id: 'COLOR_CODE', label: '色环识读与阻值解码', stars: 5 },
                   { id: 'TOLERANCE', label: '公差区间计算与预测', stars: 5 },
-                  { id: 'SAFETY_INTERCEPT', label: '断电测量与带电拒测', stars: 5 },
-                  { id: 'ZERO_ADJUST', label: '万用表校零与量程选择', stars: 5 },
-                  { id: 'POTENTIOMETER', label: '电位器动片特性验证', stars: 5 },
+                  { id: 'SAFETY_INTERCEPT', label: '断电测量与带电防呆', stars: 5 },
+                  { id: 'POTENTIOMETER', label: '电位器动片特性核验', stars: 5 },
+                  { id: 'TRANSFER_NTC', label: '实车传感器阻值诊断', stars: 5 },
                 ]}
                 summaryItems={[
                   {
@@ -168,10 +155,11 @@ export function A03Experience({ onReturnLobby }: A03ExperienceProps) {
                       ? `${(stepEvidences.COLOR_CODE_CALC as { min: number; max: number }).min}~${(stepEvidences.COLOR_CODE_CALC as { min: number; max: number }).max} Ω 合格`
                       : '209~231 Ω 合格',
                   },
-                  { label: '带电测阻拦截', value: '安全触发 100%' },
-                  { label: '超差电阻排查', value: '筛选识别准确' },
-                  { label: '电位器滑动特性', value: '双向线性核验' },
-                  { label: '本关用时', value: '1 分钟' },
+                  { label: '带电测阻拦截', value: 'V05 安全防护达成' },
+                  { label: '超差电阻排查', value: '分类筛选准确率 100%' },
+                  { label: '电位器滑动特性', value: '双向阻值线性互补验证' },
+                  { label: '进气压力偏置盲检', value: '985Ω 公差合格判定准确' },
+                  { label: '实车 NTC 排查', value: '负温度系数特性排查达标' },
                 ]}
                 metrics={stepEvidences}
                 mode={practiceMode}
@@ -194,11 +182,7 @@ export function A03Experience({ onReturnLobby }: A03ExperienceProps) {
                 <span className="status-dot bg-amber-500 shadow-amber-500/20" />
                 <span>3号实训工位 · 汽车电子元件检测台</span>
                 <span className="scene-meta">
-                  {practiceMode === 'guided'
-                    ? '半引导实训'
-                    : practiceMode === 'independent'
-                    ? '自主实训'
-                    : '迁移实训'}
+                  5阶段综合实训
                 </span>
               </div>
               <div className="scene-content" key={sceneRevision}>
@@ -247,11 +231,15 @@ export function A03Experience({ onReturnLobby }: A03ExperienceProps) {
                   </p>
                   <button
                     type="button"
-                    className="text-amber-700/60 hover:text-amber-800 transition-colors p-1 cursor-pointer"
-                    title="播报提示音"
-                    onClick={() => sounds.click()}
+                    className="text-amber-700/70 hover:text-amber-900 transition-colors p-1.5 cursor-pointer rounded hover:bg-amber-100"
+                    title="重播陈师傅语音"
+                    onClick={() => {
+                      sounds.click();
+                      const textToSpeak = hintRequested ? guidance.hint : guidance.mentorPrompt;
+                      speakText(textToSpeak);
+                    }}
                   >
-                    <Volume2 size={16} />
+                    <Volume2 size={18} />
                   </button>
                 </div>
               </div>
@@ -267,7 +255,7 @@ export function A03Experience({ onReturnLobby }: A03ExperienceProps) {
 
               <div className="tutor-context">
                 <span>当前实训环节</span>
-                <strong>A03 · 电阻测量 · {practiceMode === 'guided' ? '半引导实训' : practiceMode === 'independent' ? '自主实训' : '实车排故'}</strong>
+                <strong>A03 · 电阻识别与测量 · {guidance.title.split('：')[0]}</strong>
               </div>
             </aside>
           </>

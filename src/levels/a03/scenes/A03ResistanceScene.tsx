@@ -86,21 +86,29 @@ export function A03ResistanceScene({
     };
   }, [activeResistor]);
 
-  // Step 2: DMM states & sample measurement
-  const [dial, setDial] = useState<MultimeterDialMode>('RESISTANCE');
+  // Step 2: DMM states & sample measurement (Default OFF compliant with user request)
+  const [dial, setDial] = useState<MultimeterDialMode>('OFF');
   const [selectedSample, setSelectedSample] = useState<'A' | 'B' | 'C'>('A');
   const [isPowerAppliedToSample, setIsPowerAppliedToSample] = useState(false);
   const [sampleEvaluations, setSampleEvaluations] = useState<Record<string, string>>({});
   const [v05Triggered, setV05Triggered] = useState(false);
+  const [step2Feedback, setStep2Feedback] = useState<{ type: 'warning' | 'success'; message: string } | null>(null);
 
   // Step 3: Potentiometer testing
   const [potKnobRatio, setPotKnobRatio] = useState<number>(0.5);
   const [potProbePair, setPotProbePair] = useState<'1-3' | '1-2' | '2-3'>('1-3');
   const [potRecordedPoints, setPotRecordedPoints] = useState<Set<string>>(new Set());
 
-  // Step 4 / Transfer: NTC Coolant Temperature Sensor
+  // Step 4: Independent 985Ω blind check (Strictly zero spoiler, neutral initial state)
+  const [independentChoice, setIndependentChoice] = useState<string | null>(null);
+  const [independentSubmitted, setIndependentSubmitted] = useState<boolean>(false);
+  const [independentFeedback, setIndependentFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // Step 5: Transfer NTC Coolant Temperature Sensor (Strictly zero spoiler, neutral initial state)
   const [coolantTemp, setCoolantTemp] = useState<number>(20); // 20°C to 80°C
-  const [transferDecision, setTransferDecision] = useState<string | null>(null);
+  const [ntcChoice, setNtcChoice] = useState<string | null>(null);
+  const [ntcSubmitted, setNtcSubmitted] = useState<boolean>(false);
+  const [ntcFeedback, setNtcFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // DMM Solver evaluation
   const dmmResult = useMemo(() => {
@@ -132,24 +140,24 @@ export function A03ResistanceScene({
       });
     }
 
-    if (currentStep === 'TRANSFER_SORTING') {
-      if (practiceMode === 'transfer') {
-        // NTC sensor resistance: R(T) = 2500 * exp(-0.035 * (T - 20))
-        const ntcR = Math.round(2500 * Math.exp(-0.035 * (coolantTemp - 20)));
-        return dmm.measure({
-          isCircuitPowered: false,
-          isolatedResistance: ntcR,
-        });
-      } else {
-        return dmm.measure({
-          isCircuitPowered: false,
-          isolatedResistance: 985.0,
-        });
-      }
+    if (currentStep === 'INDEPENDENT_EVAL') {
+      return dmm.measure({
+        isCircuitPowered: false,
+        isolatedResistance: 985.0,
+      });
+    }
+
+    if (currentStep === 'TRANSFER_NTC') {
+      // NTC sensor resistance: R(T) = 2500 * exp(-0.035 * (T - 20))
+      const ntcR = Math.round(2500 * Math.exp(-0.035 * (coolantTemp - 20)));
+      return dmm.measure({
+        isCircuitPowered: false,
+        isolatedResistance: ntcR,
+      });
     }
 
     return dmm.measure({});
-  }, [dial, currentStep, selectedSample, activeSamples, isPowerAppliedToSample, potProbePair, potKnobRatio, coolantTemp, practiceMode]);
+  }, [dial, currentStep, selectedSample, activeSamples, isPowerAppliedToSample, potProbePair, potKnobRatio, coolantTemp]);
 
   // Step 1: Verify calculation without giving away answers (user must judge tolerance independently)
   const handleVerifyCalc = () => {
@@ -235,14 +243,30 @@ export function A03ResistanceScene({
     }
   };
 
-  // Step 2: Record sample classification
+  // Step 2: Record sample classification (with meter power-off interception)
   const handleClassifySample = (sampleId: 'A' | 'B' | 'C', classification: string) => {
     sounds.click();
+
+    // Check if multimeter is turned on to RESISTANCE gear
+    if (dial !== 'RESISTANCE') {
+      sounds.warningBuzz();
+      setStep2Feedback({
+        type: 'warning',
+        message: '万用表当前处于【关机】或非测阻挡位！无法读取有效阻值。请先在右侧仪表盘旋转/点击选择【电阻 (Ω)】挡位开机读数后再分类！',
+      });
+      return;
+    }
+
+    setStep2Feedback(null);
     const newEvals = { ...sampleEvaluations, [sampleId]: classification };
     setSampleEvaluations(newEvals);
 
     if (newEvals.A === 'QUALIFIED' && newEvals.B === 'UNQUALIFIED' && newEvals.C === 'BROKEN') {
       sounds.success();
+      setStep2Feedback({
+        type: 'success',
+        message: '✓ 3件待检样品全部完成精准判定分类！断电测量规范符合汽车维修工艺要求。',
+      });
       onStepComplete('SAMPLE_MEASUREMENT', {
         sampleA: activeResistor.sampleAValue,
         sampleB: activeResistor.sampleBValue,
@@ -273,16 +297,68 @@ export function A03ResistanceScene({
     }
   };
 
-  // Step 4: Transfer decision submit
-  const handleTransferDecision = (key: string) => {
+  // Step 4: Independent 985Ω Submit
+  const handleIndependentSubmit = () => {
     sounds.click();
-    setTransferDecision(key);
-    if (key === 'NTC_NORMAL' || key === '985_QUALIFIED') {
+    if (!independentChoice) {
+      setIndependentFeedback({
+        type: 'error',
+        message: '请先仔细阅读工单并观察右侧万用表读数，选择一项判定结论后再提交工单！',
+      });
+      return;
+    }
+
+    setIndependentSubmitted(true);
+    if (independentChoice === '985_QUALIFIED') {
       sounds.success();
-      onStepComplete('TRANSFER_SORTING', {
-        mode: practiceMode,
-        decision: key,
+      setIndependentFeedback({
+        type: 'success',
+        message: '✓ 判定完全正确！标称 1kΩ = 1000Ω，±5% 允许公差范围为 950Ω ~ 1050Ω。万用表实测 985.0Ω 稳稳落在公差区间内，符合汽车进气压力传感器偏置技术规范，属于合格品！',
+      });
+      onStepComplete('INDEPENDENT_EVAL', {
+        choice: independentChoice,
+        measured: 985.0,
         passed: true,
+        mode: practiceMode,
+      });
+    } else {
+      sounds.warningBuzz();
+      setIndependentFeedback({
+        type: 'error',
+        message: '判定有误：请注意标称 1kΩ (1000Ω) 在 ±5% 允许公差下的合格区间是 950Ω ~ 1050Ω。实测 985Ω 落在该合格区间之内，并非超差或损坏！请重新思考并选择。',
+      });
+    }
+  };
+
+  // Step 5: Transfer NTC Submit
+  const handleNtcSubmit = () => {
+    sounds.click();
+    if (!ntcChoice) {
+      setNtcFeedback({
+        type: 'error',
+        message: '请先拖动水温滑块观察实测阻值变化，选择一项维修结论后再提交报告！',
+      });
+      return;
+    }
+
+    setNtcSubmitted(true);
+    if (ntcChoice === 'NTC_NORMAL') {
+      sounds.success();
+      setNtcFeedback({
+        type: 'success',
+        message: '✓ 诊断完全正确！汽车发动机水温传感器为负温度系数 (NTC) 热敏电阻，工作规律为“水温上升、电阻反向下降”。冷态 20℃ 阻值约 2.5kΩ，热车 80℃ 阻值降至 300Ω，特性曲线连续平稳，该传感器性能良好！',
+      });
+      onStepComplete('TRANSFER_NTC', {
+        choice: ntcChoice,
+        passed: true,
+        coolantTemp,
+        mode: practiceMode,
+      });
+    } else {
+      sounds.warningBuzz();
+      setNtcFeedback({
+        type: 'error',
+        message: '诊断有误：汽车发动机水温传感器为负温度系数 (NTC) 热敏电阻，热态阻值变小是其固有的物理特性，并不是阻值衰减或失效！请重新判断。',
       });
     }
   };
@@ -295,37 +371,31 @@ export function A03ResistanceScene({
       sampleEvaluations.B === 'UNQUALIFIED' &&
       sampleEvaluations.C === 'BROKEN') ||
     (currentStep === 'POTENTIOMETER_TEST' && potRecordedPoints.size >= 4) ||
-    (currentStep === 'TRANSFER_SORTING' &&
-      (transferDecision === 'NTC_NORMAL' || transferDecision === '985_QUALIFIED'));
+    (currentStep === 'INDEPENDENT_EVAL' && independentSubmitted && independentChoice === '985_QUALIFIED') ||
+    (currentStep === 'TRANSFER_NTC' && ntcSubmitted && ntcChoice === 'NTC_NORMAL');
 
   return (
-    <div className="w-full flex flex-col gap-4 text-slate-800">
+    <div className="w-full flex-1 min-h-[580px] flex flex-col gap-4 text-slate-800">
       {/* Station Top Step Navigation Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-white border border-slate-200 rounded-xl shadow-xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-white border border-slate-200 rounded-xl shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             <span
-              className={`w-2.5 h-2.5 rounded-full ${
+              className={`w-3 h-3 rounded-full ${
                 isStepAdvanceReady ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
               }`}
             />
-            <span className="text-xs font-black text-slate-800 tracking-wider">
-              {currentStep === 'COLOR_CODE_CALC' && '阶段 1 / 4 · 色环识别与合格区间推算'}
-              {currentStep === 'SAMPLE_MEASUREMENT' && '阶段 2 / 4 · 断电测阻与带电拒测防呆 (V05)'}
-              {currentStep === 'POTENTIOMETER_TEST' && '阶段 3 / 4 · 调光电位器特性与阻值互补验证'}
-              {currentStep === 'TRANSFER_SORTING' &&
-                (practiceMode === 'transfer'
-                  ? '阶段 4 / 4 · 实车水温传感器 NTC 温度特性排查'
-                  : '阶段 4 / 4 · 复杂工况电阻盲检与单位换算')}
+            <span className="text-sm font-black text-slate-800 tracking-wide">
+              {currentStep === 'COLOR_CODE_CALC' && '阶段 1 / 5 · 四色环电阻识读与合格公差推算'}
+              {currentStep === 'SAMPLE_MEASUREMENT' && '阶段 2 / 5 · 万用表断电测阻与带电拒测防呆 (V05)'}
+              {currentStep === 'POTENTIOMETER_TEST' && '阶段 3 / 5 · 调光电位器特性与阻值互补验证'}
+              {currentStep === 'INDEPENDENT_EVAL' && '阶段 4 / 5 · 进气压力传感器偏置电阻盲检与公差判定'}
+              {currentStep === 'TRANSFER_NTC' && '阶段 5 / 5 · 迁移实战——实车水温传感器 (NTC) 特性排查'}
             </span>
           </div>
 
-          <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200">
-            {practiceMode === 'guided'
-              ? '跟练模式 · 步骤引导'
-              : practiceMode === 'independent'
-              ? '独立模式 · 自主盲检'
-              : '迁移模式 · 实车排故'}
+          <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-amber-50 text-amber-800 border border-amber-200">
+            一体化阶段实训
           </span>
         </div>
 
@@ -333,82 +403,83 @@ export function A03ResistanceScene({
           <Button
             size="sm"
             onClick={onAdvanceStep}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center gap-1.5 px-4 shadow-sm cursor-pointer"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center gap-1.5 px-4 py-2 shadow-sm cursor-pointer text-sm"
           >
-            <span>{currentStep === 'TRANSFER_SORTING' ? '查看通关报告' : '进入下一步'}</span>
-            <ArrowRight size={16} />
+            <span>{currentStep === 'TRANSFER_NTC' ? '查看能力报告' : '进入下一步'}</span>
+            <ArrowRight size={17} />
           </Button>
         )}
       </div>
 
       {/* STEP 1: Color Band Reading & Calculation (Zero spoiler, interactive magnifier, random switch) */}
+      {/* STEP 1: Color Band Reading & Calculation (Zero spoiler, interactive magnifier, random switch) */}
       {currentStep === 'COLOR_CODE_CALC' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1">
           {/* Left 7 Cols: Optical Resistor Viewer */}
-          <div className="lg:col-span-7 flex flex-col gap-3 p-4 bg-white border border-slate-200 rounded-xl shadow-xs">
+          <div className="lg:col-span-7 flex flex-col gap-4 p-5 bg-white border border-slate-200 rounded-xl shadow-xs">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                  <Sparkles size={15} className="text-amber-500" />
+                <span className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                  <Sparkles size={18} className="text-amber-500" />
                   四色环电阻光学放大检测台
                 </span>
-                <span className="text-[11px] text-slate-400">点击色环可高亮对应环位</span>
+                <span className="text-xs text-slate-500">点击色环可高亮对应环位</span>
               </div>
               <button
                 type="button"
                 onClick={handleRandomizeResistor}
-                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-amber-800 bg-amber-100 hover:bg-amber-200 border border-amber-300 rounded-lg transition-all cursor-pointer shadow-xs"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-amber-800 bg-amber-100 hover:bg-amber-200 border border-amber-300 rounded-lg transition-all cursor-pointer shadow-xs"
                 title="随机更换另一颗色环电阻进行识别练习"
               >
-                <Shuffle size={13} />
+                <Shuffle size={14} />
                 <span>随机切换电阻</span>
               </button>
             </div>
 
-            {/* Realistic Resistor SVG Viewer */}
-            <div className="w-full h-44 bg-gradient-to-b from-slate-900 to-slate-950 rounded-xl flex items-center justify-center p-4 relative overflow-hidden border border-slate-800 shadow-inner">
-              <div className="absolute top-2 left-3 text-[10px] text-slate-400 font-mono">
-                OPTICAL_ZOOM: 15X · {activeResistor.name}
+            {/* Realistic Resistor SVG Viewer (Expanded height and size) */}
+            <div className="w-full h-52 bg-gradient-to-b from-slate-900 to-slate-950 rounded-xl flex items-center justify-center p-4 relative overflow-hidden border border-slate-800 shadow-inner">
+              <div className="absolute top-2.5 left-3 text-xs text-slate-400 font-mono">
+                OPTICAL_ZOOM: 20X · {activeResistor.name}
               </div>
 
-              <svg viewBox="0 0 420 100" className="w-full max-w-sm drop-shadow-lg">
+              <svg viewBox="0 0 440 110" className="w-full max-w-md drop-shadow-xl">
                 {/* Leads */}
-                <line x1="20" y1="50" x2="100" y2="50" stroke="#94a3b8" strokeWidth="6" strokeLinecap="round" />
-                <line x1="320" y1="50" x2="400" y2="50" stroke="#94a3b8" strokeWidth="6" strokeLinecap="round" />
+                <line x1="20" y1="55" x2="100" y2="55" stroke="#94a3b8" strokeWidth="8" strokeLinecap="round" />
+                <line x1="340" y1="55" x2="420" y2="55" stroke="#94a3b8" strokeWidth="8" strokeLinecap="round" />
 
                 {/* Resistor body */}
-                <rect x="100" y="20" width="220" height="60" rx="14" fill="#cbd5e1" stroke="#64748b" strokeWidth="3" />
-                <rect x="108" y="16" width="30" height="68" rx="8" fill="#cbd5e1" stroke="#64748b" strokeWidth="2" />
-                <rect x="282" y="16" width="30" height="68" rx="8" fill="#cbd5e1" stroke="#64748b" strokeWidth="2" />
+                <rect x="100" y="20" width="240" height="70" rx="16" fill="#cbd5e1" stroke="#64748b" strokeWidth="3" />
+                <rect x="108" y="15" width="34" height="80" rx="10" fill="#cbd5e1" stroke="#64748b" strokeWidth="2.5" />
+                <rect x="298" y="15" width="34" height="80" rx="10" fill="#cbd5e1" stroke="#64748b" strokeWidth="2.5" />
 
                 {/* Color Band 1 */}
                 <g onClick={() => setActiveBandIndex(1)} className="cursor-pointer">
-                  <rect x="135" y="16" width="18" height="68" fill={activeResistor.bands[0].color} rx="2" />
-                  {activeBandIndex === 1 && <rect x="132" y="13" width="24" height="74" fill="none" stroke="#fef08a" strokeWidth="3" rx="4" />}
+                  <rect x="140" y="15" width="20" height="80" fill={activeResistor.bands[0].color} rx="3" />
+                  {activeBandIndex === 1 && <rect x="136" y="11" width="28" height="88" fill="none" stroke="#fef08a" strokeWidth="3.5" rx="5" />}
                 </g>
 
                 {/* Color Band 2 */}
                 <g onClick={() => setActiveBandIndex(2)} className="cursor-pointer">
-                  <rect x="175" y="20" width="18" height="60" fill={activeResistor.bands[1].color} rx="2" />
-                  {activeBandIndex === 2 && <rect x="172" y="17" width="24" height="66" fill="none" stroke="#fef08a" strokeWidth="3" rx="4" />}
+                  <rect x="185" y="20" width="20" height="70" fill={activeResistor.bands[1].color} rx="3" />
+                  {activeBandIndex === 2 && <rect x="181" y="16" width="28" height="78" fill="none" stroke="#fef08a" strokeWidth="3.5" rx="5" />}
                 </g>
 
                 {/* Color Band 3 */}
                 <g onClick={() => setActiveBandIndex(3)} className="cursor-pointer">
-                  <rect x="215" y="20" width="18" height="60" fill={activeResistor.bands[2].color} rx="2" />
-                  {activeBandIndex === 3 && <rect x="212" y="17" width="24" height="66" fill="none" stroke="#fef08a" strokeWidth="3" rx="4" />}
+                  <rect x="230" y="20" width="20" height="70" fill={activeResistor.bands[2].color} rx="3" />
+                  {activeBandIndex === 3 && <rect x="226" y="16" width="28" height="78" fill="none" stroke="#fef08a" strokeWidth="3.5" rx="5" />}
                 </g>
 
                 {/* Color Band 4 */}
                 <g onClick={() => setActiveBandIndex(4)} className="cursor-pointer">
-                  <rect x="275" y="16" width="18" height="68" fill={activeResistor.bands[3].color} rx="2" />
-                  {activeBandIndex === 4 && <rect x="272" y="13" width="24" height="74" fill="none" stroke="#fef08a" strokeWidth="3" rx="4" />}
+                  <rect x="290" y="15" width="20" height="80" fill={activeResistor.bands[3].color} rx="3" />
+                  {activeBandIndex === 4 && <rect x="286" y="11" width="28" height="88" fill="none" stroke="#fef08a" strokeWidth="3.5" rx="5" />}
                 </g>
               </svg>
             </div>
 
             {/* Interactive Color Guide Strip */}
-            <div className="grid grid-cols-4 gap-2 text-center text-xs">
+            <div className="grid grid-cols-4 gap-2.5 text-center">
               {activeResistor.bands.map((band, idx) => {
                 const ringNum = idx + 1;
                 const isSelected = activeBandIndex === ringNum;
@@ -426,65 +497,65 @@ export function A03ResistanceScene({
                     key={ringNum}
                     type="button"
                     onClick={() => setActiveBandIndex(ringNum)}
-                    className={`p-2 rounded-lg border transition-all cursor-pointer ${
+                    className={`p-2.5 rounded-lg border transition-all cursor-pointer ${
                       isSelected
-                        ? `${band.bgColor} ${band.borderColor} ring-2 ring-amber-300`
+                        ? `${band.bgColor} ${band.borderColor} ring-2 ring-amber-400`
                         : 'bg-slate-50 border-slate-200 hover:bg-white'
                     }`}
                   >
-                    <span className={`font-bold ${band.textColor} block`}>
+                    <span className={`font-bold text-sm ${band.textColor} block`}>
                       第{ringNum === 1 ? '一' : ringNum === 2 ? '二' : ringNum === 3 ? '三' : '四'}环：{band.name}
                     </span>
-                    <span className="text-slate-600 text-[11px]">{roleText}</span>
+                    <span className="text-slate-600 text-xs">{roleText}</span>
                   </button>
                 );
               })}
             </div>
 
             {/* Quick decode reference card */}
-            <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-lg text-xs text-amber-900 flex items-start gap-2">
-              <span className="font-bold shrink-0">色标基准：</span>
+            <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-900 flex items-start gap-2.5">
+              <span className="font-bold shrink-0">色标基准口诀：</span>
               <p className="leading-relaxed">
-                色环口诀：黑0 棕1 红2 橙3 黄4 绿5 蓝6 紫7 灰8 白9；倍率：黑×10⁰，棕×10¹，红×10²；误差：金±5%，银±10%。
+                黑0 棕1 红2 橙3 黄4 绿5 蓝6 紫7 灰8 白9；倍率：黑×10⁰，棕×10¹，红×10²；末环公差：金±5%，银±10%。
               </p>
             </div>
           </div>
 
           {/* Right 5 Cols: Inspection Calculation Worksheet */}
-          <div className="lg:col-span-5 flex flex-col gap-3 p-4 bg-white border border-slate-200 rounded-xl shadow-xs">
+          <div className="lg:col-span-5 flex flex-col gap-4 p-5 bg-white border border-slate-200 rounded-xl shadow-xs">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-slate-800 uppercase tracking-wider">
+              <span className="text-sm font-black text-slate-800 uppercase tracking-wide">
                 实训工单 · 阻值解码与公差预测记录卡
               </span>
-              <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+              <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded border border-slate-200">
                 当前样品：{activeResistor.bands.map((b) => b.name).join('·')}
               </span>
             </div>
 
-            <div className="flex flex-col gap-3 text-xs">
-              <div className="flex flex-col gap-1.5 p-3 bg-slate-50 rounded-lg border border-slate-200">
+            <div className="flex flex-col gap-3.5 text-sm">
+              <div className="flex flex-col gap-1.5 p-3.5 bg-slate-50 rounded-lg border border-slate-200">
                 <span className="font-bold text-slate-700">1. 解码标称阻值：</span>
                 <div className="flex items-center gap-2">
                   <input
                     type="number"
-                    placeholder="请输入计算得到的标称值"
+                    placeholder="请输入标称值"
                     value={nominalInput}
                     onChange={(e) => setNominalInput(e.target.value)}
-                    className="flex-1 p-2 bg-white border border-slate-300 rounded text-slate-900 font-bold"
+                    className="flex-1 p-2.5 bg-white border border-slate-300 rounded text-slate-900 font-bold text-base"
                   />
-                  <span className="font-bold text-slate-700">Ω</span>
+                  <span className="font-bold text-slate-700 text-base">Ω</span>
                 </div>
               </div>
 
-              <div className="flex flex-col gap-1.5 p-3 bg-slate-50 rounded-lg border border-slate-200">
+              <div className="flex flex-col gap-1.5 p-3.5 bg-slate-50 rounded-lg border border-slate-200">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-slate-700">2. 判定第 4 环允许公差：</span>
-                  <span className="text-[11px] text-slate-500">（观察末环颜色自主判断）</span>
+                  <span className="text-xs text-slate-500">（根据末环颜色自主判断）</span>
                 </div>
                 <select
                   value={toleranceInput}
                   onChange={(e) => setToleranceInput(e.target.value)}
-                  className="w-full p-2 bg-white border border-slate-300 rounded text-slate-900 font-bold cursor-pointer"
+                  className="w-full p-2.5 bg-white border border-slate-300 rounded text-slate-900 font-bold text-sm cursor-pointer"
                 >
                   <option value="">-- 请观察第4环颜色自主选择允许误差 --</option>
                   <option value="5">±5%（金色环 · 汽车电子常用）</option>
@@ -494,32 +565,32 @@ export function A03ResistanceScene({
                 </select>
               </div>
 
-              <div className="flex flex-col gap-1.5 p-3 bg-slate-50 rounded-lg border border-slate-200">
+              <div className="flex flex-col gap-1.5 p-3.5 bg-slate-50 rounded-lg border border-slate-200">
                 <span className="font-bold text-slate-700">3. 推算允许公差合格区间：</span>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-slate-600 shrink-0">下限：</span>
                   <input
                     type="number"
-                    placeholder="请输入下限"
+                    placeholder="下限"
                     value={minBoundInput}
                     onChange={(e) => setMinBoundInput(e.target.value)}
-                    className="w-24 p-2 bg-white border border-slate-300 rounded text-center text-slate-900 font-bold"
+                    className="w-28 p-2 bg-white border border-slate-300 rounded text-center text-slate-900 font-bold text-base"
                   />
                   <span>~ 上限：</span>
                   <input
                     type="number"
-                    placeholder="请输入上限"
+                    placeholder="上限"
                     value={maxBoundInput}
                     onChange={(e) => setMaxBoundInput(e.target.value)}
-                    className="w-24 p-2 bg-white border border-slate-300 rounded text-center text-slate-900 font-bold"
+                    className="w-28 p-2 bg-white border border-slate-300 rounded text-center text-slate-900 font-bold text-base"
                   />
-                  <span className="font-bold text-slate-700">Ω</span>
+                  <span className="font-bold text-slate-700 text-base">Ω</span>
                 </div>
               </div>
 
               <Button
                 onClick={handleVerifyCalc}
-                className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 cursor-pointer shadow-sm"
+                className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 cursor-pointer shadow-sm text-sm"
               >
                 校验并提交工单
               </Button>
@@ -630,16 +701,16 @@ export function A03ResistanceScene({
             </div>
 
             {/* Classification Actions */}
-            <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-2.5">
-              <span className="text-xs font-bold text-slate-700">
-                当前夹接：{activeSamples[selectedSample].name} · 根据测量示数出具判定：
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-3">
+              <span className="text-sm font-bold text-slate-700">
+                当前夹接：{activeSamples[selectedSample].name} · 根据仪表读数判定分类：
               </span>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-3">
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => handleClassifySample(selectedSample, 'QUALIFIED')}
-                  className="text-xs font-bold text-emerald-700 border-emerald-300 hover:bg-emerald-50 cursor-pointer"
+                  className="text-sm font-bold text-emerald-700 border-emerald-300 hover:bg-emerald-50 cursor-pointer py-2.5"
                 >
                   判定为：合格品
                 </Button>
@@ -647,7 +718,7 @@ export function A03ResistanceScene({
                   size="sm"
                   variant="outline"
                   onClick={() => handleClassifySample(selectedSample, 'UNQUALIFIED')}
-                  className="text-xs font-bold text-amber-700 border-amber-300 hover:bg-amber-50 cursor-pointer"
+                  className="text-sm font-bold text-amber-700 border-amber-300 hover:bg-amber-50 cursor-pointer py-2.5"
                 >
                   判定为：超差不合格
                 </Button>
@@ -655,19 +726,37 @@ export function A03ResistanceScene({
                   size="sm"
                   variant="outline"
                   onClick={() => handleClassifySample(selectedSample, 'BROKEN')}
-                  className="text-xs font-bold text-red-700 border-red-300 hover:bg-red-50 cursor-pointer"
+                  className="text-sm font-bold text-red-700 border-red-300 hover:bg-red-50 cursor-pointer py-2.5"
                 >
                   判定为：断路件
                 </Button>
               </div>
             </div>
 
+            {/* Feedback / Interception banner */}
+            {step2Feedback && (
+              <div
+                className={`p-3.5 rounded-lg border text-sm flex items-start gap-2.5 ${
+                  step2Feedback.type === 'success'
+                    ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
+                    : 'bg-amber-50 border-amber-300 text-amber-900'
+                }`}
+              >
+                {step2Feedback.type === 'success' ? (
+                  <CheckCircle2 size={20} className="text-emerald-600 shrink-0 mt-0.5" />
+                ) : (
+                  <AlertTriangle size={20} className="text-amber-600 shrink-0 mt-0.5" />
+                )}
+                <p className="font-semibold leading-relaxed">{step2Feedback.message}</p>
+              </div>
+            )}
+
             {/* V05 Alarm Banner */}
             {dmmResult.status === 'REFUSED_LIVE_CIRCUIT' && (
-              <div className="p-3 bg-red-100 border-2 border-red-400 rounded-xl text-xs text-red-900 flex items-start gap-2.5 animate-bounce">
-                <AlertTriangle size={20} className="text-red-700 shrink-0 mt-0.5" />
+              <div className="p-4 bg-red-100 border-2 border-red-400 rounded-xl text-sm text-red-900 flex items-start gap-3 animate-bounce">
+                <AlertTriangle size={22} className="text-red-700 shrink-0 mt-0.5" />
                 <div>
-                  <strong className="block text-sm">安全防护拦截 (基准 V05 · 带电测阻严禁！)</strong>
+                  <strong className="block text-sm font-bold">安全防护拦截 (基准 V05 · 严禁带电测阻！)</strong>
                   <p className="mt-1 leading-relaxed text-red-800">
                     检测到带电网络！万用表欧姆挡内部有测量电池，若接触外部供电会导致瞬间过流烧表。系统已强制拒绝测量并锁定保护！请先断开电源！
                   </p>
@@ -676,37 +765,53 @@ export function A03ResistanceScene({
             )}
           </div>
 
-          {/* Right 5 Cols: Bench Digital Multimeter (Active Tool) */}
-          <div className="lg:col-span-5 flex flex-col gap-3 p-4 bg-slate-900 text-white rounded-xl shadow-md border border-slate-700">
+          {/* Right 5 Cols: Bench Digital Multimeter (Active Tool, Default OFF) */}
+          <div className="lg:col-span-5 flex flex-col gap-3.5 p-5 bg-slate-900 text-white rounded-xl shadow-md border border-slate-700">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
-                <Gauge size={16} />
+              <span className="text-sm font-bold text-amber-400 flex items-center gap-2">
+                <Gauge size={18} />
                 车规级数字万用表
               </span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
-                COM / VΩ 已接入
+              <span className="text-xs font-bold px-2.5 py-1 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                COM / VΩ 表笔插口已连接
               </span>
             </div>
 
-            {/* LCD Screen */}
-            <div className="flex flex-col justify-between h-24 p-3 bg-emerald-950 border-4 border-slate-800 rounded-lg shadow-inner font-mono text-emerald-400">
-              <div className="flex items-center justify-between text-xs opacity-75">
-                <span>AUTO RANGE</span>
-                <span>{dmmResult.status === 'REFUSED_LIVE_CIRCUIT' ? 'LIVE REFUSED' : 'RESISTANCE'}</span>
+            {/* LCD Screen: Expanded to h-32 with text-4xl/5xl */}
+            {dial === 'OFF' ? (
+              <div className="flex flex-col justify-between h-32 p-3.5 bg-slate-950 border-4 border-slate-800 rounded-xl shadow-inner font-mono text-slate-500">
+                <div className="flex items-center justify-between text-xs text-slate-600">
+                  <span>DMM-6000 AUTO</span>
+                  <span>POWER OFF</span>
+                </div>
+                <div className="text-4xl lg:text-5xl font-black text-right tracking-widest text-slate-700">
+                  ----
+                </div>
+                <div className="flex items-center justify-between text-xs text-slate-600">
+                  <span>已关机 (请选电阻挡开机)</span>
+                  <span>STANDBY</span>
+                </div>
               </div>
-              <div className="text-3xl font-black text-right tracking-widest text-emerald-300">
-                {dmmResult.displayText || 'O.L'}
+            ) : (
+              <div className="flex flex-col justify-between h-32 p-3.5 bg-emerald-950 border-4 border-slate-800 rounded-xl shadow-inner font-mono text-emerald-400">
+                <div className="flex items-center justify-between text-xs opacity-80">
+                  <span>DMM-6000 AUTO</span>
+                  <span>{dmmResult.status === 'REFUSED_LIVE_CIRCUIT' ? 'LIVE REFUSED' : 'RESISTANCE'}</span>
+                </div>
+                <div className="text-4xl lg:text-5xl font-black text-right tracking-widest text-emerald-300">
+                  {dmmResult.displayText || 'O.L'}
+                </div>
+                <div className="flex items-center justify-between text-xs opacity-80">
+                  <span>{dmmResult.status}</span>
+                  <span>{dmmResult.unit}</span>
+                </div>
               </div>
-              <div className="flex items-center justify-between text-[11px] opacity-75">
-                <span>{dmmResult.status}</span>
-                <span>{dmmResult.unit}</span>
-              </div>
-            </div>
+            )}
 
-            {/* Dial Gear */}
-            <div className="flex flex-col gap-1.5">
-              <span className="text-xs font-bold text-slate-300">仪表挡位选择：</span>
-              <div className="grid grid-cols-3 gap-1.5 text-xs">
+            {/* Dial Gear Selection */}
+            <div className="flex flex-col gap-2">
+              <span className="text-sm font-bold text-slate-300">仪表挡位选择（初始默认关机）：</span>
+              <div className="grid grid-cols-3 gap-2 text-sm">
                 {(['OFF', 'DC_V', 'RESISTANCE', 'DC_A', 'CONTINUITY'] as MultimeterDialMode[]).map((mode) => (
                   <button
                     key={mode}
@@ -715,9 +820,9 @@ export function A03ResistanceScene({
                       setDial(mode);
                       sounds.click();
                     }}
-                    className={`py-1.5 rounded font-bold transition-all cursor-pointer ${
+                    className={`py-2 rounded font-bold transition-all cursor-pointer ${
                       dial === mode
-                        ? 'bg-amber-500 text-slate-950 shadow-xs'
+                        ? 'bg-amber-500 text-slate-950 shadow-md ring-2 ring-amber-300'
                         : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                     }`}
                   >
@@ -725,14 +830,14 @@ export function A03ResistanceScene({
                     {mode === 'DC_V' && '直流电压 (V)'}
                     {mode === 'DC_A' && '直流电流 (A)'}
                     {mode === 'CONTINUITY' && '蜂鸣 (🔔)'}
-                    {mode === 'OFF' && '关机'}
+                    {mode === 'OFF' && '关机 (OFF)'}
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="mt-auto p-2.5 bg-slate-800/80 rounded-lg text-[11px] text-slate-300 leading-relaxed border border-slate-700">
-              提示：合格区间为 209Ω ~ 231Ω。样品实测若超出上限为超差件；若显示 O.L 则为内部断路件。
+            <div className="mt-auto p-3 bg-slate-800/80 rounded-lg text-xs text-slate-300 leading-relaxed border border-slate-700">
+              提示：若万用表在关机状态，屏幕显示 “----” 且无法测阻。请先点击【电阻 (Ω)】旋钮开机读数。
             </div>
           </div>
         </div>
@@ -748,48 +853,48 @@ export function A03ResistanceScene({
             </span>
 
             {/* 3D-styled Potentiometer Graphic */}
-            <div className="w-full h-44 bg-gradient-to-b from-slate-900 to-slate-950 rounded-xl flex flex-col items-center justify-center p-4 relative overflow-hidden border border-slate-800 shadow-inner">
-              <svg viewBox="0 0 320 110" className="w-64 drop-shadow-md">
+            <div className="w-full h-52 bg-gradient-to-b from-slate-900 to-slate-950 rounded-xl flex flex-col items-center justify-center p-4 relative overflow-hidden border border-slate-800 shadow-inner">
+              <svg viewBox="0 0 340 120" className="w-72 drop-shadow-md">
                 {/* Circular Body */}
-                <circle cx="160" cy="55" r="42" fill="#1e293b" stroke="#e2e8f0" strokeWidth="2.5" />
-                <circle cx="160" cy="55" r="34" fill="#0f172a" />
+                <circle cx="170" cy="55" r="46" fill="#1e293b" stroke="#e2e8f0" strokeWidth="3" />
+                <circle cx="170" cy="55" r="36" fill="#0f172a" />
 
                 {/* Knob Rotary Pointer */}
                 <line
-                  x1="160"
+                  x1="170"
                   y1="55"
-                  x2={160 + 28 * Math.cos((potKnobRatio * 240 - 120) * (Math.PI / 180))}
-                  y2={55 + 28 * Math.sin((potKnobRatio * 240 - 120) * (Math.PI / 180))}
+                  x2={170 + 32 * Math.cos((potKnobRatio * 240 - 120) * (Math.PI / 180))}
+                  y2={55 + 32 * Math.sin((potKnobRatio * 240 - 120) * (Math.PI / 180))}
                   stroke="#f59e0b"
-                  strokeWidth="5"
+                  strokeWidth="5.5"
                   strokeLinecap="round"
                 />
-                <circle cx="160" cy="55" r="8" fill="#f59e0b" />
+                <circle cx="170" cy="55" r="9" fill="#f59e0b" />
 
                 {/* Three Terminals */}
-                <circle cx="90" cy="95" r="7" fill={potProbePair === '1-3' || potProbePair === '1-2' ? '#ef4444' : '#64748b'} />
-                <text x="90" y="107" fill="#cbd5e1" fontSize="9" textAnchor="middle">1 (固定A)</text>
+                <circle cx="95" cy="100" r="8" fill={potProbePair === '1-3' || potProbePair === '1-2' ? '#ef4444' : '#64748b'} />
+                <text x="95" y="113" fill="#cbd5e1" fontSize="11" textAnchor="middle" fontWeight="bold">1(固定A)</text>
 
-                <circle cx="160" cy="95" r="7" fill={potProbePair === '1-2' || potProbePair === '2-3' ? '#f59e0b' : '#64748b'} />
-                <text x="160" y="107" fill="#fde68a" fontSize="9" textAnchor="middle">2 (动片W)</text>
+                <circle cx="170" cy="100" r="8" fill={potProbePair === '1-2' || potProbePair === '2-3' ? '#f59e0b' : '#64748b'} />
+                <text x="170" y="113" fill="#fde68a" fontSize="11" textAnchor="middle" fontWeight="bold">2(动片W)</text>
 
-                <circle cx="230" cy="95" r="7" fill={potProbePair === '1-3' || potProbePair === '2-3' ? '#3b82f6' : '#64748b'} />
-                <text x="230" y="107" fill="#cbd5e1" fontSize="9" textAnchor="middle">3 (固定B)</text>
+                <circle cx="245" cy="100" r="8" fill={potProbePair === '1-3' || potProbePair === '2-3' ? '#3b82f6' : '#64748b'} />
+                <text x="245" y="113" fill="#cbd5e1" fontSize="11" textAnchor="middle" fontWeight="bold">3(固定B)</text>
               </svg>
 
-              <span className="text-xs text-amber-300 font-mono mt-1">
-                旋钮转角：{(potKnobRatio * 100).toFixed(0)}%
+              <span className="text-sm text-amber-300 font-mono mt-1 font-bold">
+                当前旋钮转角：{(potKnobRatio * 100).toFixed(0)}%
               </span>
             </div>
 
             {/* Interactive Rotary Control */}
-            <div className="flex flex-col gap-2 p-3 bg-slate-50 rounded-lg border border-slate-200">
-              <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-                <span className="flex items-center gap-1.5">
-                  <Sliders size={15} className="text-amber-600" />
+            <div className="flex flex-col gap-2 p-3.5 bg-slate-50 rounded-lg border border-slate-200">
+              <div className="flex items-center justify-between text-sm font-bold text-slate-700">
+                <span className="flex items-center gap-2">
+                  <Sliders size={16} className="text-amber-600" />
                   拖动调节电位器转角：
                 </span>
-                <span className="text-amber-700 font-mono font-black">{(potKnobRatio * 100).toFixed(0)}%</span>
+                <span className="text-amber-700 font-mono font-black text-base">{(potKnobRatio * 100).toFixed(0)}%</span>
               </div>
               <input
                 type="range"
@@ -798,21 +903,21 @@ export function A03ResistanceScene({
                 step="0.05"
                 value={potKnobRatio}
                 onChange={(e) => setPotKnobRatio(parseFloat(e.target.value))}
-                className="w-full accent-amber-600 cursor-pointer"
+                className="w-full accent-amber-600 cursor-pointer h-2.5"
               />
             </div>
 
             {/* Probe Target Selector */}
-            <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs">
+            <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-lg border border-slate-200 text-sm flex-wrap gap-2">
               <span className="font-bold text-slate-700">万用表表笔夹接：</span>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <button
                   type="button"
                   onClick={() => {
                     setPotProbePair('1-3');
                     sounds.click();
                   }}
-                  className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                  className={`px-3.5 py-2 rounded-lg font-bold transition-all cursor-pointer ${
                     potProbePair === '1-3' ? 'bg-amber-600 text-white shadow-xs' : 'bg-white border border-slate-300 text-slate-700'
                   }`}
                 >
@@ -824,7 +929,7 @@ export function A03ResistanceScene({
                     setPotProbePair('1-2');
                     sounds.click();
                   }}
-                  className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                  className={`px-3.5 py-2 rounded-lg font-bold transition-all cursor-pointer ${
                     potProbePair === '1-2' ? 'bg-amber-600 text-white shadow-xs' : 'bg-white border border-slate-300 text-slate-700'
                   }`}
                 >
@@ -836,7 +941,7 @@ export function A03ResistanceScene({
                     setPotProbePair('2-3');
                     sounds.click();
                   }}
-                  className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                  className={`px-3.5 py-2 rounded-lg font-bold transition-all cursor-pointer ${
                     potProbePair === '2-3' ? 'bg-amber-600 text-white shadow-xs' : 'bg-white border border-slate-300 text-slate-700'
                   }`}
                 >
@@ -847,43 +952,43 @@ export function A03ResistanceScene({
 
             {/* Record Action */}
             <div className="flex items-center justify-between pt-1">
-              <Button size="sm" onClick={handleRecordPotPoint} className="cursor-pointer bg-amber-600 hover:bg-amber-700 text-white font-bold">
+              <Button size="sm" onClick={handleRecordPotPoint} className="cursor-pointer bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-4 text-sm">
                 记录当前测点数据 ({potRecordedPoints.size}/4)
               </Button>
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-slate-500 font-medium">
                 已记录测点：{Array.from(potRecordedPoints).join(', ') || '暂无'}
               </span>
             </div>
           </div>
 
           {/* Right 5 Cols: Bench DMM */}
-          <div className="lg:col-span-5 flex flex-col gap-3 p-4 bg-slate-900 text-white rounded-xl shadow-md border border-slate-700">
+          <div className="lg:col-span-5 flex flex-col gap-4 p-5 bg-slate-900 text-white rounded-xl shadow-md border border-slate-700">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
-                <Gauge size={16} />
+              <span className="text-sm font-bold text-amber-400 flex items-center gap-2">
+                <Gauge size={18} />
                 数字万用表 · 电阻测量
               </span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-900 text-emerald-300 border border-emerald-700">
+              <span className="text-xs font-bold px-2.5 py-1 rounded bg-emerald-900 text-emerald-300 border border-emerald-700">
                 端子已导通
               </span>
             </div>
 
-            <div className="flex flex-col justify-between h-24 p-3 bg-emerald-950 border-4 border-slate-800 rounded-lg shadow-inner font-mono text-emerald-400">
-              <div className="flex items-center justify-between text-xs opacity-75">
-                <span>AUTO RANGE</span>
+            <div className="flex flex-col justify-between h-32 p-3.5 bg-emerald-950 border-4 border-slate-800 rounded-xl shadow-inner font-mono text-emerald-400">
+              <div className="flex items-center justify-between text-xs opacity-80">
+                <span>DMM-6000 AUTO</span>
                 <span>{potProbePair} 端测阻</span>
               </div>
-              <div className="text-3xl font-black text-right tracking-widest text-emerald-300">
+              <div className="text-4xl lg:text-5xl font-black text-right tracking-widest text-emerald-300">
                 {dmmResult.displayText}
               </div>
-              <div className="flex items-center justify-between text-[11px] opacity-75">
+              <div className="flex items-center justify-between text-xs opacity-80">
                 <span>NORMAL</span>
                 <span>{dmmResult.unit}</span>
               </div>
             </div>
 
-            <div className="p-3 bg-slate-800/80 rounded-lg text-xs text-slate-300 leading-relaxed border border-slate-700">
-              <strong className="block text-amber-300 mb-1">电位器核心物理规律：</strong>
+            <div className="p-3.5 bg-slate-800/80 rounded-lg text-sm text-slate-300 leading-relaxed border border-slate-700">
+              <strong className="block text-amber-300 mb-1 font-bold">电位器核心物理规律：</strong>
               <p>1. 固定端 1-3 总阻值恒等于标称阻值 10kΩ，与旋钮角度无关。</p>
               <p>2. 动片 1-2 与 2-3 阻值互补变化，无论旋钮在何处，R(1-2) + R(2-3) 恒等于 10kΩ！</p>
             </div>
@@ -891,186 +996,271 @@ export function A03ResistanceScene({
         </div>
       )}
 
-      {/* STEP 4: Transfer Challenge (NTC Coolant Sensor vs Independent 1kΩ) */}
-      {currentStep === 'TRANSFER_SORTING' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-          {practiceMode === 'transfer' ? (
-            <>
-              {/* Left 7 Cols: Coolant Passage & Temp Slider */}
-              <div className="lg:col-span-7 flex flex-col gap-3.5 p-4 bg-white border border-slate-200 rounded-xl shadow-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                    <Thermometer size={16} className="text-blue-600" />
-                    实车发动机冷却液水道 · 水温传感器 (NTC)
-                  </span>
-                  <span className="text-xs text-slate-500 font-mono">ECT_SENSOR_NTC</span>
-                </div>
+      {/* STEP 4: Independent Evaluation 1kΩ Blind Check (Zero spoiler!) */}
+      {currentStep === 'INDEPENDENT_EVAL' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1">
+          {/* Left 7 Cols: Task Order & Question without spoilers */}
+          <div className="lg:col-span-7 flex flex-col gap-4 p-5 bg-white border border-slate-200 rounded-xl shadow-xs">
+            <span className="text-sm font-bold text-slate-800">
+              实训工单 · 汽车进气压力传感器偏置电阻盲检考核
+            </span>
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-sm leading-relaxed text-slate-700">
+              <p className="font-bold mb-1.5 text-slate-900">实车故障情境与规格要求：</p>
+              <p>
+                汽车进气压力传感器电路常备标称 <strong>1kΩ ± 5%</strong> 规格的偏置电阻。仓库领出待检件，万用表实测为 <strong>0.985 kΩ (即 985.0 Ω)</strong>。
+                请结合允许公差范围，独立分析该电阻是否合格并提交判定：
+              </p>
+            </div>
 
-                <div className="w-full h-40 bg-slate-900 rounded-xl flex items-center justify-around p-4 relative border border-slate-800">
-                  <div className="flex flex-col items-center gap-2">
-                    <div
-                      className={`w-16 h-16 rounded-2xl flex items-center justify-center text-white font-bold transition-all ${
-                        coolantTemp < 40 ? 'bg-blue-600 shadow-blue-500/30' : coolantTemp < 70 ? 'bg-amber-600 shadow-amber-500/30' : 'bg-red-600 shadow-red-500/30'
+            {/* Zero Spoiler Multiple Choice Options */}
+            <div className="flex flex-col gap-3 text-sm">
+              {[
+                {
+                  id: '985_QUALIFIED',
+                  label: 'A. 合格品：标称 1kΩ=1000Ω，±5% 允许范围为 950Ω ~ 1050Ω，实测 985Ω 落在合格公差带内',
+                },
+                {
+                  id: '985_OUT',
+                  label: 'B. 超差品：实测 985Ω 小于标称阻值 1000Ω，属于阻值偏低不合格',
+                },
+                {
+                  id: '985_BROKEN',
+                  label: 'C. 损坏件：阻值带有小数且偏离整数，属于内部击穿断路件',
+                },
+              ].map((opt) => {
+                const isSelected = independentChoice === opt.id;
+                return (
+                  <label
+                    key={opt.id}
+                    className={`flex items-start gap-3 p-3.5 rounded-xl border-2 transition-all cursor-pointer ${
+                      isSelected
+                        ? 'border-amber-500 bg-amber-50/70 text-slate-900 ring-2 ring-amber-300'
+                        : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-800'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="independent_opt"
+                      checked={isSelected}
+                      onChange={() => {
+                        setIndependentChoice(opt.id);
+                        sounds.click();
+                      }}
+                      className="mt-1 accent-amber-600"
+                    />
+                    <span className="font-medium leading-relaxed">{opt.label}</span>
+                  </label>
+                );
+              })}
+            </div>
+
+            <Button
+              onClick={handleIndependentSubmit}
+              className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 cursor-pointer shadow-sm text-sm"
+            >
+              提交判定并核验工单
+            </Button>
+
+            {independentFeedback && (
+              <div
+                className={`p-3.5 rounded-lg border text-sm flex items-start gap-2.5 ${
+                  independentFeedback.type === 'success'
+                    ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
+                    : 'bg-red-50 border-red-300 text-red-900'
+                }`}
+              >
+                {independentFeedback.type === 'success' ? (
+                  <CheckCircle2 size={20} className="text-emerald-600 shrink-0 mt-0.5" />
+                ) : (
+                  <AlertTriangle size={20} className="text-red-600 shrink-0 mt-0.5" />
+                )}
+                <p className="font-semibold leading-relaxed">{independentFeedback.message}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Right 5 Cols: Bench DMM Ammeter */}
+          <div className="lg:col-span-5 flex flex-col gap-4 p-5 bg-slate-900 text-white rounded-xl shadow-md border border-slate-700">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold text-amber-400 flex items-center gap-2">
+                <Gauge size={18} />
+                万用表实测读数
+              </span>
+              <span className="text-xs font-bold px-2.5 py-1 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                1kΩ 待测电阻样品
+              </span>
+            </div>
+
+            <div className="flex flex-col justify-between h-32 p-3.5 bg-emerald-950 border-4 border-slate-800 rounded-xl shadow-inner font-mono text-emerald-400">
+              <div className="flex items-center justify-between text-xs opacity-80">
+                <span>DMM-6000 AUTO</span>
+                <span>RESISTANCE STABLE</span>
+              </div>
+              <div className="text-4xl lg:text-5xl font-black text-right tracking-widest text-emerald-300">
+                985.0
+              </div>
+              <div className="flex items-center justify-between text-xs opacity-80">
+                <span>NORMAL</span>
+                <span>Ω</span>
+              </div>
+            </div>
+
+            <div className="p-3.5 bg-slate-800/80 rounded-lg text-sm text-slate-300 leading-relaxed border border-slate-700">
+              <strong className="block text-amber-300 mb-1 font-bold">盲检要求：</strong>
+              根据标称值 1kΩ (1000Ω) 与允许误差 ±5%，先自主计算允许公差的上下限。若万用表读数在上下限闭区间内，即为合格良品。
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* STEP 5: Transfer NTC Coolant Temp Sensor (Zero spoiler!) */}
+      {currentStep === 'TRANSFER_NTC' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1">
+          {/* Left 7 Cols: Coolant Passage & Temp Slider */}
+          <div className="lg:col-span-7 flex flex-col gap-4 p-5 bg-white border border-slate-200 rounded-xl shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <Thermometer size={18} className="text-blue-600" />
+                实车发动机冷却液水道 · 水温传感器 (NTC)
+              </span>
+              <span className="text-xs text-slate-500 font-mono font-bold">ECT_SENSOR_NTC</span>
+            </div>
+
+            <div className="w-full h-44 bg-slate-900 rounded-xl flex items-center justify-around p-4 relative border border-slate-800">
+              <div className="flex flex-col items-center gap-2">
+                <div
+                  className={`w-16 h-16 rounded-2xl flex items-center justify-center text-white font-bold transition-all ${
+                    coolantTemp < 40 ? 'bg-blue-600 shadow-blue-500/30' : coolantTemp < 70 ? 'bg-amber-600 shadow-amber-500/30' : 'bg-red-600 shadow-red-500/30'
+                  }`}
+                >
+                  <Thermometer size={34} />
+                </div>
+                <span className="text-sm font-bold text-slate-300">当前冷却液水温：{coolantTemp} ℃</span>
+              </div>
+
+              <div className="flex flex-col gap-1.5 text-xs text-slate-300">
+                <p>工况阶段：{coolantTemp <= 30 ? '冷车静置状态' : coolantTemp <= 60 ? '发动机暖机阶段' : '正常热车工作水温'}</p>
+                <p>元件属性：负温度系数 (NTC 热敏电阻)</p>
+                <p className="text-amber-400 font-bold">物理特性：温度升高，阻值反向降低</p>
+              </div>
+            </div>
+
+            {/* Temperature slider */}
+            <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 flex flex-col gap-2">
+              <div className="flex items-center justify-between text-sm font-bold text-slate-700">
+                <span>模拟发动机冷却液温度调节：</span>
+                <span className="font-mono text-blue-700 text-base font-black">{coolantTemp} ℃</span>
+              </div>
+              <input
+                type="range"
+                min="20"
+                max="85"
+                step="5"
+                value={coolantTemp}
+                onChange={(e) => setCoolantTemp(parseInt(e.target.value))}
+                className="w-full accent-blue-600 cursor-pointer h-2.5"
+              />
+            </div>
+
+            {/* Diagnostic Question (Zero Spoiler!) */}
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-3 text-sm">
+              <span className="font-bold text-slate-800">
+                维修决策判定：观察右侧万用表实测阻值（20℃约2.5kΩ → 80℃约300Ω），该水温传感器性能是否正常？
+              </span>
+              <div className="flex flex-col gap-2.5">
+                {[
+                  {
+                    id: 'NTC_NORMAL',
+                    label: 'A. 性能良好：呈现典型负温度系数 (NTC) 特性，热态阻值降低平稳，传感器工作正常',
+                  },
+                  {
+                    id: 'NTC_FAIL',
+                    label: 'B. 存在故障：热车时阻值大幅变小属于阻值衰减失效，应更换新水温传感器',
+                  },
+                ].map((opt) => {
+                  const isSelected = ntcChoice === opt.id;
+                  return (
+                    <label
+                      key={opt.id}
+                      className={`flex items-start gap-3 p-3.5 rounded-xl border-2 transition-all cursor-pointer ${
+                        isSelected
+                          ? 'border-blue-500 bg-blue-50/70 text-slate-900 ring-2 ring-blue-300'
+                          : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-800'
                       }`}
                     >
-                      <Thermometer size={32} />
-                    </div>
-                    <span className="text-xs font-bold text-slate-300">当前水温：{coolantTemp} ℃</span>
-                  </div>
-
-                  <div className="flex flex-col gap-1 text-xs text-slate-300">
-                    <p>工况：{coolantTemp <= 30 ? '冷车静置状态' : coolantTemp <= 60 ? '发动机暖机阶段' : '正常热车工作水温'}</p>
-                    <p>传感器类型：负温度系数 (NTC 热敏电阻)</p>
-                    <p className="text-amber-400">规律：温度上升，阻值反向下降</p>
-                  </div>
-                </div>
-
-                {/* Temperature slider */}
-                <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 flex flex-col gap-2">
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-                    <span>模拟发动机水温调节：</span>
-                    <span className="font-mono text-blue-700">{coolantTemp} ℃</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="20"
-                    max="85"
-                    step="5"
-                    value={coolantTemp}
-                    onChange={(e) => setCoolantTemp(parseInt(e.target.value))}
-                    className="w-full accent-blue-600 cursor-pointer"
-                  />
-                </div>
-
-                {/* Diagnostic Question */}
-                <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-2 text-xs">
-                  <span className="font-bold text-slate-800">
-                    维修决策：根据实测阻值随温度下降曲线（20℃约2.5kΩ → 80℃约300Ω），该水温传感器是否正常？
-                  </span>
-                  <div className="flex flex-col gap-2 mt-1">
-                    <label className="flex items-center gap-2 p-2 rounded border bg-white cursor-pointer hover:bg-slate-50">
                       <input
                         type="radio"
-                        name="ntc_diag"
-                        checked={transferDecision === 'NTC_NORMAL'}
-                        onChange={() => handleTransferDecision('NTC_NORMAL')}
+                        name="ntc_diag_opt"
+                        checked={isSelected}
+                        onChange={() => {
+                          setNtcChoice(opt.id);
+                          sounds.click();
+                        }}
+                        className="mt-1 accent-blue-600"
                       />
-                      <span className="font-bold text-emerald-800">
-                        A. 性能良好：呈现典型负温度系数 (NTC) 特性，热态阻值降低，传感器正常
-                      </span>
+                      <span className="font-medium leading-relaxed">{opt.label}</span>
                     </label>
-                    <label className="flex items-center gap-2 p-2 rounded border bg-white cursor-pointer hover:bg-slate-50">
-                      <input
-                        type="radio"
-                        name="ntc_diag"
-                        checked={transferDecision === 'NTC_FAIL'}
-                        onChange={() => handleTransferDecision('NTC_FAIL')}
-                      />
-                      <span>B. 存在故障：热车时阻值变小属于阻值衰减失效，应更换传感器</span>
-                    </label>
-                  </div>
-                </div>
+                  );
+                })}
               </div>
 
-              {/* Right 5 Cols: Bench DMM */}
-              <div className="lg:col-span-5 flex flex-col gap-3 p-4 bg-slate-900 text-white rounded-xl shadow-md border border-slate-700">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
-                    <Gauge size={16} />
-                    万用表实时阻值
-                  </span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800">
-                    ECT 传感器端子
-                  </span>
-                </div>
+              <Button
+                onClick={handleNtcSubmit}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 cursor-pointer shadow-sm text-sm mt-1"
+              >
+                提交实车维修诊断结论
+              </Button>
 
-                <div className="flex flex-col justify-between h-24 p-3 bg-emerald-950 border-4 border-slate-800 rounded-lg shadow-inner font-mono text-emerald-400">
-                  <div className="flex items-center justify-between text-xs opacity-75">
-                    <span>NTC THERMISTOR</span>
-                    <span>{coolantTemp} ℃</span>
-                  </div>
-                  <div className="text-3xl font-black text-right tracking-widest text-emerald-300">
-                    {dmmResult.displayText}
-                  </div>
-                  <div className="flex items-center justify-between text-[11px] opacity-75">
-                    <span>NORMAL</span>
-                    <span>{dmmResult.unit}</span>
-                  </div>
+              {ntcFeedback && (
+                <div
+                  className={`p-3.5 rounded-lg border text-sm flex items-start gap-2.5 ${
+                    ntcFeedback.type === 'success'
+                      ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
+                      : 'bg-red-50 border-red-300 text-red-900'
+                  }`}
+                >
+                  {ntcFeedback.type === 'success' ? (
+                    <CheckCircle2 size={20} className="text-emerald-600 shrink-0 mt-0.5" />
+                  ) : (
+                    <AlertTriangle size={20} className="text-red-600 shrink-0 mt-0.5" />
+                  )}
+                  <p className="font-semibold leading-relaxed">{ntcFeedback.message}</p>
                 </div>
+              )}
+            </div>
+          </div>
 
-                <div className="p-3 bg-slate-800/80 rounded-lg text-xs text-slate-300 leading-relaxed border border-slate-700">
-                  实车水温传感器技术基准：冷态 (20℃) 约 2~3kΩ，热车 (80~90℃) 降至 200~400Ω。若温度升高阻值不变或开路，将导致发动机冷启动困难或风扇长转。
-                </div>
+          {/* Right 5 Cols: Bench DMM */}
+          <div className="lg:col-span-5 flex flex-col gap-4 p-5 bg-slate-900 text-white rounded-xl shadow-md border border-slate-700">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold text-amber-400 flex items-center gap-2">
+                <Gauge size={18} />
+                万用表实时阻值
+              </span>
+              <span className="text-xs font-bold px-2.5 py-1 rounded bg-blue-950 text-blue-300 border border-blue-800">
+                ECT 传感器端子
+              </span>
+            </div>
+
+            <div className="flex flex-col justify-between h-32 p-3.5 bg-emerald-950 border-4 border-slate-800 rounded-xl shadow-inner font-mono text-emerald-400">
+              <div className="flex items-center justify-between text-xs opacity-80">
+                <span>NTC THERMISTOR</span>
+                <span>{coolantTemp} ℃</span>
               </div>
-            </>
-          ) : (
-            <>
-              {/* Independent Mode: 1kΩ Blind Check */}
-              <div className="lg:col-span-7 flex flex-col gap-3.5 p-4 bg-white border border-slate-200 rounded-xl shadow-xs">
-                <span className="text-xs font-bold text-slate-700">实训工单 · 1kΩ 规格件独立盲检</span>
-                <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs leading-relaxed text-slate-700">
-                  <p className="font-bold mb-2">任务描述：</p>
-                  <p>
-                    汽车进气压力传感器内部常备 1kΩ ± 5% 规格偏置电阻。仓库领出待检件，经数字万用表实测为 0.985 kΩ (即 985 Ω)。
-                    请问该待检件是否在允许公差范围内？
-                  </p>
-                </div>
-
-                <div className="flex flex-col gap-2 text-xs">
-                  <label className="flex items-center gap-2 p-3 rounded-lg border bg-white cursor-pointer hover:bg-slate-50">
-                    <input
-                      type="radio"
-                      name="trans_indep"
-                      checked={transferDecision === '985_QUALIFIED'}
-                      onChange={() => handleTransferDecision('985_QUALIFIED')}
-                    />
-                    <span className="font-bold text-emerald-800">
-                      A. 合格品：标称 1kΩ=1000Ω，±5% 允许范围为 950Ω ~ 1050Ω，实测 985Ω 落在合格范围内
-                    </span>
-                  </label>
-                  <label className="flex items-center gap-2 p-3 rounded-lg border bg-white cursor-pointer hover:bg-slate-50">
-                    <input
-                      type="radio"
-                      name="trans_indep"
-                      checked={transferDecision === '985_OUT'}
-                      onChange={() => handleTransferDecision('985_OUT')}
-                    />
-                    <span>B. 超差品：985Ω 小于标称值 1000Ω，属于欠阻不合格</span>
-                  </label>
-                  <label className="flex items-center gap-2 p-3 rounded-lg border bg-white cursor-pointer hover:bg-slate-50">
-                    <input
-                      type="radio"
-                      name="trans_indep"
-                      checked={transferDecision === '985_BROKEN'}
-                      onChange={() => handleTransferDecision('985_BROKEN')}
-                    />
-                    <span>C. 损坏件：阻值不为整数，应直接报废</span>
-                  </label>
-                </div>
+              <div className="text-4xl lg:text-5xl font-black text-right tracking-widest text-emerald-300">
+                {dmmResult.displayText}
               </div>
-
-              {/* Right 5 Cols: Bench DMM */}
-              <div className="lg:col-span-5 flex flex-col gap-3 p-4 bg-slate-900 text-white rounded-xl shadow-md border border-slate-700">
-                <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
-                  <Gauge size={16} />
-                  万用表实测读数
-                </span>
-                <div className="flex flex-col justify-between h-24 p-3 bg-emerald-950 border-4 border-slate-800 rounded-lg shadow-inner font-mono text-emerald-400">
-                  <div className="flex items-center justify-between text-xs opacity-75">
-                    <span>1kΩ SAMPLE</span>
-                    <span>STABLE</span>
-                  </div>
-                  <div className="text-3xl font-black text-right tracking-widest text-emerald-300">
-                    985.0
-                  </div>
-                  <div className="flex items-center justify-between text-[11px] opacity-75">
-                    <span>NORMAL</span>
-                    <span>Ω</span>
-                  </div>
-                </div>
+              <div className="flex items-center justify-between text-xs opacity-80">
+                <span>NORMAL</span>
+                <span>{dmmResult.unit}</span>
               </div>
-            </>
-          )}
+            </div>
+
+            <div className="p-3.5 bg-slate-800/80 rounded-lg text-sm text-slate-300 leading-relaxed border border-slate-700">
+              <strong className="block text-amber-300 mb-1 font-bold">实车水温传感器技术基准：</strong>
+              冷态 (20℃) 约 2~3kΩ，热车 (80~90℃) 降至 200~400Ω。若温度升高阻值不变或开路，将导致发动机冷启动困难、动力下降或电子风扇常转。
+            </div>
+          </div>
         </div>
       )}
     </div>
