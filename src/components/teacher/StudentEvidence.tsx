@@ -112,21 +112,21 @@ export function StudentEvidence({
                 <h4 className="font-bold text-sm text-slate-800 truncate">{meta.name}</h4>
                 <div className="mt-2 text-xs space-y-0.5 text-slate-600">
                   <p>
-                    首次成绩：<strong>{level?.score ?? (isDone ? 100 : '—')}分</strong>
+                    最近成绩：<strong>{level?.recentRecord?.score ?? level?.score ?? (isDone ? 100 : '—')}分</strong>
                   </p>
                   {isDone && (
                     <>
                       <p>
                         练习次数：<strong>{count} 次</strong>
-                        {level?.bestRecord && (
-                          <span className="text-amber-700 font-bold ml-1">
-                            (最高: {level.bestRecord.score}分)
+                        {level?.firstRecord && (
+                          <span className="text-slate-500 ml-1">
+                            (首次: {level.firstRecord.score}分)
                           </span>
                         )}
                       </p>
                       {level?.recentRecord && (
                         <p className="text-[11px] text-slate-400">
-                          最近：{new Date(level.recentRecord.completedAt).toLocaleDateString('zh-CN')}
+                          最近实训：{new Date(level.recentRecord.completedAt).toLocaleDateString('zh-CN')}
                         </p>
                       )}
                     </>

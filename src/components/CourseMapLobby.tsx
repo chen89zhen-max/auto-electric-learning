@@ -382,6 +382,8 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
               return null;
             }
 
+            const recentScore = levelProg.recentRecord?.score ?? levelProg.score ?? 100;
+
             return (
               <button
                 type="button"
@@ -476,7 +478,7 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
                   <div>
                     {isCompleted ? (
                       <span className="text-[11px] sm:text-xs text-emerald-700 font-medium">
-                        已完成实训 · 记录成绩 ({levelProg.score ?? 100}分)
+                        已完成实训 · 最近成绩 ({recentScore}分)
                         {attemptCount > 1 && ` · 练习${attemptCount}次`}
                       </span>
                     ) : !isPlayable ? (
