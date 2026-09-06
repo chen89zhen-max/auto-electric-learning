@@ -387,7 +387,7 @@ export function A03ResistanceScene({
             <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-lg text-xs text-amber-900 flex items-start gap-2">
               <span className="font-bold shrink-0">色标基准：</span>
               <p className="leading-relaxed">
-                色环口诀：棕1 红2 橙3 黄4 绿5 蓝6 紫7 灰8 白9 黑0；倍率：棕×10¹，红×10²；误差：金±5%，银±10%。
+                色环口诀：黑0 棕1 红2 橙3 黄4 绿5 蓝6 紫7 灰8 白9；倍率：黑×10⁰，棕×10¹，红×10²；误差：金±5%，银±10%。
               </p>
             </div>
           </div>
