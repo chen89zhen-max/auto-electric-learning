@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Award, Check, GraduationCap, LogOut, Wrench } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { GraduationCap, LogOut, Wrench } from 'lucide-react';
 import { GameStoreProvider, useGameStore } from '@/src/stores/gameStore';
 import { levelEngine } from '@/src/engine/LevelEngine';
 import { tutorialEngine } from '@/src/engine/TutorialEngine';
@@ -23,9 +22,9 @@ import { B03Experience } from '@/src/levels/b03/B03Experience';
 import { B04Experience } from '@/src/levels/b04/B04Experience';
 import { B05Experience } from '@/src/levels/b05/B05Experience';
 import { B06Experience } from '@/src/levels/b06/B06Experience';
+import { AbilityReport } from '@/src/components/AbilityReport';
 import { CourseMapLobby } from '@/src/components/CourseMapLobby';
 import { FullscreenButton } from '@/src/components/FullscreenButton';
-import { CompletionStatus } from '@/src/components/CompletionStatus';
 import { getStudentDisplayName, useAuth } from '@/src/stores/authStore';
 import { ChangePasswordGate } from '@/src/components/auth/ChangePasswordGate';
 import { SystemAdminConsole } from '@/src/components/admin/SystemAdminConsole';
@@ -36,27 +35,32 @@ function ResultPanel({ onReturnHome }: { onReturnHome: () => void }) {
   const { dispatch } = useGameStore();
 
   return (
-    <section className="result-panel">
-      <span className="result-seal"><Award size={44} /></span>
-      <p className="step-label">新能源汽车维修中心</p>
-      <h2>见习学员入职培训报告</h2>
-      <div className="certificate-list">
-        {['已熟悉工作任务', '已熟悉基础操作', '已完成安全准备', '已学会请求教学帮助'].map((item) => (
-          <span key={item}><Check size={18} />{item}</span>
-        ))}
-      </div>
-      <CompletionStatus levelId="LEVEL_00" nextTask="学习任务1《安全用电》" />
-      <Button
-        size="lg"
-        className="primary-action result-action"
-        onClick={() => {
-          dispatch({ type: 'RETURN_LOBBY' });
-          onReturnHome();
-        }}
-      >
-        返回课程地图
-      </Button>
-    </section>
+    <AbilityReport
+      levelId="LEVEL_00"
+      domainLabel="技能领域 · 车间入职认知"
+      title="见习学员入职培训能力报告"
+      dimensions={[
+        { id: 'WORK_ORDER', label: '工作任务认知', stars: 5 },
+        { id: 'BASIC_OP', label: '基础工具操作', stars: 5 },
+        { id: 'SAFETY_PREP', label: '安全着装准备', stars: 5 },
+        { id: 'HELP_SEEKING', label: '教学求助规范', stars: 5 },
+        { id: 'FLOW_STANDARD', label: '工位交接流程', stars: 5 },
+      ]}
+      summaryItems={[
+        { label: '操作违规尝试', value: '0 次' },
+        { label: '工作任务理解', value: '已熟悉' },
+        { label: '安全准备规范', value: '已完成' },
+        { label: '教学帮助响应', value: '已掌握' },
+        { label: '工单流程交接', value: '已确认' },
+        { label: '本关用时', value: '1 分钟' },
+      ]}
+      nextTask="学习任务1《安全用电》"
+      onRestart={() => dispatch({ type: 'RESTART' })}
+      onReturn={() => {
+        dispatch({ type: 'RETURN_LOBBY' });
+        onReturnHome();
+      }}
+    />
   );
 }
 

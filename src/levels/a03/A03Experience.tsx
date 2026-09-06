@@ -2,16 +2,13 @@
 
 import React, { useState } from 'react';
 import {
-  Award,
-  Check,
   FileSpreadsheet,
   GraduationCap,
   LogOut,
   Sliders,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { FullscreenButton } from '@/src/components/FullscreenButton';
-import { CompletionStatus } from '@/src/components/CompletionStatus';
+import { AbilityReport } from '@/src/components/AbilityReport';
 import { getStudentDisplayName } from '@/src/stores/authStore';
 import { A03ResistanceScene, A03Step } from './scenes/A03ResistanceScene';
 import { PracticeMode } from '@/src/types/evidence';
@@ -43,6 +40,12 @@ export function A03Experience({ onReturnLobby }: A03ExperienceProps) {
     } else if (currentStep === 'TRANSFER_SORTING') {
       setIsCompleted(true);
     }
+  };
+
+  const handleRestart = () => {
+    setIsCompleted(false);
+    setCurrentStep('COLOR_CODE_CALC');
+    setStepEvidences({});
   };
 
   return (
@@ -116,41 +119,32 @@ export function A03Experience({ onReturnLobby }: A03ExperienceProps) {
       {/* Main Workspace */}
       <section className="flex-1 max-w-7xl w-full mx-auto p-4 flex flex-col gap-4">
         {isCompleted ? (
-          <div className="p-8 bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col items-center text-center max-w-2xl mx-auto gap-4">
-            <span className="p-4 bg-emerald-100 text-emerald-600 rounded-full">
-              <Award size={48} />
-            </span>
-            <h2 className="text-xl font-black text-slate-900">
-              A03 电阻识别与测量 · 实训能力报告
-            </h2>
-            <p className="text-sm text-slate-600 max-w-md">
-              学员已完整掌握色环电阻解码规律、标称公差区间计算（V04：220Ω±5% [209~231Ω]）、断电隔离测量与带电拒测拦截（V05）、以及电位器三引脚阻值变化特性。
-            </p>
-
-            <div className="grid grid-cols-2 gap-3 w-full text-left text-xs bg-slate-50 p-4 rounded-xl border border-slate-200">
-              <span className="flex items-center gap-1.5 font-bold text-slate-700">
-                <Check className="text-emerald-600" size={16} /> 色环识读与区间预测 (V04)
-              </span>
-              <span className="flex items-center gap-1.5 font-bold text-slate-700">
-                <Check className="text-emerald-600" size={16} /> 带电测阻安全规则拦截 (V05)
-              </span>
-              <span className="flex items-center gap-1.5 font-bold text-slate-700">
-                <Check className="text-emerald-600" size={16} /> 实物筛选与超差判定
-              </span>
-              <span className="flex items-center gap-1.5 font-bold text-slate-700">
-                <Check className="text-emerald-600" size={16} /> 电位器固定端/动片规律验证
-              </span>
-            </div>
-
-            <CompletionStatus levelId="A03" metrics={stepEvidences} nextTask="学习任务4《电流到底走哪里 - 电流分析与测量》" />
-
-            <Button
-              size="lg"
-              className="mt-2 bg-amber-600 hover:bg-amber-700 text-white font-bold cursor-pointer"
-              onClick={onReturnLobby}
-            >
-              返回课程大厅
-            </Button>
+          <div className="w-full flex justify-center py-2">
+            <AbilityReport
+              levelId="A03"
+              domainLabel="技能领域 · 电阻识别与测量"
+              title="电阻识别与测量能力报告"
+              dimensions={[
+                { id: 'COLOR_CODE', label: '色环识读与阻值解码', stars: 5 },
+                { id: 'TOLERANCE', label: '公差区间计算与预测', stars: 5 },
+                { id: 'SAFETY_INTERCEPT', label: '断电测量与带电拒测', stars: 5 },
+                { id: 'ZERO_ADJUST', label: '万用表校零与量程选择', stars: 5 },
+                { id: 'POTENTIOMETER', label: '电位器动片特性验证', stars: 5 },
+              ]}
+              summaryItems={[
+                { label: '标称阻值识读', value: '220 Ω ±5%' },
+                { label: '公差区间判定', value: '209~231 Ω 合格' },
+                { label: '带电测阻拦截', value: '安全触发 100%' },
+                { label: '超差电阻排查', value: '筛选识别准确' },
+                { label: '电位器滑动特性', value: '双向线性核验' },
+                { label: '本关用时', value: '1 分钟' },
+              ]}
+              metrics={stepEvidences}
+              mode={practiceMode}
+              nextTask="学习任务4《电流到底走哪里——电流分析与测量》"
+              onRestart={handleRestart}
+              onReturn={onReturnLobby}
+            />
           </div>
         ) : (
           <A03ResistanceScene

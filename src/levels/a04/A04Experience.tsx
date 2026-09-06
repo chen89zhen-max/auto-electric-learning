@@ -2,16 +2,13 @@
 
 import React, { useState } from 'react';
 import {
-  Award,
-  Check,
   FileSpreadsheet,
   GraduationCap,
   LogOut,
   Zap,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { FullscreenButton } from '@/src/components/FullscreenButton';
-import { CompletionStatus } from '@/src/components/CompletionStatus';
+import { AbilityReport } from '@/src/components/AbilityReport';
 import { getStudentDisplayName } from '@/src/stores/authStore';
 import { A04CurrentScene, A04Step } from './scenes/A04CurrentScene';
 import { PracticeMode } from '@/src/types/evidence';
@@ -45,6 +42,12 @@ export function A04Experience({ onReturnLobby }: A04ExperienceProps) {
     } else if (currentStep === 'TRANSFER_PARALLEL_KCL') {
       setIsCompleted(true);
     }
+  };
+
+  const handleRestart = () => {
+    setIsCompleted(false);
+    setCurrentStep('SERIES_MEASUREMENT');
+    setStepEvidences({});
   };
 
   return (
@@ -118,41 +121,32 @@ export function A04Experience({ onReturnLobby }: A04ExperienceProps) {
       {/* Main Workspace */}
       <section className="flex-1 max-w-7xl w-full mx-auto p-4 flex flex-col gap-4">
         {isCompleted ? (
-          <div className="p-8 bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col items-center text-center max-w-2xl mx-auto gap-4">
-            <span className="p-4 bg-emerald-100 text-emerald-600 rounded-full">
-              <Award size={48} />
-            </span>
-            <h2 className="text-xl font-black text-slate-900">
-              A04 电流分析与测量 · 实训能力报告
-            </h2>
-            <p className="text-sm text-slate-600 max-w-md">
-              学员已完整掌握万用表电流挡串联接入规范、电源并联跨接危险拦截机制（V06）、非接触钳形电流表单线测量原理与双线磁通抵消反例、以及废旧蓄电池环保归集规范。
-            </p>
-
-            <div className="grid grid-cols-2 gap-3 w-full text-left text-xs bg-slate-50 p-4 rounded-xl border border-slate-200">
-              <span className="flex items-center gap-1.5 font-bold text-slate-700">
-                <Check className="text-emerald-600" size={16} /> 电流表串联接入规范
-              </span>
-              <span className="flex items-center gap-1.5 font-bold text-slate-700">
-                <Check className="text-emerald-600" size={16} /> 危险跨接短路拦截 (V06)
-              </span>
-              <span className="flex items-center gap-1.5 font-bold text-slate-700">
-                <Check className="text-emerald-600" size={16} /> 钳形表非接触测量与磁通抵消
-              </span>
-              <span className="flex items-center gap-1.5 font-bold text-slate-700">
-                <Check className="text-emerald-600" size={16} /> 废旧蓄电池带载检测与危废归集
-              </span>
-            </div>
-
-            <CompletionStatus levelId="A04" metrics={stepEvidences} nextTask="篇章一总结 · 进入篇章二《让电路按要求工作》" />
-
-            <Button
-              size="lg"
-              className="mt-2 bg-red-600 hover:bg-red-700 text-white font-bold cursor-pointer"
-              onClick={onReturnLobby}
-            >
-              返回课程大厅
-            </Button>
+          <div className="w-full flex justify-center py-2">
+            <AbilityReport
+              levelId="A04"
+              domainLabel="技能领域 · 电流分析与测量"
+              title="电流分析与测量能力报告"
+              dimensions={[
+                { id: 'AMMETER_PORT', label: '电流表挡位与插孔规范', stars: 5 },
+                { id: 'SERIES_INSERT', label: '串联接入断点操作', stars: 5 },
+                { id: 'SHORT_INTERCEPT', label: '跨接短路危险拦截', stars: 5 },
+                { id: 'CLAMP_METER', label: '钳形表单导线检测', stars: 5 },
+                { id: 'BATTERY_RECYCLE', label: '蓄电池带载与环保归集', stars: 5 },
+              ]}
+              summaryItems={[
+                { label: '电流表接入方式', value: '串联断路法' },
+                { label: '并联跨接短路拦截', value: '0次短路(全阻断)' },
+                { label: '钳形表单线卡入', value: '规范单导线' },
+                { label: '双线磁通抵消认知', value: '理论验证通过' },
+                { label: '危废蓄电池归集', value: '环保箱分类存放' },
+                { label: '本关用时', value: '1 分钟' },
+              ]}
+              metrics={stepEvidences}
+              mode={practiceMode}
+              nextTask="篇章一总结 · 进入篇章二《让电路按要求工作》"
+              onRestart={handleRestart}
+              onReturn={onReturnLobby}
+            />
           </div>
         ) : (
           <A04CurrentScene

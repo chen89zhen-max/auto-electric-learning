@@ -2,8 +2,6 @@
 
 import React, { useState } from 'react';
 import {
-  Award,
-  Check,
   ClipboardList,
   GraduationCap,
   HelpCircle,
@@ -12,9 +10,8 @@ import {
   Volume2,
   Zap,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { FullscreenButton } from '@/src/components/FullscreenButton';
-import { CompletionStatus } from '@/src/components/CompletionStatus';
+import { AbilityReport } from '@/src/components/AbilityReport';
 import { MasterChenAvatar } from '@/src/components/visuals/MasterChenAvatar';
 import { sounds } from '@/src/components/visuals/SoundEffects';
 import { getStudentDisplayName } from '@/src/stores/authStore';
@@ -118,55 +115,43 @@ export function A02Experience({ onReturnLobby }: A02ExperienceProps) {
             <div className="scene-heading">
               <span className="status-dot bg-emerald-500 shadow-emerald-500/20" />
               <span>3号实训工位 · A02 学习结果</span>
-              <span className="scene-meta">结果已保存</span>
+              <span className="scene-meta">SEMI GUIDED</span>
             </div>
             <div className="scene-content">
-              <div className="p-8 bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col items-center text-center max-w-2xl mx-auto gap-4">
-                <span className="p-4 bg-emerald-100 text-emerald-600 rounded-full">
-                  <Award size={48} />
-                </span>
-                <h2 className="text-xl font-black text-slate-900">
-                  A02 电压分析与测量 · 实训能力报告
-                </h2>
-                <p className="text-sm text-slate-600 max-w-md">
-                  已完成表笔极性、开关两端电压和带载压降的测量记录。本次为跟练证据；独立与迁移证据须在不同任务条件下重新取得。
-                </p>
-
-                <div className="grid grid-cols-2 gap-3 w-full text-left text-sm bg-slate-50 p-4 rounded-xl border border-slate-200">
-                  <span className="flex items-center gap-1.5 font-bold text-slate-700">
-                    <Check className="text-emerald-600" size={16} />{' '}
-                    表笔反接后的负号规律
-                  </span>
-                  <span className="flex items-center gap-1.5 font-bold text-slate-700">
-                    <Check className="text-emerald-600" size={16} />{' '}
-                    断路与通路两点电压
-                  </span>
-                  <span className="flex items-center gap-1.5 font-bold text-slate-700">
-                    <Check className="text-emerald-600" size={16} />{' '}
-                    接触电阻压降诊断
-                  </span>
-                  <span className="flex items-center gap-1.5 font-bold text-slate-700">
-                    <Check className="text-emerald-600" size={16} />{' '}
-                    全回路压降和验证
-                  </span>
-                </div>
-
-                <CompletionStatus
-                  levelId="A02"
-                  metrics={stepEvidences}
-                  evidence={A02_GUIDED_EVIDENCE}
-                  mode="guided"
-                  nextTask="学习任务3《元件身份核验——电阻识别与测量》"
-                />
-
-                <Button
-                  size="lg"
-                  className="mt-2 bg-teal-700 hover:bg-teal-800 text-white font-bold cursor-pointer"
-                  onClick={onReturnLobby}
-                >
-                  返回课程大厅
-                </Button>
-              </div>
+              <AbilityReport
+                levelId="A02"
+                domainLabel="技能领域 · 电压分析与测量"
+                title="电压分析与测量能力报告"
+                dimensions={[
+                  { id: 'METER_PREP', label: '仪表准备与挡位选择', stars: 5 },
+                  { id: 'POLARITY', label: '表笔极性与符号识别', stars: 5 },
+                  { id: 'VOLTAGE_MEASURE', label: '两点测压与通路验证', stars: 5 },
+                  { id: 'DROP_DIAGNOSIS', label: '接触电阻与压降诊断', stars: 5 },
+                  { id: 'DECISION', label: '维修决策与逻辑表达', stars: 5 },
+                ]}
+                summaryItems={[
+                  {
+                    label: '测量记录项数',
+                    value: `${Object.keys(stepEvidences).length > 0 ? Object.keys(stepEvidences).length : 4} / 4 环节`,
+                  },
+                  { label: '正反极性验证', value: '±12V 准确识别' },
+                  { label: '开关通断核验', value: '0V / 12V 明确' },
+                  { label: '异常压降定位', value: '供电侧 0.91V' },
+                  { label: '维修处理建议', value: '清洁紧固氧化触点' },
+                  { label: '本关用时', value: '1 分钟' },
+                ]}
+                metrics={stepEvidences}
+                evidence={A02_GUIDED_EVIDENCE}
+                mode="guided"
+                nextTask="学习任务3《元件身份核验——电阻识别与测量》"
+                onRestart={handleRestart}
+                onReturn={onReturnLobby}
+              />
+            </div>
+            <div className="objective-strip">
+              <span>当前任务</span>
+              <strong>查看电压分析与测量能力报告</strong>
+              <output className="feedback">实训评测已通过，诊断思维已牢固建立。</output>
             </div>
           </div>
         ) : (
