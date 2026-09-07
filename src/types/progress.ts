@@ -81,3 +81,49 @@ export function createBaseUserProgress(traineeName = '见习学员'): UserProgre
     },
   };
 }
+
+export function createAllCompletedUserProgress(traineeName = '通关学员'): UserProgressData {
+  const completedLevel = (): LevelProgress => ({
+    status: 'completed',
+    score: 100,
+    attemptCount: 1,
+    completedAt: '2026-09-01T08:00:00.000Z',
+    evidence: createInitialEvidenceState(),
+  });
+
+  const levels: Record<string, LevelProgress> = {
+    LEVEL_00: completedLevel(),
+    LEVEL_01: completedLevel(),
+    LEVEL_02: completedLevel(),
+    LEVEL_03: completedLevel(),
+    LEVEL_04: completedLevel(),
+    LEVEL_05: completedLevel(),
+    LEVEL_06: completedLevel(),
+    LEVEL_07: completedLevel(),
+    LEVEL_08: completedLevel(),
+    LEVEL_09: completedLevel(),
+  };
+
+  const canonicalIds = [
+    'O00', 'O01',
+    'A01', 'A02', 'A03', 'A04',
+    'B01', 'B02', 'B03', 'B04', 'B05', 'B06',
+    'C01', 'C02', 'C03',
+    'D01', 'D02', 'D03', 'D04', 'D05',
+    'E01', 'E02', 'E03', 'E04', 'E05', 'E06', 'E07',
+    'F01',
+  ];
+
+  for (const id of canonicalIds) {
+    levels[id] = completedLevel();
+  }
+
+  return {
+    version: 1,
+    traineeName,
+    currentActiveLevel: 'O00',
+    teacherMode: false,
+    lastUpdated: Date.now(),
+    levels: levels as UserProgressData['levels'],
+  };
+}

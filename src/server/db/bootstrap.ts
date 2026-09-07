@@ -1,6 +1,6 @@
 import type { AppDatabase } from './database';
 import { hashPassword } from '../auth/crypto';
-import { createBaseUserProgress } from '@/src/types/progress';
+import { createBaseUserProgress, createAllCompletedUserProgress } from '@/src/types/progress';
 
 export interface DefaultAccountInfo {
   roleName: string;
@@ -62,6 +62,15 @@ export const DEFAULT_ACCOUNTS: DefaultAccountInfo[] = [
     role: 'student',
     className: '24新能源2班',
     description: '24新能源2班学员，可进行实训闯关，学习数据对李老师可见，对陈老师完全隔离',
+  },
+  {
+    roleName: '通关测试学员',
+    username: 'student_pass',
+    passwordText: 'Student#2026',
+    realName: '通关学员',
+    role: 'student',
+    className: '免修测试组',
+    description: '初始通关全部任务的测试学员账号，方便任意关卡直接测试体验',
   },
 ];
 
@@ -143,12 +152,24 @@ export function bootstrapDefaultDataIfNeeded(
         );
       }
 
-      if (acc.role === 'student' && !checkProgress.get(userId)) {
-        insertProgress.run(
-          userId,
-          JSON.stringify(createBaseUserProgress(acc.realName)),
-          now
-        );
+      if (acc.role === 'student') {
+        const existingProg = checkProgress.get(userId);
+        if (!existingProg) {
+          const initialProgress = acc.username === 'student_pass'
+            ? createAllCompletedUserProgress(acc.realName)
+            : createBaseUserProgress(acc.realName);
+          insertProgress.run(
+            userId,
+            JSON.stringify(initialProgress),
+            now
+          );
+        } else if (acc.username === 'student_pass') {
+          db.prepare('UPDATE user_progress SET progress_data = ?, last_updated = ? WHERE user_id = ?').run(
+            JSON.stringify(createAllCompletedUserProgress(acc.realName)),
+            now,
+            userId
+          );
+        }
       }
 
       // Teaching relationships
@@ -167,8 +188,8 @@ export function bootstrapDefaultDataIfNeeded(
 
       // Student class membership
       if (acc.role === 'student') {
-        const targetClassId = acc.className === '24新能源2班' ? 'class_24new2' : 'class_24new1';
-        if (!checkStudentClass.get(userId)) {
+        const targetClassId = acc.className === '24新能源2班' ? 'class_24new2' : acc.className === '24新能源1班' ? 'class_24new1' : null;
+        if (targetClassId && !checkStudentClass.get(userId)) {
           insertStudentClass.run(
             `sc_${acc.username}_${targetClassId}`,
             userId,

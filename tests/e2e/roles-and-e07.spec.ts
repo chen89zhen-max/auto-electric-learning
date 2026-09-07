@@ -217,6 +217,14 @@ describe('Task 10: Three-Role End-to-End & E07 Physical Rubric Signing Lifecycle
     expect(bodyReadA.evaluation.rubricData.solder_quality).toBe(28);
     expect(bodyReadA.evaluation.comment).toContain('IPC-A-610');
 
+    // The E07 student page resolves the latest owned attempt by level id.
+    const reqReadLatestE07 = jsonRequest('/api/learning/evaluations?levelId=E07', studentAToken, 'GET');
+    const resReadLatestE07 = await studentEvaluationGet(reqReadLatestE07);
+    expect(resReadLatestE07.status).toBe(200);
+    const bodyReadLatestE07 = await resReadLatestE07.json();
+    expect(bodyReadLatestE07.evaluation.score).toBe(94);
+    expect(bodyReadLatestE07.evaluation.rubricData.solder_quality).toBe(28);
+
     // 5. Student B attempts to snoop Student A's evaluation -> 403
     const reqSnoop = jsonRequest(`/api/learning/evaluations?attemptId=${attemptE07AId}`, studentBToken, 'GET');
     const resSnoop = await studentEvaluationGet(reqSnoop);

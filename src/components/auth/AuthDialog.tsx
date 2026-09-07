@@ -263,9 +263,28 @@ export function AuthDialog({ isOpen, onClose, onSuccess }: AuthDialogProps) {
                   {loading ? '正在验证登录...' : '登 录 实 训'}
                 </Button>
 
-                <p className="text-center text-xs text-slate-500 py-1.5">
+                <p className="text-center text-xs text-slate-500 py-1">
                   首次使用请凭学校发放的学号和一次性激活码完成账号激活。
                 </p>
+
+                <div className="pt-2 border-t border-slate-100 flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between text-xs text-slate-500">
+                    <span className="font-semibold text-slate-600">测试通道：</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLoginUsername('student_pass');
+                        setLoginPassword('Student#2026');
+                      }}
+                      className="text-sky-600 hover:text-sky-700 hover:underline font-bold text-xs cursor-pointer"
+                    >
+                      ⚡ 一键填入全通关测试学员
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-400 m-0">
+                    账号 <code className="bg-slate-100 px-1 py-0.5 rounded text-slate-600 font-mono">student_pass</code>（初始解锁并通关全部任务，密码同 <code className="bg-slate-100 px-1 py-0.5 rounded text-slate-600 font-mono">Student#2026</code>）
+                  </p>
+                </div>
               </div>
             </form>
           )}

@@ -92,7 +92,7 @@ export function StudentEvidence({
         attemptId,
         evaluationType: 'PHYSICAL_RUBRIC',
         rubricVersion: 'E07-PHYSICAL-v1',
-        rubricData: scores,
+        rubricItems: scores,
         comment: cmt,
       });
       await fetchEvaluations();

@@ -24,8 +24,14 @@ export const DEFAULT_MALE_RATE = 0.98;
 let cachedVoices: SpeechSynthesisVoice[] = [];
 let lockedPreferredVoice: SpeechSynthesisVoice | null = null;
 
+function hasSpeechSynthesis(): boolean {
+  return typeof window !== 'undefined'
+    && typeof window.speechSynthesis !== 'undefined'
+    && typeof window.speechSynthesis.speak === 'function';
+}
+
 function updateVoices(): void {
-  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+  if (!hasSpeechSynthesis()) return;
   const voices = window.speechSynthesis.getVoices();
   if (voices && voices.length > 0) {
     cachedVoices = voices;
@@ -33,7 +39,7 @@ function updateVoices(): void {
   }
 }
 
-if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+if (hasSpeechSynthesis()) {
   updateVoices();
   if (typeof window.speechSynthesis.addEventListener === 'function') {
     window.speechSynthesis.addEventListener('voiceschanged', updateVoices);
@@ -103,7 +109,7 @@ function findMiddleAgedMaleVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesi
 }
 
 export function getPreferredVoice(): SpeechSynthesisVoice | null {
-  if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+  if (!hasSpeechSynthesis()) {
     return null;
   }
   if (lockedPreferredVoice) {
@@ -115,7 +121,7 @@ export function getPreferredVoice(): SpeechSynthesisVoice | null {
 }
 
 export function speakText(text: string, options?: SpeakOptions): SpeechResult {
-  if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+  if (!hasSpeechSynthesis()) {
     return { ok: false, reason: 'unsupported' };
   }
 
@@ -170,7 +176,11 @@ export function speakText(text: string, options?: SpeakOptions): SpeechResult {
 }
 
 export function stopSpeaking(): void {
-  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+  if (
+    typeof window !== 'undefined' &&
+    typeof window.speechSynthesis !== 'undefined' &&
+    typeof window.speechSynthesis.cancel === 'function'
+  ) {
     try {
       window.speechSynthesis.cancel();
     } catch {
@@ -180,7 +190,7 @@ export function stopSpeaking(): void {
 }
 
 export function isSpeechSupported(): boolean {
-  return typeof window !== 'undefined' && 'speechSynthesis' in window;
+  return hasSpeechSynthesis();
 }
 
 export { findMiddleAgedMaleVoice };

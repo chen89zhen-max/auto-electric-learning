@@ -238,54 +238,78 @@ export function listStudentE07Attempts(
   db: AppDatabase = getDatabase()
 ): Array<{
   attemptId: string;
-  studentId: string;
-  startedAt: number;
+  attemptScore: number | null;
   completedAt: number;
-  score: number;
-  evaluationId: string | null;
-  physicalScore: number | null;
-  signedAt: number | null;
-  rubricData: Record<string, number> | null;
+  hasPhysicalRubric: boolean;
+  physicalEvaluation?: {
+    id: string;
+    teacherName: string;
+    totalScore: number;
+    signedAt: number;
+    comment: string | null;
+    rubricData: Record<string, number>;
+  };
 }> {
   requireAuthorizedStudent(teacherId, studentId, db);
   const rows = db.prepare<{
     attemptId: string;
-    studentId: string;
-    startedAt: number;
     completedAt: number;
-    score: number;
+    attemptScore: number | null;
     evaluationId: string | null;
-    physicalScore: number | null;
+    totalScore: number | null;
     signedAt: number | null;
+    comment: string | null;
+    teacherName: string | null;
+    teacherUsername: string | null;
     rubricDataStr: string | null;
   }>(
-    `SELECT a.id AS attemptId, a.student_id AS studentId, a.started_at AS startedAt,
-            a.completed_at AS completedAt, a.score,
-            e.id AS evaluationId, e.score AS physicalScore, e.signed_at AS signedAt,
-            e.rubric_data AS rubricDataStr
+    `SELECT a.id AS attemptId, a.completed_at AS completedAt, a.score AS attemptScore,
+            e.id AS evaluationId, e.score AS totalScore, e.signed_at AS signedAt,
+            e.comment, e.rubric_data AS rubricDataStr,
+            u.real_name AS teacherName, u.username AS teacherUsername
      FROM learning_attempts a
      LEFT JOIN teacher_evaluations e
        ON e.attempt_id = a.id AND e.evaluation_type = 'PHYSICAL_RUBRIC'
+     LEFT JOIN users u ON u.id = e.teacher_id
      WHERE a.student_id = ? AND a.level_id = 'E07'
      ORDER BY a.started_at DESC`
   ).all(studentId);
 
   return rows.map((r) => {
-    let rubricData: Record<string, number> | null = null;
+    let rubricData: Record<string, number> = {};
     if (r.rubricDataStr) {
       try { rubricData = JSON.parse(r.rubricDataStr); } catch {}
     }
-    return {
+    const result: {
+      attemptId: string;
+      attemptScore: number | null;
+      completedAt: number;
+      hasPhysicalRubric: boolean;
+      physicalEvaluation?: {
+        id: string;
+        teacherName: string;
+        totalScore: number;
+        signedAt: number;
+        comment: string | null;
+        rubricData: Record<string, number>;
+      };
+    } = {
       attemptId: r.attemptId,
-      studentId: r.studentId,
-      startedAt: r.startedAt,
+      attemptScore: r.attemptScore,
       completedAt: r.completedAt,
-      score: r.score,
-      evaluationId: r.evaluationId,
-      physicalScore: r.physicalScore,
-      signedAt: r.signedAt,
-      rubricData,
+      hasPhysicalRubric: Boolean(r.evaluationId),
     };
+    if (r.evaluationId && r.totalScore !== null && r.signedAt !== null) {
+      result.physicalEvaluation = {
+        id: r.evaluationId,
+        teacherName: r.teacherName || r.teacherUsername || '',
+        totalScore: r.totalScore,
+        signedAt: r.signedAt,
+        comment: r.comment,
+        rubricData,
+      };
+    }
+    return result;
   });
 }
 

@@ -70,4 +70,27 @@ describe('系统基础账号与班级教学关系初始化测试 (Bootstrap Acco
     expect(students.length).toBe(1);
     expect(students[0].username).toBe('student1');
   });
+
+  it('student_pass 账号应当初始拥有全通关进度且所有已实现关卡均解锁', async () => {
+    const db = createSqliteAdapter(':memory:');
+    bootstrapDefaultDataIfNeeded(db, { environment: 'test', enableDemoSeed: true });
+
+    const progRow = db.prepare<{ progress_data: string }>(
+      "SELECT progress_data FROM user_progress WHERE user_id = 'usr_student_pass'"
+    ).get();
+
+    expect(progRow).toBeDefined();
+    const progress = JSON.parse(progRow!.progress_data);
+    expect(progress.traineeName).toBe('通关学员');
+
+    const { CANONICAL_COURSE_REGISTRY } = await import('@/src/courses/registry');
+    const { isLevelUnlocked } = await import('@/src/stores/userProgressStore');
+
+    for (const level of CANONICAL_COURSE_REGISTRY) {
+      if (level.implemented) {
+        expect(progress.levels[level.canonicalId]?.status).toBe('completed');
+        expect(isLevelUnlocked(level.canonicalId, progress)).toBe(true);
+      }
+    }
+  });
 });

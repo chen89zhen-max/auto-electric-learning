@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Lock } from 'lucide-react';
 import { CourseMapLobby } from '@/src/components/CourseMapLobby';
 import { useAuth } from '@/src/stores/authStore';
 import { ChangePasswordGate } from '@/src/components/auth/ChangePasswordGate';
 import { resolveRequestedLevel } from '@/src/app/levelRoute';
-import { useUserProgress } from '@/src/stores/userProgressStore';
+import { toggleTeacherMode, useUserProgress } from '@/src/stores/userProgressStore';
 import { checkLevelPrerequisites, normalizeLevelId } from '@/src/courses/registry';
 import {
   hasLevelLoader,
@@ -35,6 +35,11 @@ function SessionGameShell() {
   const [activeLevel, setActiveLevel] = useState<string>(() =>
     typeof window === 'undefined' ? 'HOME' : resolveRequestedLevel(window.location.search)
   );
+  const isTeacherPreview = user?.role === 'teacher' && activeLevel !== 'HOME' && hasLevelLoader(activeLevel);
+
+  useEffect(() => {
+    if (isTeacherPreview && !progress.teacherMode) toggleTeacherMode(true);
+  }, [isTeacherPreview, progress.teacherMode]);
 
   const handleReturnHome = () => {
     setActiveLevel('HOME');
@@ -58,6 +63,9 @@ function SessionGameShell() {
   }
 
   if (user?.role === 'teacher') {
+    if (isTeacherPreview) {
+      return <LazyLevelContainer levelId={activeLevel} onReturnLobby={handleReturnHome} />;
+    }
     return <LazyRoleWorkspaceContainer workspaceRole="teacher" />;
   }
 

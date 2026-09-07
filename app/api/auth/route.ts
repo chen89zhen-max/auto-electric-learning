@@ -5,7 +5,7 @@ import { createSession, revokeSession, createClearCookieHeader } from '@/src/ser
 import { checkLoginRateLimit, recordLoginAttempt } from '@/src/server/auth/rateLimit';
 import { recordAudit } from '@/src/server/auth/audit';
 import { authenticateRequest, extractClientIp } from '@/src/server/auth/authMiddleware';
-import { createBaseUserProgress, type UserProgressData } from '@/src/types/progress';
+import { createBaseUserProgress, createAllCompletedUserProgress, type UserProgressData } from '@/src/types/progress';
 
 interface UserRow {
   id: string;
@@ -130,10 +130,14 @@ export async function POST(req: NextRequest) {
           try {
             progress = JSON.parse(progRow.progress_data) as UserProgressData;
           } catch {
-            progress = createBaseUserProgress(user.real_name);
+            progress = user.username === 'student_pass'
+              ? createAllCompletedUserProgress(user.real_name)
+              : createBaseUserProgress(user.real_name);
           }
         } else {
-          progress = createBaseUserProgress(user.real_name);
+          progress = user.username === 'student_pass'
+            ? createAllCompletedUserProgress(user.real_name)
+            : createBaseUserProgress(user.real_name);
           db.prepare(
             'INSERT INTO user_progress (user_id, progress_data, version, last_updated) VALUES (?, ?, 1, ?)'
           ).run(user.id, JSON.stringify(progress), Date.now());
