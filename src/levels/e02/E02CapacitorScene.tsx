@@ -143,7 +143,7 @@ export function E02CapacitorScene({
             <Gauge className="w-6 h-6" />
           </div>
           <div>
-            <div className="text-xs text-slate-400 font-semibold tracking-wider uppercase">
+            <div className="text-sm font-semibold text-slate-400 tracking-wider uppercase">
               汽车数字万用表 (DMM-920 电容高精度型)
             </div>
             <div className="text-sm font-bold text-slate-200">
@@ -165,7 +165,7 @@ export function E02CapacitorScene({
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-400">旋钮挡位:</span>
+          <span className="text-sm font-medium text-slate-300">旋钮挡位:</span>
           {(['OFF', 'CAP_F', 'OHM_20K', 'DCV_20'] as const).map((knob) => (
             <button
               key={knob}
@@ -174,7 +174,7 @@ export function E02CapacitorScene({
                 setMeterWarning(null);
                 sounds.playToggleSound?.();
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`px-3.5 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${
                 meterKnob === knob
                   ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30 ring-2 ring-blue-400'
                   : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
@@ -199,10 +199,10 @@ export function E02CapacitorScene({
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
             <div className="lg:col-span-8 flex flex-col justify-between p-6 bg-slate-950/80 rounded-2xl border border-slate-800 min-h-[360px]">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase text-blue-400 tracking-wider">
+                <span className="text-sm font-bold uppercase text-blue-400 tracking-wider">
                   实物实验：电容充放电与指示灯延时发光
                 </span>
-                <span className="text-xs text-slate-400">供电: 12V 直流</span>
+                <span className="text-sm text-slate-400">供电: 12V 直流</span>
               </div>
 
               {/* 动态可视化电路 */}
@@ -285,7 +285,7 @@ export function E02CapacitorScene({
                       sounds.playToggleSound?.();
                     }}
                     size="sm"
-                    className="bg-blue-600 hover:bg-blue-500 text-white text-xs"
+                    className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold"
                   >
                     接通电源充电
                   </Button>
@@ -296,7 +296,7 @@ export function E02CapacitorScene({
                     }}
                     size="sm"
                     variant="outline"
-                    className="border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs"
+                    className="border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium"
                   >
                     切断主电源 (观察延时)
                   </Button>
@@ -316,17 +316,17 @@ export function E02CapacitorScene({
                   <div className="mt-4 p-3 bg-slate-900/90 rounded-xl border border-blue-900/40 flex flex-col gap-2.5">
                     <div className="flex items-center justify-between flex-wrap gap-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-blue-300">📐 控制变量微实验：极板面积与间距对电容量的影响</span>
-                        <span className="text-xs font-mono px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800">
+                        <span className="text-sm font-bold text-blue-300">📐 控制变量微实验：极板面积与间距对电容量的影响</span>
+                        <span className="text-sm font-mono px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800">
                           C = ε · S / d
                         </span>
                       </div>
-                      <div className="text-xs font-mono text-emerald-400 font-bold">
+                      <div className="text-sm font-mono text-emerald-400 font-bold">
                         计算容量: {s1SimCap.toFixed(1)} μF | 延时常数 τ: {s1SimTau.toFixed(2)} s
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
                       <div className="space-y-1">
                         <div className="flex justify-between text-slate-400">
                           <span>极板正对面积 S:</span>
@@ -341,7 +341,7 @@ export function E02CapacitorScene({
                           onChange={(e) => setS1PlateArea(parseFloat(e.target.value))}
                           className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
                         />
-                        <div className="flex justify-between text-xs text-slate-500">
+                        <div className="flex justify-between text-sm text-slate-500">
                           <span>50% (面积减半)</span>
                           <span>200% (面积翻倍)</span>
                         </div>
@@ -361,7 +361,7 @@ export function E02CapacitorScene({
                           onChange={(e) => setS1PlateDistance(parseFloat(e.target.value))}
                           className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
                         />
-                        <div className="flex justify-between text-xs text-slate-500">
+                        <div className="flex justify-between text-sm text-slate-500">
                           <span>50% (薄介质极近)</span>
                           <span>200% (拉开距离)</span>
                         </div>
@@ -384,7 +384,7 @@ export function E02CapacitorScene({
                               key={item.val}
                               type="button"
                               onClick={() => setS1Dielectric(item.val)}
-                              className={`flex-1 py-1 px-1 rounded text-xs font-bold cursor-pointer transition-colors ${
+                              className={`flex-1 py-1.5 px-2 rounded text-sm font-bold cursor-pointer transition-colors ${
                                 s1Dielectric === item.val
                                   ? 'bg-blue-600 text-white shadow-xs'
                                   : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
@@ -394,11 +394,11 @@ export function E02CapacitorScene({
                             </button>
                           ))}
                         </div>
-                        <div className="text-xs text-slate-500 text-right">介电常数越大电容越大</div>
+                        <div className="text-sm text-slate-500 text-right">介电常数越大电容越大</div>
                       </div>
                     </div>
 
-                    <div className="p-2 bg-slate-950/70 rounded-lg border border-slate-800 text-xs text-slate-400 flex items-center justify-between">
+                    <div className="p-2 bg-slate-950/70 rounded-lg border border-slate-800 text-sm text-slate-300 flex items-center justify-between">
                       <span>💡 <strong>物理规律</strong>：面积 $S$ 越大、间距 $d$ 越小，电容量 $C$ 越大，储存电荷量 $Q=CU$ 越多。</span>
                       <span className="text-amber-300 shrink-0 font-mono ml-2">τ = RC 随之增大</span>
                     </div>
@@ -414,7 +414,7 @@ export function E02CapacitorScene({
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   物理现象认知判定
                 </h4>
-                <p className="text-xs text-slate-400 mb-4">
+                <p className="text-sm text-slate-300 mb-4">
                   断开主电源后指示灯并没有立刻熄灭，根本物理原因是什么？
                 </p>
 
@@ -431,7 +431,7 @@ export function E02CapacitorScene({
                         setS1Choice(opt.id);
                         sounds.playToggleSound?.();
                       }}
-                      className={`w-full text-left p-3 rounded-xl border text-xs transition-all ${
+                      className={`w-full text-left p-3 rounded-xl border text-sm transition-all cursor-pointer ${
                         s1Choice === opt.id
                           ? 'border-blue-500 bg-blue-500/10 text-white font-bold'
                           : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700'
@@ -459,13 +459,13 @@ export function E02CapacitorScene({
                         alert('判定不准确，这是典型的电容极板电荷存储与释放过程！');
                       }
                     }}
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold"
+                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold"
                   >
                     提交认知判定
                   </Button>
                 ) : (
                   <div className="space-y-2">
-                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs flex items-center gap-2">
+                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-sm flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 shrink-0" />
                       <span>判定正确！电容器通过电极板储存电荷，是汽车延时与平波的核心部件！</span>
                     </div>
@@ -475,7 +475,7 @@ export function E02CapacitorScene({
                         assessment.startStage('standard');
                         onAdvanceStep();
                       }}
-                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold flex items-center justify-center gap-1"
                     >
                       进入步骤 2：万用表规范测试 <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
@@ -494,16 +494,16 @@ export function E02CapacitorScene({
             <div className="lg:col-span-8 p-6 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between min-h-[380px]">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-bold uppercase text-blue-400">
+                  <span className="text-sm font-bold uppercase text-blue-400">
                     安全检测台：电容放电防电弧与容量测定
                   </span>
-                  <span className="text-xs text-slate-400">
+                  <span className="text-sm text-slate-300">
                     放电状态: {s2Discharged ? '已执行安全放电 (残存0V)' : '未放电 (可能存有电荷！)'}
                   </span>
                 </div>
 
                 <div className="p-4 bg-slate-900/80 rounded-xl border border-slate-800 mb-4 flex items-center justify-between">
-                  <div className="text-xs text-slate-300">
+                  <div className="text-sm text-slate-300">
                     <div className="font-bold text-amber-400 mb-1">⚠️ 安全操作规程:</div>
                     测量大容量电容前必须短接两极放电，严禁带残存高电压直接接入万用表！
                   </div>
@@ -515,8 +515,8 @@ export function E02CapacitorScene({
                     }}
                     className={
                       s2Discharged
-                        ? 'bg-emerald-600 text-white text-xs'
-                        : 'bg-amber-600 hover:bg-amber-500 text-white text-xs animate-pulse'
+                        ? 'bg-emerald-600 text-white text-sm font-medium cursor-pointer'
+                        : 'bg-amber-600 hover:bg-amber-500 text-white text-sm font-medium animate-pulse cursor-pointer'
                     }
                   >
                     {s2Discharged ? '✓ 已安全充分放电' : '点击执行安全放电'}
@@ -532,7 +532,7 @@ export function E02CapacitorScene({
                       setS2TestMode('CAP');
                       sounds.playToggleSound?.();
                     }}
-                    className={`text-xs ${s2TestMode === 'CAP' ? 'border-blue-500 text-blue-300' : 'text-slate-400'}`}
+                    className={`text-sm font-medium cursor-pointer ${s2TestMode === 'CAP' ? 'border-blue-500 text-blue-300' : 'text-slate-400'}`}
                   >
                     容量测试模式 (F)
                   </Button>
@@ -543,7 +543,7 @@ export function E02CapacitorScene({
                       setS2TestMode('RESISTANCE');
                       sounds.playToggleSound?.();
                     }}
-                    className={`text-xs ${s2TestMode === 'RESISTANCE' ? 'border-blue-500 text-blue-300' : 'text-slate-400'}`}
+                    className={`text-sm font-medium cursor-pointer ${s2TestMode === 'RESISTANCE' ? 'border-blue-500 text-blue-300' : 'text-slate-400'}`}
                   >
                     电阻挡充放电动态回弹模式 (Ω)
                   </Button>
@@ -562,14 +562,14 @@ export function E02CapacitorScene({
                       {s2Discharged && meterKnob === 'DCV_20' && '0.00 V'}
                     </span>
                   </div>
-                  <div className="text-xs text-slate-500 mt-2">
+                  <div className="text-sm text-slate-400 mt-2 font-medium">
                     {s2Discharged && meterKnob === 'CAP_F' && '标称 470μF (误差在±5%内，合格)'}
                     {s2Discharged && meterKnob === 'OHM_20K' && '阻值迅速由小变大至开路 (充放电正常)'}
                   </div>
                 </div>
               </div>
 
-              <div className="text-xs text-slate-400 pt-4 border-t border-slate-800">
+              <div className="text-sm text-slate-300 pt-4 border-t border-slate-800">
                 操作要领: 测容量需将旋钮切至 <span className="text-blue-400 font-bold">[CAP_F]</span> 挡；观察回弹切至 <span className="text-blue-400 font-bold">[OHM_20K]</span> 挡。
               </div>
             </div>
@@ -581,7 +581,7 @@ export function E02CapacitorScene({
                   <Zap className="w-4 h-4 text-cyan-400" />
                   测量规范与性能评判
                 </h4>
-                <p className="text-xs text-slate-400 mb-4">
+                <p className="text-sm text-slate-300 mb-4">
                   使用万用表电阻挡检验电容器好坏时，正常电容应呈现何种读数规律？
                 </p>
 
@@ -598,7 +598,7 @@ export function E02CapacitorScene({
                         setS2Choice(opt.id);
                         sounds.playToggleSound?.();
                       }}
-                      className={`w-full text-left p-3 rounded-xl border text-xs transition-all ${
+                      className={`w-full text-left p-3 rounded-xl border text-sm transition-all cursor-pointer ${
                         s2Choice === opt.id
                           ? 'border-blue-500 bg-blue-500/10 text-white font-bold'
                           : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700'
@@ -632,13 +632,13 @@ export function E02CapacitorScene({
                         alert('判别有误！正常电容测阻时有阻值从低到高回弹至 OL 的动态过程！');
                       }
                     }}
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold"
+                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold cursor-pointer"
                   >
                     提交测量结论
                   </Button>
                 ) : (
                   <div className="space-y-2">
-                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs flex items-center gap-2">
+                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-sm flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 shrink-0" />
                       <span>检测规范达标！放电严密，容量及充放电动态回弹判定准确无误。</span>
                     </div>
@@ -648,7 +648,7 @@ export function E02CapacitorScene({
                         assessment.startStage('calculation');
                         onAdvanceStep();
                       }}
-                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold flex items-center justify-center gap-1 cursor-pointer"
                     >
                       进入步骤 3：RC 时间常数分析 <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
@@ -667,10 +667,10 @@ export function E02CapacitorScene({
             <div className="lg:col-span-8 p-6 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between min-h-[380px]">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-bold uppercase text-blue-400">
+                  <span className="text-sm font-bold uppercase text-blue-400">
                     一阶 RC 暂态分析仪：时间常数 τ = R × C 曲线
                   </span>
-                  <span className="text-xs font-mono text-emerald-400">
+                  <span className="text-sm font-mono text-emerald-400 font-bold">
                     当前 τ = {currentTau} 秒 (1τ 电压 ≈ 7.58V)
                   </span>
                 </div>
@@ -678,7 +678,7 @@ export function E02CapacitorScene({
                 {/* 调节滑块 */}
                 <div className="grid grid-cols-2 gap-4 p-4 bg-slate-900/80 rounded-xl border border-slate-800 mb-4">
                   <div>
-                    <div className="flex justify-between text-xs text-slate-300 mb-1">
+                    <div className="flex justify-between text-sm text-slate-300 mb-1">
                       <span>电阻 R:</span>
                       <span className="font-mono font-bold text-cyan-400">{(s3R / 1000).toFixed(0)} kΩ</span>
                     </div>
@@ -689,11 +689,11 @@ export function E02CapacitorScene({
                       step="1000"
                       value={s3R}
                       onChange={(e) => setS3R(parseInt(e.target.value, 10))}
-                      className="w-full accent-cyan-500"
+                      className="w-full accent-cyan-500 cursor-pointer"
                     />
                   </div>
                   <div>
-                    <div className="flex justify-between text-xs text-slate-300 mb-1">
+                    <div className="flex justify-between text-sm text-slate-300 mb-1">
                       <span>电容 C:</span>
                       <span className="font-mono font-bold text-blue-400">{s3C} μF</span>
                     </div>
@@ -704,14 +704,14 @@ export function E02CapacitorScene({
                       step="50"
                       value={s3C}
                       onChange={(e) => setS3C(parseInt(e.target.value, 10))}
-                      className="w-full accent-blue-500"
+                      className="w-full accent-blue-500 cursor-pointer"
                     />
                   </div>
                 </div>
 
                 {/* 示波器波形画布 */}
                 <div className="relative w-full h-40 bg-slate-950 border border-slate-800 rounded-xl p-3 flex flex-col justify-between overflow-hidden">
-                  <div className="text-xs text-slate-500 font-mono flex justify-between">
+                  <div className="text-sm text-slate-400 font-mono flex justify-between">
                     <span>OSCILLOSCOPE CH1: V_C(t)</span>
                     <span>12.0V FULL SCALE</span>
                   </div>
@@ -737,7 +737,7 @@ export function E02CapacitorScene({
                     <text x="310" y="15" fill="#38bdf8" fontSize="10">5τ 充饱 (12V)</text>
                   </svg>
 
-                  <div className="flex justify-between items-center text-xs font-mono pt-1">
+                  <div className="flex justify-between items-center text-sm font-mono pt-1">
                     <span className="text-slate-400">时间轴 t:</span>
                     <input
                       type="range"
@@ -746,7 +746,7 @@ export function E02CapacitorScene({
                       step="0.1"
                       value={s3SimTime}
                       onChange={(e) => setS3SimTime(parseFloat(e.target.value))}
-                      className="w-48 accent-emerald-500"
+                      className="w-48 accent-emerald-500 cursor-pointer"
                     />
                     <span className="text-emerald-400 font-bold">
                       t={s3SimTime.toFixed(1)}s, Vc={currentSimVc.toFixed(2)}V
@@ -755,7 +755,7 @@ export function E02CapacitorScene({
                 </div>
               </div>
 
-              <div className="text-xs text-slate-400 pt-4 border-t border-slate-800 font-mono">
+              <div className="text-sm text-slate-300 pt-4 border-t border-slate-800 font-mono">
                 理论公式: τ = R × C = {s3R} × {s3C}×10⁻⁶ = {currentTau} 秒。达到 5τ = {(currentTau * 5).toFixed(1)} 秒时彻底充饱。
               </div>
             </div>
@@ -767,7 +767,7 @@ export function E02CapacitorScene({
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   时间常数计算工单
                 </h4>
-                <p className="text-xs text-slate-400 mb-4">
+                <p className="text-sm text-slate-300 mb-4">
                   某汽车雨刮间歇延时控制器采用 R = 10kΩ (10000Ω) 和 C = 470μF (0.00047F)，其时间常数 τ 是多少秒？充到 63.2% 供电电压需要多长时间？
                 </p>
 
@@ -784,7 +784,7 @@ export function E02CapacitorScene({
                         setS3Choice(opt.id);
                         sounds.playToggleSound?.();
                       }}
-                      className={`w-full text-left p-3 rounded-xl border text-xs transition-all ${
+                      className={`w-full text-left p-3 rounded-xl border text-sm transition-all cursor-pointer ${
                         s3Choice === opt.id
                           ? 'border-blue-500 bg-blue-500/10 text-white font-bold'
                           : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700'
@@ -812,13 +812,13 @@ export function E02CapacitorScene({
                         alert('计算有误！τ = 10000 × 0.00047 = 4.7 秒！');
                       }
                     }}
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold"
+                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold cursor-pointer"
                   >
                     提交计算结论
                   </Button>
                 ) : (
                   <div className="space-y-2">
-                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs flex items-center gap-2">
+                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-sm flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 shrink-0" />
                       <span>计算准确！τ = 4.7s，1τ 拐点电压达到 63.2%，定量设计完成！</span>
                     </div>
@@ -828,7 +828,7 @@ export function E02CapacitorScene({
                         assessment.startStage('blind_test');
                         onAdvanceStep();
                       }}
-                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold flex items-center justify-center gap-1 cursor-pointer"
                     >
                       进入步骤 4：典型故障盲测 <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
@@ -847,10 +847,10 @@ export function E02CapacitorScene({
             <div className="lg:col-span-7 p-6 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between min-h-[380px]">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-bold uppercase text-blue-400">
+                  <span className="text-sm font-bold uppercase text-blue-400">
                     实训测试台：4 组未知电容故障盲测工位
                   </span>
-                  <span className="text-xs text-slate-400">标称值均为 470μF</span>
+                  <span className="text-sm text-slate-300">标称值均为 470μF</span>
                 </div>
 
                 {/* 样件切换 */}
@@ -862,7 +862,7 @@ export function E02CapacitorScene({
                         setS4SampleIndex(idx);
                         sounds.playToggleSound?.();
                       }}
-                      className={`p-2 rounded-xl text-xs font-bold border transition-all ${
+                      className={`p-2.5 rounded-xl text-sm font-bold border transition-all cursor-pointer ${
                         s4SampleIndex === idx
                           ? 'border-blue-500 bg-blue-500/20 text-white ring-2 ring-blue-500/40'
                           : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700'
@@ -875,7 +875,7 @@ export function E02CapacitorScene({
 
                 {/* 测量仪表显示 */}
                 <div className="p-5 bg-slate-900 border border-slate-700 rounded-xl flex flex-col items-center">
-                  <div className="text-xs text-slate-400 mb-2">
+                  <div className="text-sm text-slate-300 mb-2">
                     测试对象: <span className="text-white font-bold">{activeSample.name}</span>
                   </div>
                   <div className="w-48 h-20 bg-emerald-950/60 border border-emerald-800 rounded-xl flex items-center justify-center font-mono text-3xl font-black text-emerald-400">
@@ -888,7 +888,7 @@ export function E02CapacitorScene({
                 </div>
               </div>
 
-              <div className="text-xs text-slate-400 pt-4 border-t border-slate-800">
+              <div className="text-sm text-slate-300 pt-4 border-t border-slate-800">
                 故障分类提示: 容量接近标称为正常；容量极小(如14.5μF)为电解液干涸失效；阻值为 0.8Ω 为击穿短路；容量 0 且电阻开路为内部断路。
               </div>
             </div>
@@ -900,11 +900,11 @@ export function E02CapacitorScene({
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   电容盲测质量分析卡
                 </h4>
-                <p className="text-xs text-slate-400 mb-3">判定 4 组未知样件的内部物理状态：</p>
+                <p className="text-sm text-slate-300 mb-3">判定 4 组未知样件的内部物理状态：</p>
 
                 <div className="space-y-3">
                   {E02_SAMPLES.map((smp) => (
-                    <div key={smp.id} className="p-3 bg-slate-900/80 rounded-xl border border-slate-800 text-xs">
+                    <div key={smp.id} className="p-3 bg-slate-900/80 rounded-xl border border-slate-800 text-sm">
                       <div className="font-bold text-slate-200 mb-1.5">{smp.name}</div>
                       <div className="grid grid-cols-2 gap-1.5">
                         {[
@@ -920,7 +920,7 @@ export function E02CapacitorScene({
                               setS4Diagnoses((prev) => ({ ...prev, [smp.id]: opt.val }));
                               sounds.playToggleSound?.();
                             }}
-                            className={`p-1.5 rounded-lg border text-center transition-all ${
+                            className={`p-2 rounded-lg border text-center text-sm font-medium transition-all cursor-pointer ${
                               s4Diagnoses[smp.id] === opt.val
                                 ? 'border-blue-500 bg-blue-500/20 text-white font-bold'
                                 : 'border-slate-800 bg-slate-950/50 text-slate-400 hover:border-slate-700'
@@ -954,13 +954,13 @@ export function E02CapacitorScene({
                         alert('诊断有误！请仔细核对实测容量与漏电阻值！');
                       }
                     }}
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold"
+                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold cursor-pointer"
                   >
                     提交四组诊断结论
                   </Button>
                 ) : (
                   <div className="space-y-2">
-                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs flex items-center gap-2">
+                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-sm flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 shrink-0" />
                       <span>全组盲测分类 100% 正确！具备板级电容精确判别能力！</span>
                     </div>
@@ -970,7 +970,7 @@ export function E02CapacitorScene({
                         assessment.startStage('transfer', 'transfer');
                         onAdvanceStep();
                       }}
-                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold flex items-center justify-center gap-1 cursor-pointer"
                     >
                       进入步骤 5：实车工程修复与交付 <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
@@ -989,13 +989,13 @@ export function E02CapacitorScene({
             <div className="lg:col-span-8 p-6 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between min-h-[380px]">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-bold uppercase text-blue-400">
+                  <span className="text-sm font-bold uppercase text-blue-400">
                     实车工单：车身控制模块 (BCM) 顶灯渐隐延时失效
                   </span>
-                  <span className="text-xs text-rose-400 font-mono font-bold">故障代码: B10A3-11</span>
+                  <span className="text-sm text-rose-400 font-mono font-bold">故障代码: B10A3-11</span>
                 </div>
 
-                <div className="p-4 bg-slate-900/80 rounded-xl border border-slate-800 text-xs space-y-3">
+                <div className="p-4 bg-slate-900/80 rounded-xl border border-slate-800 text-sm space-y-3">
                   <div className="text-slate-300">
                     <span className="text-slate-500 font-bold">故障现象:</span> 车门关闭并锁车后，顶棚迎宾灯瞬间熄灭，完全丧失原车 15 秒平滑渐隐延时功能。
                   </div>
@@ -1011,13 +1011,13 @@ export function E02CapacitorScene({
                         setS5Measured(true);
                         sounds.playToggleSound?.();
                       }}
-                      className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs"
+                      className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-sm font-medium cursor-pointer"
                     >
                       电阻挡在板测量延时电容 C
                     </Button>
 
                     {s5Measured && (
-                      <div className="text-xs font-mono">
+                      <div className="text-sm font-mono">
                         实测两极电阻:{' '}
                         <span className="text-rose-400 font-bold">
                           {s5Repaired ? '4.8 kΩ -> OL (充放电正常)' : '0.5 Ω (严重短路击穿！)'}
@@ -1029,7 +1029,7 @@ export function E02CapacitorScene({
 
                 {s5Measured && !s5Repaired && (
                   <div className="mt-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-3">
-                    <div className="text-xs text-amber-300 font-bold">
+                    <div className="text-sm text-amber-300 font-bold">
                       根因确诊：原装延时电解电容被发动机舱高温击穿短路！请从电子元器件库选用合格件更换：
                     </div>
                     <div className="flex gap-2">
@@ -1044,7 +1044,7 @@ export function E02CapacitorScene({
                             setS5SelectedPart(part.id);
                             sounds.playToggleSound?.();
                           }}
-                          className={`p-2 rounded-lg border text-xs text-left transition-all ${
+                          className={`p-2 rounded-lg border text-sm text-left transition-all cursor-pointer ${
                             s5SelectedPart === part.id
                               ? 'border-emerald-500 bg-emerald-500/20 text-white font-bold'
                               : 'border-slate-800 bg-slate-900 text-slate-400'
@@ -1068,7 +1068,7 @@ export function E02CapacitorScene({
                           alert('配件参数错误！必须选择 150μF/35V 规格！');
                         }
                       }}
-                      className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold"
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold cursor-pointer"
                     >
                       规范焊装选定电容 (注意极性)
                     </Button>
@@ -1078,10 +1078,10 @@ export function E02CapacitorScene({
                 {s5Repaired && (
                   <div className="mt-4 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-between">
                     <div>
-                      <div className="text-xs font-bold text-emerald-300">
+                      <div className="text-sm font-bold text-emerald-300">
                         ✓ 150μF 汽车级电容已完成焊装并完成极性复核，请进行关门锁车延时测试
                       </div>
-                      <div className="text-xs text-slate-400 mt-1">
+                      <div className="text-sm text-slate-400 mt-1">
                         复验验收标准: 顶灯维持明亮并在 15 秒内缓慢渐隐平滑熄灭。
                       </div>
                     </div>
@@ -1091,7 +1091,7 @@ export function E02CapacitorScene({
                         setS5Tested(true);
                         sounds.playToggleSound?.();
                       }}
-                      className={s5Tested ? 'bg-emerald-600 text-white text-xs' : 'bg-blue-600 text-white text-xs'}
+                      className={s5Tested ? 'bg-emerald-600 text-white text-sm font-medium cursor-pointer' : 'bg-blue-600 text-white text-sm font-medium cursor-pointer'}
                     >
                       {s5Tested ? '✓ 延时测试完成 (14.8s)' : '执行关门锁车延时测试'}
                     </Button>
@@ -1100,7 +1100,7 @@ export function E02CapacitorScene({
               </div>
 
               {s5Tested && (
-                <div className="flex items-center gap-4 pt-4 border-t border-slate-800 text-xs font-mono">
+                <div className="flex items-center gap-4 pt-4 border-t border-slate-800 text-sm font-mono">
                   <div className="text-emerald-400 font-bold">渐隐延时功能恢复正常 💡</div>
                   <div>实测延时时长: <span className="text-cyan-400 font-bold">14.8 秒 (标称 15s)</span></div>
                   <div>电解液温升: <span className="text-emerald-400 font-bold">正常 (无过热)</span></div>
@@ -1115,9 +1115,9 @@ export function E02CapacitorScene({
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                   工程交付验收单
                 </h4>
-                <p className="text-xs text-slate-400 mb-3">核验本次板级电容维修项目：</p>
+                <p className="text-sm text-slate-300 mb-3">核验本次板级电容维修项目：</p>
 
-                <div className="space-y-2 text-xs">
+                <div className="space-y-2 text-sm">
                   <div className="p-2.5 bg-slate-900 rounded-lg border border-slate-800 flex justify-between">
                     <span className="text-slate-400">故障部位:</span>
                     <span className="text-slate-200 font-bold">BCM 延时电解电容 (短路击穿)</span>
@@ -1145,7 +1145,7 @@ export function E02CapacitorScene({
                     onChange={(e) => setS5Signed(e.target.checked)}
                     className="rounded accent-emerald-500"
                   />
-                  <label htmlFor="e02-sign" className="text-xs text-slate-300 cursor-pointer">
+                  <label htmlFor="e02-sign" className="text-sm text-slate-300 cursor-pointer">
                     维修技师已核对极性与延时指标，确认合格准予交车
                   </label>
                 </div>
@@ -1167,12 +1167,12 @@ export function E02CapacitorScene({
                         s5Repaired,
                       });
                     }}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold cursor-pointer"
                   >
                     签署交车工单
                   </Button>
                 ) : (
-                  <div className="p-3 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs flex items-center gap-2">
+                  <div className="p-3 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-sm flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 shrink-0" />
                     <span>交车成功！迎宾灯渐隐延时平稳可靠，满足客户维修诉求！</span>
                   </div>

@@ -118,7 +118,7 @@ export function E04TransistorScene({
             <Gauge className="w-6 h-6" />
           </div>
           <div>
-            <div className="text-xs text-slate-400 font-semibold tracking-wider uppercase">
+            <div className="text-sm font-semibold text-slate-400 tracking-wider uppercase">
               汽车数字万用表 (DMM-950 晶体管分析型)
             </div>
             <div className="text-sm font-bold text-slate-200">
@@ -133,14 +133,14 @@ export function E04TransistorScene({
                 {meterKnob === 'OFF' && 'OFF (电源关闭)'}
                 {meterKnob === 'DIODE' && '二极管档 (->|- / 🕪)'}
                 {meterKnob === 'HFE' && '晶体管放大倍数测定档 (hFE)'}
-                {meterKnob === 'DCV_20' && '直流电压 20V 档 (V=)'}
+                {meterKnob === 'DCV_20' && '直流电压 20V 挡 (V=)'}
               </span>
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-400">旋钮挡位:</span>
+          <span className="text-sm font-medium text-slate-300">旋钮挡位:</span>
           {(['OFF', 'DIODE', 'HFE', 'DCV_20'] as const).map((knob) => (
             <button
               key={knob}
@@ -149,7 +149,7 @@ export function E04TransistorScene({
                 setMeterWarning(null);
                 sounds.playToggleSound?.();
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`px-3.5 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${
                 meterKnob === knob
                   ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30 ring-2 ring-blue-400'
                   : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
@@ -174,10 +174,10 @@ export function E04TransistorScene({
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
             <div className="lg:col-span-8 flex flex-col justify-between p-6 bg-slate-950/80 rounded-2xl border border-slate-800 min-h-[360px]">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase text-blue-400 tracking-wider">
+                <span className="text-sm font-bold uppercase text-blue-400 tracking-wider">
                   电路拓扑：ECU 弱电信号驱动 12V 继电器
                 </span>
-                <span className="text-xs text-slate-400">微弱电流 Ib (mA) 控制大电流 Ic (150mA)</span>
+                <span className="text-sm text-slate-300">微弱电流 Ib (mA) 控制大电流 Ic (150mA)</span>
               </div>
 
               {/* 电路仿真示意 */}
@@ -249,7 +249,7 @@ export function E04TransistorScene({
                     sounds.playToggleSound?.();
                   }}
                   variant="outline"
-                  className="border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs"
+                  className="border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium cursor-pointer"
                 >
                   {s1Triggered ? '关闭 ECU 信号 (置 0V)' : '输入 ECU 驱动信号 (置 5V)'}
                 </Button>
@@ -263,7 +263,7 @@ export function E04TransistorScene({
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   认知判定与理论验证
                 </h4>
-                <p className="text-xs text-slate-400 mb-4">
+                <p className="text-sm text-slate-300 mb-4">
                   在汽车电控单元中，三极管充当继电器驱动器的核心作用是什么？
                 </p>
 
@@ -280,7 +280,7 @@ export function E04TransistorScene({
                         setS1Choice(opt.id);
                         sounds.playToggleSound?.();
                       }}
-                      className={`w-full text-left p-3 rounded-xl border text-xs transition-all ${
+                      className={`w-full text-left p-3 rounded-xl border text-sm transition-all cursor-pointer ${
                         s1Choice === opt.id
                           ? 'border-blue-500 bg-blue-500/10 text-white font-bold'
                           : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700'
@@ -308,13 +308,13 @@ export function E04TransistorScene({
                         alert('结论有误，三极管在开关电路中是以微弱基极信号驱动大电流负载！');
                       }
                     }}
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold"
+                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold cursor-pointer"
                   >
                     提交认知判定
                   </Button>
                 ) : (
                   <div className="space-y-2">
-                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs flex items-center gap-2">
+                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-sm flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 shrink-0" />
                       <span>判定正确！三极管实现弱电对强电的电子开关精准放大驱动！</span>
                     </div>
@@ -324,7 +324,7 @@ export function E04TransistorScene({
                         assessment.startStage('standard');
                         onAdvanceStep();
                       }}
-                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold flex items-center justify-center gap-1 cursor-pointer"
                     >
                       进入步骤 2：引脚识别与 β 测量 <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
@@ -343,10 +343,10 @@ export function E04TransistorScene({
             <div className="lg:col-span-8 p-6 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between min-h-[380px]">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-bold uppercase text-blue-400">
+                  <span className="text-sm font-bold uppercase text-blue-400">
                     实训台：三极管 B/C/E 极性与 hFE 放大倍数测量
                   </span>
-                  <span className="text-xs text-slate-400">测试对象: 标称 S8050 NPN 管</span>
+                  <span className="text-sm text-slate-300">测试对象: 标称 S8050 NPN 管</span>
                 </div>
 
                 {/* 测量靶点选择 */}
@@ -365,7 +365,7 @@ export function E04TransistorScene({
                         setS2Target(target.id);
                         sounds.playToggleSound?.();
                       }}
-                      className={`p-2 rounded-xl text-xs font-bold border transition-all ${
+                      className={`p-2.5 rounded-xl text-sm font-bold border transition-all cursor-pointer ${
                         s2Target === target.id
                           ? 'border-blue-500 bg-blue-500/20 text-white ring-2 ring-blue-500/40'
                           : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700'
@@ -390,7 +390,7 @@ export function E04TransistorScene({
                       {meterKnob === 'DCV_20' && '0.00 V'}
                     </span>
                   </div>
-                  <div className="text-xs text-slate-500 mt-2">
+                  <div className="text-sm text-slate-400 mt-2 font-medium">
                     {meterKnob === 'DIODE' && s2Target === 'PIN_BE' && '发射结 B-E 正向导通 (压降稍大 672mV)'}
                     {meterKnob === 'DIODE' && s2Target === 'PIN_BC' && '集电结 B-C 正向导通 (压降稍小 645mV)'}
                     {meterKnob === 'DIODE' && s2Target === 'PIN_CE' && 'C-E 间反向截止绝缘 (正常开路 OL)'}
@@ -399,7 +399,7 @@ export function E04TransistorScene({
                 </div>
               </div>
 
-              <div className="text-xs text-slate-400 pt-4 border-t border-slate-800">
+              <div className="text-sm text-slate-300 pt-4 border-t border-slate-800">
                 引脚识别口诀: 红笔定在 B，测另外两极均有压降为 NPN 管；压降略高的一侧为发射极 E，另一侧为集电极 C。
               </div>
             </div>
@@ -411,7 +411,7 @@ export function E04TransistorScene({
                   <Zap className="w-4 h-4 text-cyan-400" />
                   引脚与好坏判别规则
                 </h4>
-                <p className="text-xs text-slate-400 mb-4">
+                <p className="text-sm text-slate-300 mb-4">
                   根据上述万用表二极管档实测读数，如何确凿辨别发射极 E 与集电极 C？
                 </p>
 
@@ -428,7 +428,7 @@ export function E04TransistorScene({
                         setS2Choice(opt.id);
                         sounds.playToggleSound?.();
                       }}
-                      className={`w-full text-left p-3 rounded-xl border text-xs transition-all ${
+                      className={`w-full text-left p-3 rounded-xl border text-sm transition-all cursor-pointer ${
                         s2Choice === opt.id
                           ? 'border-blue-500 bg-blue-500/10 text-white font-bold'
                           : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700'
@@ -457,13 +457,13 @@ export function E04TransistorScene({
                         alert('判别有误，发射区重掺杂使得 B-E 压降略大于 B-C 压降！');
                       }
                     }}
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold"
+                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold cursor-pointer"
                   >
                     提交检测结论
                   </Button>
                 ) : (
                   <div className="space-y-2">
-                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs flex items-center gap-2">
+                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-sm flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 shrink-0" />
                       <span>检测规范掌握精准！引脚与 β 参数全部厘清。</span>
                     </div>
@@ -473,7 +473,7 @@ export function E04TransistorScene({
                         assessment.startStage('calculation');
                         onAdvanceStep();
                       }}
-                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold flex items-center justify-center gap-1 cursor-pointer"
                     >
                       进入步骤 3：三态定量切换计算 <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
@@ -492,11 +492,11 @@ export function E04TransistorScene({
             <div className="lg:col-span-8 p-6 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between min-h-[380px]">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-bold uppercase text-blue-400">
+                  <span className="text-sm font-bold uppercase text-blue-400">
                     工作状态分析仪：调节偏置观察三态跳变
                   </span>
                   <div className="flex items-center gap-2">
-                    <label htmlFor="e04-voltage-input" className="text-xs text-slate-400">基极控制电压:</label>
+                    <label htmlFor="e04-voltage-input" className="text-sm font-medium text-slate-300">基极控制电压:</label>
                     <input
                       id="e04-voltage-input"
                       type="range"
@@ -505,15 +505,15 @@ export function E04TransistorScene({
                       step="0.5"
                       value={s3BaseVoltage}
                       onChange={(e) => setS3BaseVoltage(parseFloat(e.target.value))}
-                      className="w-24 accent-blue-500"
+                      className="w-24 accent-blue-500 cursor-pointer"
                     />
-                    <span className="text-xs font-mono font-bold text-blue-300">{s3BaseVoltage.toFixed(1)}V</span>
+                    <span className="text-sm font-mono font-bold text-blue-300">{s3BaseVoltage.toFixed(1)}V</span>
                   </div>
                 </div>
 
                 <div className="p-4 bg-slate-900/90 rounded-xl border border-slate-800 space-y-4 mb-4">
                   <div>
-                    <div className="flex justify-between text-xs text-slate-300 mb-1">
+                    <div className="flex justify-between text-sm text-slate-300 mb-1">
                       <span>基极限流电阻 Rb:</span>
                       <span className="font-mono font-bold text-emerald-400">{(s3BaseResistorOhm / 1000).toFixed(1)} kΩ</span>
                     </div>
@@ -524,27 +524,27 @@ export function E04TransistorScene({
                       step="1000"
                       value={s3BaseResistorOhm}
                       onChange={(e) => setS3BaseResistorOhm(parseInt(e.target.value, 10))}
-                      className="w-full accent-emerald-500"
+                      className="w-full accent-emerald-500 cursor-pointer"
                     />
                   </div>
 
                   {/* 状态看板 */}
                   <div className="grid grid-cols-4 gap-2 text-center pt-2 border-t border-slate-800">
                     <div className="p-2 bg-slate-950 rounded-lg">
-                      <div className="text-xs text-slate-400">基极 Ib</div>
+                      <div className="text-sm text-slate-400">基极 Ib</div>
                       <div className="text-sm font-mono font-bold text-cyan-400">{s3Point.ibMa} mA</div>
                     </div>
                     <div className="p-2 bg-slate-950 rounded-lg">
-                      <div className="text-xs text-slate-400">集电极 Ic</div>
+                      <div className="text-sm text-slate-400">集电极 Ic</div>
                       <div className="text-sm font-mono font-bold text-emerald-400">{s3Point.icMa} mA</div>
                     </div>
                     <div className="p-2 bg-slate-950 rounded-lg">
-                      <div className="text-xs text-slate-400">管压降 Uce</div>
+                      <div className="text-sm text-slate-400">管压降 Uce</div>
                       <div className="text-sm font-mono font-bold text-amber-300">{s3Point.uceV} V</div>
                     </div>
                     <div className="p-2 bg-slate-950 rounded-lg">
-                      <div className="text-xs text-slate-400">当前区域</div>
-                      <div className="text-xs font-bold mt-0.5">
+                      <div className="text-sm text-slate-400">当前区域</div>
+                      <div className="text-sm font-bold mt-0.5">
                         {s3Point.state === 'CUTOFF' && <span className="text-slate-400">截止区 (关断)</span>}
                         {s3Point.state === 'ACTIVE' && <span className="text-amber-400">放大区 (发热)</span>}
                         {s3Point.state === 'SATURATION' && <span className="text-emerald-400">饱和区 (开关ON)</span>}
@@ -554,7 +554,7 @@ export function E04TransistorScene({
                 </div>
               </div>
 
-              <div className="text-xs text-slate-400 pt-4 border-t border-slate-800 font-mono">
+              <div className="text-sm text-slate-300 pt-4 border-t border-slate-800 font-mono">
                 判定准则: 汽车开关驱动要求 Uce ≤ 0.3V 达到深度饱和，避免工作在放大区产生严重焦耳热烧毁晶体管。
               </div>
             </div>
@@ -566,7 +566,7 @@ export function E04TransistorScene({
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   三极管开关设计工单
                 </h4>
-                <p className="text-xs text-slate-400 mb-4">
+                <p className="text-sm text-slate-300 mb-4">
                   汽车 ECU 输出 5V 信号驱动 12V/150mA 汽车继电器，要确保三极管可靠进入“深度饱和导通”且发热最小，管压降 Uce 应满足什么标准？
                 </p>
 
@@ -583,7 +583,7 @@ export function E04TransistorScene({
                         setS3Choice(opt.id);
                         sounds.playToggleSound?.();
                       }}
-                      className={`w-full text-left p-3 rounded-xl border text-xs transition-all ${
+                      className={`w-full text-left p-3 rounded-xl border text-sm transition-all cursor-pointer ${
                         s3Choice === opt.id
                           ? 'border-blue-500 bg-blue-500/10 text-white font-bold'
                           : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700'
@@ -611,13 +611,13 @@ export function E04TransistorScene({
                         alert('结论有误！开关应用必须确保饱和导通 Uce ≤ 0.3V！');
                       }
                     }}
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold"
+                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold cursor-pointer"
                   >
                     提交设计结论
                   </Button>
                 ) : (
                   <div className="space-y-2">
-                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs flex items-center gap-2">
+                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-sm flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 shrink-0" />
                       <span>计算与设计完全达标！深度饱和保证开关驱动零功耗！</span>
                     </div>
@@ -627,7 +627,7 @@ export function E04TransistorScene({
                         assessment.startStage('blind_test');
                         onAdvanceStep();
                       }}
-                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold flex items-center justify-center gap-1 cursor-pointer"
                     >
                       进入步骤 4：典型故障盲测 <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
@@ -646,7 +646,7 @@ export function E04TransistorScene({
             <div className="lg:col-span-7 p-6 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between min-h-[380px]">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-bold uppercase text-blue-400">
+                  <span className="text-sm font-bold uppercase text-blue-400">
                     实训台：4 组未知三极管驱动模块盲测
                   </span>
                   <Button
@@ -655,7 +655,7 @@ export function E04TransistorScene({
                       setS4TriggerState(!s4TriggerState);
                       sounds.playToggleSound?.();
                     }}
-                    className={s4TriggerState ? 'bg-emerald-600 text-white text-xs' : 'bg-blue-600 text-white text-xs'}
+                    className={s4TriggerState ? 'bg-emerald-600 text-white text-sm font-medium cursor-pointer' : 'bg-blue-600 text-white text-sm font-medium cursor-pointer'}
                   >
                     {s4TriggerState ? '已施加 5V 触发脉冲' : '点击施加 5V 触发脉冲'}
                   </Button>
@@ -670,7 +670,7 @@ export function E04TransistorScene({
                         setS4SampleIndex(idx);
                         sounds.playToggleSound?.();
                       }}
-                      className={`p-2 rounded-xl text-xs font-bold border transition-all ${
+                      className={`p-2.5 rounded-xl text-sm font-bold border transition-all cursor-pointer ${
                         s4SampleIndex === idx
                           ? 'border-blue-500 bg-blue-500/20 text-white ring-2 ring-blue-500/40'
                           : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700'
@@ -683,22 +683,22 @@ export function E04TransistorScene({
 
                 {/* 仪表看板 */}
                 <div className="p-5 bg-slate-900 border border-slate-700 rounded-xl flex flex-col items-center">
-                  <div className="text-xs text-slate-400 mb-2">
+                  <div className="text-sm text-slate-300 mb-2">
                     测试对象: <span className="text-white font-bold">{activeSample.name}</span>
                   </div>
                   <div className="grid grid-cols-2 gap-4 w-full text-center">
                     <div className="p-3 bg-slate-950 rounded-xl border border-slate-800">
-                      <div className="text-xs text-slate-400">集电极电压 Uce</div>
+                      <div className="text-sm text-slate-400">集电极电压 Uce</div>
                       <div className="text-2xl font-mono font-bold text-emerald-400 mt-1">
                         {s4TriggerState
-                          ? `${activeSample.triggerUce} V`
+                           ? `${activeSample.triggerUce} V`
                           : activeSample.actualType === 'CE_SHORT'
                           ? '0.05 V'
                           : '12.0 V'}
                       </div>
                     </div>
                     <div className="p-3 bg-slate-950 rounded-xl border border-slate-800">
-                      <div className="text-xs text-slate-400">负载继电器动作</div>
+                      <div className="text-sm text-slate-400">负载继电器动作</div>
                       <div className="text-base font-bold text-amber-300 mt-2">
                         {s4TriggerState
                           ? activeSample.relayState === 'ENERGIZED'
@@ -715,7 +715,7 @@ export function E04TransistorScene({
                 </div>
               </div>
 
-              <div className="text-xs text-slate-400 pt-4 border-t border-slate-800">
+              <div className="text-sm text-slate-300 pt-4 border-t border-slate-800">
                 诊断提示: 未触发时常吸且 Uce=0 为 C-E 击穿短路；触发后 Uce 仍为 12V 继电器不动为 B-E 断路；Uce=5.4V 继电器抖动为 β 衰减。
               </div>
             </div>
@@ -727,11 +727,11 @@ export function E04TransistorScene({
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   三极管盲测分类报告
                 </h4>
-                <p className="text-xs text-slate-400 mb-3">判定 4 组驱动模块的内部故障：</p>
+                <p className="text-sm text-slate-300 mb-3">判定 4 组驱动模块的内部故障：</p>
 
                 <div className="space-y-3">
                   {E04_SAMPLES.map((smp) => (
-                    <div key={smp.id} className="p-3 bg-slate-900/80 rounded-xl border border-slate-800 text-xs">
+                    <div key={smp.id} className="p-3 bg-slate-900/80 rounded-xl border border-slate-800 text-sm">
                       <div className="font-bold text-slate-200 mb-1.5">{smp.name}</div>
                       <div className="grid grid-cols-2 gap-1.5">
                         {[
@@ -747,7 +747,7 @@ export function E04TransistorScene({
                               setS4Diagnoses((prev) => ({ ...prev, [smp.id]: opt.val }));
                               sounds.playToggleSound?.();
                             }}
-                            className={`p-1.5 rounded-lg border text-center transition-all ${
+                            className={`p-2 rounded-lg border text-center text-sm font-medium transition-all cursor-pointer ${
                               s4Diagnoses[smp.id] === opt.val
                                 ? 'border-blue-500 bg-blue-500/20 text-white font-bold'
                                 : 'border-slate-800 bg-slate-950/50 text-slate-400 hover:border-slate-700'
@@ -781,13 +781,13 @@ export function E04TransistorScene({
                         alert('诊断存在错误，请结合触发前后的 Uce 状态重新推敲！');
                       }
                     }}
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold"
+                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold cursor-pointer"
                   >
                     提交四组诊断结论
                   </Button>
                 ) : (
                   <div className="space-y-2">
-                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs flex items-center gap-2">
+                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-sm flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 shrink-0" />
                       <span>全组盲测分类 100% 正确！具备板级三极管排故硬功夫！</span>
                     </div>
@@ -797,7 +797,7 @@ export function E04TransistorScene({
                         assessment.startStage('transfer', 'transfer');
                         onAdvanceStep();
                       }}
-                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold flex items-center justify-center gap-1 cursor-pointer"
                     >
                       进入步骤 5：实车工程修复与交付 <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
@@ -816,13 +816,13 @@ export function E04TransistorScene({
             <div className="lg:col-span-8 p-6 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between min-h-[380px]">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-bold uppercase text-blue-400">
+                  <span className="text-sm font-bold uppercase text-blue-400">
                     实车工单：发动机散热电子风扇低速档无法吸合
                   </span>
-                  <span className="text-xs text-rose-400 font-mono font-bold">故障代码: P0480-13</span>
+                  <span className="text-sm text-rose-400 font-mono font-bold">故障代码: P0480-13</span>
                 </div>
 
-                <div className="p-4 bg-slate-900/80 rounded-xl border border-slate-800 text-xs space-y-3">
+                <div className="p-4 bg-slate-900/80 rounded-xl border border-slate-800 text-sm space-y-3">
                   <div className="text-slate-300">
                     <span className="text-slate-500 font-bold">故障现象:</span> 水温升至 96°C 时，ECU 指令发出但风扇不转，水温报警灯点亮。
                   </div>
@@ -838,13 +838,13 @@ export function E04TransistorScene({
                         setS5Measured(true);
                         sounds.playToggleSound?.();
                       }}
-                      className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs"
+                      className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-sm font-medium cursor-pointer"
                     >
                       万用表测量基极信号电压 Ub
                     </Button>
 
                     {s5Measured && (
-                      <div className="text-xs font-mono">
+                      <div className="text-sm font-mono">
                         实测 Ub:{' '}
                         <span className="text-rose-400 font-bold">
                           {s5Repaired ? '0.72 V (已正常导通)' : '0.00 V (无输入！限流电阻虚焊断开)'}
@@ -856,7 +856,7 @@ export function E04TransistorScene({
 
                 {s5Measured && !s5Repaired && (
                   <div className="mt-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-3">
-                    <div className="text-xs text-amber-300 font-bold">
+                    <div className="text-sm text-amber-300 font-bold">
                       确诊缺陷：基极限流电阻 2.2kΩ 焊点微裂虚焊脱开，导致驱动电流无法注入基极！
                     </div>
                     <Button
@@ -865,7 +865,7 @@ export function E04TransistorScene({
                         setS5Repaired(true);
                         sounds.playSuccessSound?.();
                       }}
-                      className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold"
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold cursor-pointer"
                     >
                       恒温烙铁补焊 2.2kΩ 贴片电阻并喷涂三防漆
                     </Button>
@@ -875,10 +875,10 @@ export function E04TransistorScene({
                 {s5Repaired && (
                   <div className="mt-4 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-between">
                     <div>
-                      <div className="text-xs font-bold text-emerald-300">
+                      <div className="text-sm font-bold text-emerald-300">
                         ✓ 虚焊点修复完成，请模拟水温上升进行风扇吸合复测
                       </div>
-                      <div className="text-xs text-slate-400 mt-1">
+                      <div className="text-sm text-slate-400 mt-1">
                         复验指标: 水温达到 96°C 时三极管 Uce 降至 0.18V，低速风扇高速运转压制水温。
                       </div>
                     </div>
@@ -888,7 +888,7 @@ export function E04TransistorScene({
                         setS5SimTemp(96);
                         sounds.playToggleSound?.();
                       }}
-                      className={s5SimTemp >= 96 ? 'bg-emerald-600 text-white text-xs' : 'bg-blue-600 text-white text-xs'}
+                      className={s5SimTemp >= 96 ? 'bg-emerald-600 text-white text-sm font-medium cursor-pointer' : 'bg-blue-600 text-white text-sm font-medium cursor-pointer'}
                     >
                       {s5SimTemp >= 96 ? '✓ 达到 96°C (风扇运转中)' : '提升水温至 96°C 触发'}
                     </Button>
@@ -897,7 +897,7 @@ export function E04TransistorScene({
               </div>
 
               {s5SimTemp >= 96 && (
-                <div className="flex items-center gap-4 pt-4 border-t border-slate-800 text-xs font-mono">
+                <div className="flex items-center gap-4 pt-4 border-t border-slate-800 text-sm font-mono">
                   <div className="text-emerald-400 font-bold">低速散热风扇运转正常 🌀</div>
                   <div>三极管 Uce: <span className="text-emerald-400 font-bold">0.18 V (饱和导通)</span></div>
                   <div>冷却水温: <span className="text-cyan-400 font-bold">88°C (平稳回落)</span></div>
@@ -912,9 +912,9 @@ export function E04TransistorScene({
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                   工程交付验收单
                 </h4>
-                <p className="text-xs text-slate-400 mb-3">核验证实风扇控制系统修复质量：</p>
+                <p className="text-sm text-slate-300 mb-3">核验证实风扇控制系统修复质量：</p>
 
-                <div className="space-y-2 text-xs">
+                <div className="space-y-2 text-sm">
                   <div className="p-2.5 bg-slate-900 rounded-lg border border-slate-800 flex justify-between">
                     <span className="text-slate-400">故障部位:</span>
                     <span className="text-slate-200 font-bold">ECU 风扇驱动板基极偏置电阻虚焊</span>
@@ -942,7 +942,7 @@ export function E04TransistorScene({
                     onChange={(e) => setS5Signed(e.target.checked)}
                     className="rounded accent-emerald-500"
                   />
-                  <label htmlFor="e04-sign" className="text-xs text-slate-300 cursor-pointer">
+                  <label htmlFor="e04-sign" className="text-sm text-slate-300 cursor-pointer">
                     维修技师已通过水温闭环带载试机，确认无过热风险，同意交车
                   </label>
                 </div>
@@ -963,12 +963,12 @@ export function E04TransistorScene({
                         s5SimTemp,
                       });
                     }}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold cursor-pointer"
                   >
                     签署交车工单
                   </Button>
                 ) : (
-                  <div className="p-3 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs flex items-center gap-2">
+                  <div className="p-3 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-sm flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 shrink-0" />
                     <span>交车成功！发动机水温冷却控制完全符合出厂标准！</span>
                   </div>

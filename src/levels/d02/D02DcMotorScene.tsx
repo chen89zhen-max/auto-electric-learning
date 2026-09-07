@@ -169,7 +169,7 @@ export function D02DcMotorScene({
           </div>
           <button
             onClick={() => setMeterWarning(null)}
-            className="text-xs px-2 py-1 bg-amber-500/30 hover:bg-amber-500/50 rounded text-amber-100"
+            className="text-sm font-bold px-3 py-1 bg-amber-500/30 hover:bg-amber-500/50 rounded text-amber-100 cursor-pointer"
           >
             知道了
           </button>
@@ -178,14 +178,14 @@ export function D02DcMotorScene({
 
       {/* Main interactive grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1">
-        {/* Left: Motor Physics & H-Bridge Visualizer (7 cols) */}
+        {/* Left: Circuit & Motor Visualizer (7 cols) */}
         <div className="lg:col-span-7 bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <div className="flex items-center gap-2">
-              <RotateCw className="w-5 h-5 text-sky-400 animate-spin" />
-              <span className="font-semibold text-slate-200">直流电动机受力、换向与 H 桥控制实验台</span>
+              <RotateCw className="w-5 h-5 text-sky-400 animate-spin" style={{ animationDuration: '4s' }} />
+              <span className="font-semibold text-slate-200">直流电动机电磁力与H桥控制台</span>
             </div>
-            <div className="text-xs px-2.5 py-1 bg-slate-800 text-sky-300 rounded font-mono">
+            <div className="text-sm px-2.5 py-1 bg-slate-800 text-sky-300 rounded font-mono">
               {currentStep === 'LORENTZ_FORCE_AND_LEFT_HAND_RULE' && '步骤1: 左手定则与受力'}
               {currentStep === 'COMMUTATOR_AND_CONTINUOUS_ROTATION' && '步骤2: 换向器与连续旋转'}
               {currentStep === 'H_BRIDGE_RELAY_DUAL_DIRECTION_CONTROL' && '步骤3: H桥正反转'}
@@ -426,15 +426,15 @@ export function D02DcMotorScene({
           </div>
 
           {/* Controls Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-slate-900 border border-slate-800 rounded-lg">
+          <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-slate-900 border border-slate-800 rounded-lg text-sm">
             {currentStep === 'LORENTZ_FORCE_AND_LEFT_HAND_RULE' && (
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <button
                   onClick={() => {
                     sounds.click();
                     setS1MagnetNTop(!s1MagnetNTop);
                   }}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-xs text-sky-200"
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-sm font-semibold text-sky-200 cursor-pointer"
                 >
                   翻转磁极 (当前: {s1MagnetNTop ? '上N下S' : '上S下N'})
                 </button>
@@ -443,7 +443,7 @@ export function D02DcMotorScene({
                     sounds.click();
                     setS1CurrentOut(!s1CurrentOut);
                   }}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-xs text-amber-200"
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-sm font-semibold text-amber-200 cursor-pointer"
                 >
                   翻转电流 (当前: {s1CurrentOut ? '由内向外 ⊙' : '由外向内 ⊗'})
                 </button>
@@ -452,8 +452,8 @@ export function D02DcMotorScene({
 
             {currentStep === 'COMMUTATOR_AND_CONTINUOUS_ROTATION' && (
               <div className="flex flex-col gap-2 w-full">
-                <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
-                  <span className="text-xs text-slate-400 font-semibold">认知维度:</span>
+                <div className="flex flex-wrap items-center gap-2 border-b border-slate-800 pb-2">
+                  <span className="text-sm text-slate-400 font-semibold">认知维度:</span>
                   {(
                     [
                       { key: 'EXPERIMENT', label: '1. 换向器仿真实验' },
@@ -467,7 +467,7 @@ export function D02DcMotorScene({
                         sounds.click();
                         setS2SubTab(tab.key);
                       }}
-                      className={`px-2.5 py-1 rounded text-xs font-bold cursor-pointer transition-colors ${
+                      className={`px-3 py-1.5 rounded text-sm font-bold cursor-pointer transition-colors ${
                         s2SubTab === tab.key
                           ? 'bg-sky-600 text-white shadow-xs'
                           : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
@@ -479,13 +479,13 @@ export function D02DcMotorScene({
                 </div>
 
                 {s2SubTab === 'EXPERIMENT' && (
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-3">
                     <button
                       onClick={() => {
                         sounds.click();
                         setS2HasCommutator(false);
                       }}
-                      className={`px-3 py-1.5 rounded text-xs font-bold ${
+                      className={`px-3 py-1.5 rounded text-sm font-bold cursor-pointer ${
                         !s2HasCommutator ? 'bg-rose-600 text-white' : 'bg-slate-800 text-slate-300'
                       }`}
                     >
@@ -496,7 +496,7 @@ export function D02DcMotorScene({
                         sounds.zap();
                         setS2HasCommutator(true);
                       }}
-                      className={`px-3 py-1.5 rounded text-xs font-bold ${
+                      className={`px-3 py-1.5 rounded text-sm font-bold cursor-pointer ${
                         s2HasCommutator ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300'
                       }`}
                     >
@@ -506,26 +506,26 @@ export function D02DcMotorScene({
                 )}
 
                 {s2SubTab === 'STARTER_MAP' && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-2 bg-slate-900/90 rounded-lg border border-slate-800 text-xs">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-2 bg-slate-900/90 rounded-lg border border-slate-800 text-sm">
                     {STARTER_MOTOR_COMPONENTS.map((comp) => (
                       <div key={comp.id} className="p-2 bg-slate-950/70 rounded border border-slate-800 flex flex-col gap-1">
                         <div className="flex items-center justify-between">
                           <span className="font-bold text-sky-300">{comp.name}</span>
-                          <span className="text-xs text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">{comp.location}</span>
+                          <span className="text-sm text-slate-400 bg-slate-800 px-2 py-0.5 rounded font-medium">{comp.location}</span>
                         </div>
-                        <p className="text-xs text-slate-400 leading-tight">{comp.role}</p>
+                        <p className="text-sm text-slate-400 leading-tight">{comp.role}</p>
                       </div>
                     ))}
                   </div>
                 )}
 
                 {s2SubTab === 'ROTATING_FIELD' && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-slate-900/90 rounded-lg border border-slate-800 text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-slate-900/90 rounded-lg border border-slate-800 text-sm">
                     <div className="p-2.5 bg-slate-950/70 rounded border border-slate-800 flex flex-col gap-1.5">
                       <span className="font-bold text-rose-400">{MAGNETIC_FIELD_COMPARISON.singlePhase.name}</span>
-                      <p className="text-xs text-slate-300">{MAGNETIC_FIELD_COMPARISON.singlePhase.description}</p>
-                      <div className="mt-1 flex items-center gap-2 text-xs text-slate-400">
-                        <span className="px-1.5 py-0.5 bg-rose-950/60 text-rose-300 rounded border border-rose-900">
+                      <p className="text-sm text-slate-300">{MAGNETIC_FIELD_COMPARISON.singlePhase.description}</p>
+                      <div className="mt-1 flex items-center gap-2 text-sm text-slate-400">
+                        <span className="px-1.5 py-0.5 bg-rose-950/60 text-rose-300 rounded border border-rose-900 font-bold">
                           不能自起动
                         </span>
                         <span>必须借机械电刷/电容</span>
@@ -533,9 +533,9 @@ export function D02DcMotorScene({
                     </div>
                     <div className="p-2.5 bg-slate-950/70 rounded border border-slate-800 flex flex-col gap-1.5">
                       <span className="font-bold text-emerald-400">{MAGNETIC_FIELD_COMPARISON.threePhase.name}</span>
-                      <p className="text-xs text-slate-300">{MAGNETIC_FIELD_COMPARISON.threePhase.description}</p>
-                      <div className="mt-1 flex items-center gap-2 text-xs text-slate-400">
-                        <span className="px-1.5 py-0.5 bg-emerald-950/60 text-emerald-300 rounded border border-emerald-900">
+                      <p className="text-sm text-slate-300">{MAGNETIC_FIELD_COMPARISON.threePhase.description}</p>
+                      <div className="mt-1 flex items-center gap-2 text-sm text-slate-400">
+                        <span className="px-1.5 py-0.5 bg-emerald-950/60 text-emerald-300 rounded border border-emerald-900 font-bold">
                           120° 空间对称
                         </span>
                         <span>无电刷天然平滑旋转</span>
@@ -547,15 +547,15 @@ export function D02DcMotorScene({
             )}
 
             {currentStep === 'H_BRIDGE_RELAY_DUAL_DIRECTION_CONTROL' && (
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400">H桥控制:</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm text-slate-400 font-semibold">H桥控制:</span>
                 <button
                   onClick={() => {
                     sounds.click();
                     setS3BridgeMode('STOP');
                     setS3Observed(true);
                   }}
-                  className={`px-2.5 py-1 rounded text-xs ${s3BridgeMode === 'STOP' ? 'bg-slate-700 text-white' : 'bg-slate-800 text-slate-300'}`}
+                  className={`px-3 py-1.5 rounded text-sm font-medium cursor-pointer ${s3BridgeMode === 'STOP' ? 'bg-slate-700 text-white' : 'bg-slate-800 text-slate-300'}`}
                 >
                   00 停止 (均接地)
                 </button>
@@ -565,7 +565,7 @@ export function D02DcMotorScene({
                     setS3BridgeMode('UP');
                     setS3Observed(true);
                   }}
-                  className={`px-2.5 py-1 rounded text-xs ${s3BridgeMode === 'UP' ? 'bg-sky-600 text-white font-bold' : 'bg-slate-800 text-slate-300'}`}
+                  className={`px-3 py-1.5 rounded text-sm font-bold cursor-pointer ${s3BridgeMode === 'UP' ? 'bg-sky-600 text-white font-bold' : 'bg-slate-800 text-slate-300'}`}
                 >
                   10 升窗 (正转)
                 </button>
@@ -575,7 +575,7 @@ export function D02DcMotorScene({
                     setS3BridgeMode('DOWN');
                     setS3Observed(true);
                   }}
-                  className={`px-2.5 py-1 rounded text-xs ${s3BridgeMode === 'DOWN' ? 'bg-amber-600 text-white font-bold' : 'bg-slate-800 text-slate-300'}`}
+                  className={`px-3 py-1.5 rounded text-sm font-bold cursor-pointer ${s3BridgeMode === 'DOWN' ? 'bg-amber-600 text-white font-bold' : 'bg-slate-800 text-slate-300'}`}
                 >
                   01 降窗 (反转)
                 </button>
@@ -585,7 +585,7 @@ export function D02DcMotorScene({
                     setS3BridgeMode('BRAKE');
                     setS3Observed(true);
                   }}
-                  className={`px-2.5 py-1 rounded text-xs ${s3BridgeMode === 'BRAKE' ? 'bg-rose-700 text-white font-bold' : 'bg-slate-800 text-slate-300'}`}
+                  className={`px-3 py-1.5 rounded text-sm font-bold cursor-pointer ${s3BridgeMode === 'BRAKE' ? 'bg-rose-700 text-white font-bold' : 'bg-slate-800 text-slate-300'}`}
                 >
                   11 制动停转 (等电位)
                 </button>
@@ -593,14 +593,14 @@ export function D02DcMotorScene({
             )}
 
             {currentStep === 'BLIND_DC_MOTOR_FAULT_ISOLATION' && (
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400">测量项目:</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm text-slate-400 font-semibold">测量项目:</span>
                 <button
                   onClick={() => {
                     sounds.click();
                     setS4TestTarget('VOLT');
                   }}
-                  className={`px-2.5 py-1 rounded text-xs ${s4TestTarget === 'VOLT' ? 'bg-sky-600 text-white' : 'bg-slate-800 text-slate-300'}`}
+                  className={`px-3 py-1.5 rounded text-sm font-medium cursor-pointer ${s4TestTarget === 'VOLT' ? 'bg-sky-600 text-white' : 'bg-slate-800 text-slate-300'}`}
                 >
                   升窗端子1电压
                 </button>
@@ -609,7 +609,7 @@ export function D02DcMotorScene({
                     sounds.click();
                     setS4TestTarget('RES');
                   }}
-                  className={`px-2.5 py-1 rounded text-xs ${s4TestTarget === 'RES' ? 'bg-sky-600 text-white' : 'bg-slate-800 text-slate-300'}`}
+                  className={`px-3 py-1.5 rounded text-sm font-medium cursor-pointer ${s4TestTarget === 'RES' ? 'bg-sky-600 text-white' : 'bg-slate-800 text-slate-300'}`}
                 >
                   电机线圈静态阻值
                 </button>
@@ -618,7 +618,7 @@ export function D02DcMotorScene({
                     sounds.click();
                     setS4TestTarget('CURR');
                   }}
-                  className={`px-2.5 py-1 rounded text-xs ${s4TestTarget === 'CURR' ? 'bg-sky-600 text-white' : 'bg-slate-800 text-slate-300'}`}
+                  className={`px-3 py-1.5 rounded text-sm font-medium cursor-pointer ${s4TestTarget === 'CURR' ? 'bg-sky-600 text-white' : 'bg-slate-800 text-slate-300'}`}
                 >
                   运转工作电流
                 </button>
@@ -626,14 +626,14 @@ export function D02DcMotorScene({
             )}
 
             {currentStep === 'ENGINEERING_REPAIR_AND_COMMISSIONING' && (
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <button
                   disabled={s5Repaired}
                   onClick={() => {
                     sounds.success();
                     setS5Repaired(true);
                   }}
-                  className={`px-3 py-1.5 rounded text-xs font-semibold ${
+                  className={`px-3 py-1.5 rounded text-sm font-semibold cursor-pointer ${
                     s5Repaired ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-500/50' : 'bg-sky-600 hover:bg-sky-500 text-white'
                   }`}
                 >
@@ -646,7 +646,7 @@ export function D02DcMotorScene({
                         sounds.click();
                         setS5TestDir('UP');
                       }}
-                      className={`px-2.5 py-1 rounded text-xs ${s5TestDir === 'UP' ? 'bg-sky-600 text-white' : 'bg-slate-800 text-slate-300'}`}
+                      className={`px-3 py-1.5 rounded text-sm font-medium cursor-pointer ${s5TestDir === 'UP' ? 'bg-sky-600 text-white' : 'bg-slate-800 text-slate-300'}`}
                     >
                       测试升窗
                     </button>
@@ -655,7 +655,7 @@ export function D02DcMotorScene({
                         sounds.click();
                         setS5TestDir('DOWN');
                       }}
-                      className={`px-2.5 py-1 rounded text-xs ${s5TestDir === 'DOWN' ? 'bg-amber-600 text-white' : 'bg-slate-800 text-slate-300'}`}
+                      className={`px-3 py-1.5 rounded text-sm font-medium cursor-pointer ${s5TestDir === 'DOWN' ? 'bg-amber-600 text-white' : 'bg-slate-800 text-slate-300'}`}
                     >
                       测试降窗
                     </button>
@@ -673,16 +673,16 @@ export function D02DcMotorScene({
             <div className="flex items-center justify-between border-b border-slate-800 pb-2">
               <div className="flex items-center gap-2">
                 <Gauge className="w-4 h-4 text-emerald-400" />
-                <span className="text-xs font-bold text-slate-300">工业级万用表 (VC890D)</span>
+                <span className="text-sm font-bold text-slate-300">工业级万用表 (VC890D)</span>
               </div>
-              <span className="text-[11px] font-mono text-slate-400">
+              <span className="text-sm font-mono text-slate-300">
                 旋钮: {meterKnob === 'OFF' ? '关机 OFF' : meterKnob}
               </span>
             </div>
 
             {/* LCD Display */}
             <div className="bg-emerald-950/30 border border-emerald-500/40 rounded-lg p-3 my-3 text-center">
-              <div className="text-xs text-emerald-400/70 font-mono tracking-widest uppercase mb-1">
+              <div className="text-sm text-emerald-400/70 font-mono tracking-widest uppercase mb-1">
                 {meterKnob === 'DCV_20'
                   ? 'DC VOLTAGE (20V)'
                   : meterKnob === 'OHM_200'
@@ -732,7 +732,7 @@ export function D02DcMotorScene({
                   sounds.click();
                   setMeterKnob('OFF');
                 }}
-                className={`py-1.5 px-1 text-xs rounded font-mono font-bold ${
+                className={`py-2 px-1 text-sm rounded font-mono font-bold cursor-pointer ${
                   meterKnob === 'OFF' ? 'bg-rose-700 text-white ring-2 ring-rose-400' : 'bg-slate-800 text-slate-300'
                 }`}
               >
@@ -744,7 +744,7 @@ export function D02DcMotorScene({
                   setMeterKnob('DCV_20');
                   setMeterWarning(null);
                 }}
-                className={`py-1.5 px-1 text-xs rounded font-mono font-bold ${
+                className={`py-2 px-1 text-sm rounded font-mono font-bold cursor-pointer ${
                   meterKnob === 'DCV_20' ? 'bg-emerald-600 text-white ring-2 ring-emerald-400' : 'bg-slate-800 text-slate-300'
                 }`}
               >
@@ -756,7 +756,7 @@ export function D02DcMotorScene({
                   setMeterKnob('OHM_200');
                   setMeterWarning(null);
                 }}
-                className={`py-1.5 px-1 text-xs rounded font-mono font-bold ${
+                className={`py-2 px-1 text-sm rounded font-mono font-bold cursor-pointer ${
                   meterKnob === 'OHM_200' ? 'bg-amber-600 text-white ring-2 ring-amber-400' : 'bg-slate-800 text-slate-300'
                 }`}
               >
@@ -768,7 +768,7 @@ export function D02DcMotorScene({
                   setMeterKnob('DCA_20');
                   setMeterWarning(null);
                 }}
-                className={`py-1.5 px-1 text-xs rounded font-mono font-bold ${
+                className={`py-2 px-1 text-sm rounded font-mono font-bold cursor-pointer ${
                   meterKnob === 'DCA_20' ? 'bg-sky-600 text-white ring-2 ring-sky-400' : 'bg-slate-800 text-slate-300'
                 }`}
               >
@@ -809,7 +809,7 @@ export function D02DcMotorScene({
                           sounds.click();
                           setS1Choice(opt.id);
                         }}
-                        className={`w-full text-left p-2.5 rounded-lg border text-xs transition-all ${borderClass}`}
+                        className={`w-full text-left p-2.5 rounded-lg border text-sm transition-all cursor-pointer ${borderClass}`}
                       >
                         <span className="font-bold mr-1.5">•</span> {opt.text}
                       </button>
@@ -830,7 +830,7 @@ export function D02DcMotorScene({
                         setS1Submitted(true);
                       }
                     }}
-                    className="w-full bg-sky-600 hover:bg-sky-500 text-xs font-semibold py-2"
+                    className="w-full bg-sky-600 hover:bg-sky-500 text-sm font-semibold py-2"
                   >
                     提交受力方向判别
                   </Button>
@@ -841,7 +841,7 @@ export function D02DcMotorScene({
                       assessment.startStage('standard');
                       onAdvanceStep();
                     }}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold py-2"
                   >
                     完全正确！进入换向器与连续旋转实训 <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
@@ -852,7 +852,7 @@ export function D02DcMotorScene({
                       setS1Choice(null);
                     }}
                     variant="outline"
-                    className="w-full text-xs"
+                    className="w-full text-sm"
                   >
                     重新根据左手定则分析
                   </Button>
@@ -890,7 +890,7 @@ export function D02DcMotorScene({
                           sounds.click();
                           setS2Choice(opt.id);
                         }}
-                        className={`w-full text-left p-2.5 rounded-lg border text-xs transition-all ${borderClass}`}
+                        className={`w-full text-left p-2.5 rounded-lg border text-sm transition-all cursor-pointer ${borderClass}`}
                       >
                         <span className="font-bold mr-1.5">•</span> {opt.text}
                       </button>
@@ -911,7 +911,7 @@ export function D02DcMotorScene({
                         setS2Submitted(true);
                       }
                     }}
-                    className="w-full bg-sky-600 hover:bg-sky-500 text-xs font-semibold py-2"
+                    className="w-full bg-sky-600 hover:bg-sky-500 text-sm font-semibold py-2"
                   >
                     提交换向原理分析
                   </Button>
@@ -922,7 +922,7 @@ export function D02DcMotorScene({
                       assessment.startStage('calculation');
                       onAdvanceStep();
                     }}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold py-2"
                   >
                     分析透彻！进入双继电器 H 桥控制实战 <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
@@ -933,7 +933,7 @@ export function D02DcMotorScene({
                       setS2Choice(null);
                     }}
                     variant="outline"
-                    className="w-full text-xs"
+                    className="w-full text-sm"
                   >
                     重新思考
                   </Button>
@@ -971,7 +971,7 @@ export function D02DcMotorScene({
                           sounds.click();
                           setS3Choice(opt.id);
                         }}
-                        className={`w-full text-left p-2.5 rounded-lg border text-xs transition-all ${borderClass}`}
+                        className={`w-full text-left p-2.5 rounded-lg border text-sm transition-all cursor-pointer ${borderClass}`}
                       >
                         <span className="font-bold mr-1.5">•</span> {opt.text}
                       </button>
@@ -992,7 +992,7 @@ export function D02DcMotorScene({
                         setS3Submitted(true);
                       }
                     }}
-                    className="w-full bg-sky-600 hover:bg-sky-500 text-xs font-semibold py-2"
+                    className="w-full bg-sky-600 hover:bg-sky-500 text-sm font-semibold py-2"
                   >
                     {!s3Observed ? '请先在左侧操作升窗/降窗按钮' : '提交 H 桥极性分析'}
                   </Button>
@@ -1003,7 +1003,7 @@ export function D02DcMotorScene({
                       assessment.startStage('blind_test');
                       onAdvanceStep();
                     }}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold py-2"
                   >
                     逻辑严谨！进入独立盲测排故 <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
@@ -1014,7 +1014,7 @@ export function D02DcMotorScene({
                       setS3Choice(null);
                     }}
                     variant="outline"
-                    className="w-full text-xs"
+                    className="w-full text-sm"
                   >
                     重新思考
                   </Button>
@@ -1025,11 +1025,11 @@ export function D02DcMotorScene({
             {/* Step 4 Question */}
             {currentStep === 'BLIND_DC_MOTOR_FAULT_ISOLATION' && (
               <div className="space-y-3">
-                <div className="p-2 bg-slate-900 border border-slate-800 rounded text-xs">
+                <div className="p-2.5 bg-slate-900 border border-slate-800 rounded text-sm">
                   <div className="font-bold text-sky-300">{activeBlind.vehicleName}</div>
-                  <div className="text-slate-400">{activeBlind.symptom}</div>
+                  <div className="text-slate-300 mt-0.5">{activeBlind.symptom}</div>
                 </div>
-                <div className="text-xs font-semibold text-sky-300">
+                <div className="text-sm font-semibold text-sky-300">
                   结合打表测得的数据，判定故障真因：
                 </div>
                 <div className="space-y-2">
@@ -1056,7 +1056,7 @@ export function D02DcMotorScene({
                           sounds.click();
                           setS4Choice(opt.id);
                         }}
-                        className={`w-full text-left p-2.5 rounded-lg border text-xs transition-all ${borderClass}`}
+                        className={`w-full text-left p-2.5 rounded-lg border text-sm transition-all cursor-pointer ${borderClass}`}
                       >
                         <span className="font-bold mr-1.5">•</span> {opt.text}
                       </button>
@@ -1081,7 +1081,7 @@ export function D02DcMotorScene({
                         setS4Submitted(true);
                       }
                     }}
-                    className="w-full bg-sky-600 hover:bg-sky-500 text-xs font-semibold py-2"
+                    className="w-full bg-sky-600 hover:bg-sky-500 text-sm font-semibold py-2"
                   >
                     提交盲测诊断结论
                   </Button>
@@ -1098,7 +1098,7 @@ export function D02DcMotorScene({
                         onAdvanceStep();
                       }
                     }}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold py-2"
                   >
                     {blindIndex < MOTOR_BLIND_CASES.length - 1 ? '正确！进入下一个电机盲测案例' : '盲测全通！进入实车修复与交车'}
                   </Button>
@@ -1109,7 +1109,7 @@ export function D02DcMotorScene({
                       setS4Choice(null);
                     }}
                     variant="outline"
-                    className="w-full text-xs"
+                    className="w-full text-sm"
                   >
                     重新打表排查
                   </Button>
@@ -1123,7 +1123,7 @@ export function D02DcMotorScene({
                 <div className="text-sm font-semibold text-sky-300">
                   【步骤5交付验收】修复后通电试车，核验各项标准：
                 </div>
-                <div className="p-3 bg-slate-900 border border-slate-800 rounded-lg space-y-2 text-xs">
+                <div className="p-3 bg-slate-900 border border-slate-800 rounded-lg space-y-2 text-sm">
                   <div className="flex items-center justify-between text-slate-300">
                     <span>1. 电机升窗带载工作电流:</span>
                     <span className="font-mono text-emerald-400 font-bold">3.20 A (标准 2.5A~4.0A 合格)</span>
@@ -1138,7 +1138,7 @@ export function D02DcMotorScene({
                   </div>
                 </div>
                 <div className="pt-2">
-                  <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-300">
                     <input
                       type="checkbox"
                       checked={s5WorkOrderSigned}
@@ -1164,12 +1164,12 @@ export function D02DcMotorScene({
                       onComplete?.(finalResult);
                       onAdvanceStep();
                     }}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold py-2"
                   >
                     {!s5Repaired ? '请先执行工程修复' : !s5WorkOrderSigned ? '请勾选签署交付工单' : '完成交车验收'}
                   </Button>
                 ) : (
-                  <div className="p-3 bg-emerald-950/40 border border-emerald-500/50 rounded-lg text-emerald-300 text-xs flex items-center gap-2">
+                  <div className="p-3 bg-emerald-950/40 border border-emerald-500/50 rounded-lg text-emerald-300 text-sm flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                     <span>恭喜！D02 直流电动机认知与控制实训圆满闭环完成！</span>
                   </div>

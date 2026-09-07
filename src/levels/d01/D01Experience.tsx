@@ -74,48 +74,46 @@ export function D01Experience({ onReturnLobby }: D01ExperienceProps) {
     <main className="app-shell level03-shell d01-shell bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-amber-500/30 selection:text-amber-200">
       {/* Header Topbar */}
       <header className="topbar bg-slate-900 border-b border-slate-800 px-6 py-3 flex items-center justify-between sticky top-0 z-40 shadow-lg">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-400">
-            <Zap size={20} />
-          </div>
+        <div className="brand-lockup flex items-center gap-3">
+          <span className="brand-mark safety-mark bg-amber-500 shadow-amber-500/20 text-slate-950 p-2 rounded-xl">
+            <Zap size={22} />
+          </span>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-mono px-1.5 py-0.5 bg-slate-800 text-slate-300 rounded border border-slate-700">
-                篇章四 · 电磁与电机
+              <span className="text-sm font-mono px-1.5 py-0.5 bg-slate-800 text-slate-300 rounded border border-slate-700">
+                P5-D01
               </span>
-              <span className="text-xs text-amber-400 font-semibold">学习任务 11</span>
+              <span className="text-sm text-amber-400 font-semibold">学习任务 11</span>
             </div>
-            <h1 className="text-base font-bold text-slate-100 mt-0.5">
-              D01 小开关控制工作灯——继电器与电磁控制
-            </h1>
+            <h1 className="text-lg font-bold text-slate-100 mt-0.5">汽车继电器原理、引脚辨识与驱动控制</h1>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setShowWorkOrder(!showWorkOrder)}
-            className={`action-btn ${showWorkOrder ? 'active text-amber-400 border-amber-500/50' : 'secondary'}`}
-            title="查看实训工单详情"
-          >
-            <ClipboardList size={16} />
-            <span>实训工单</span>
-          </button>
-          <button
-            onClick={handleRestart}
-            className="action-btn secondary"
-            title="重置当前关卡"
-          >
-            <RotateCcw size={16} />
-            <span>重新开始</span>
-          </button>
+        <div className="topbar-actions flex items-center gap-2">
           <FullscreenButton />
           <button
+            type="button"
+            className={`p-2 rounded-lg transition-colors border ${showWorkOrder ? 'bg-amber-500/20 text-amber-400 border-amber-500/50' : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'}`}
+            onClick={() => setShowWorkOrder(!showWorkOrder)}
+            title="查看实训工单与步骤指南"
+          >
+            <ClipboardList size={18} />
+          </button>
+          <button
+            type="button"
+            className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors border border-slate-700"
+            onClick={handleRestart}
+            title="重新开始本次实训"
+          >
+            <RotateCcw size={18} />
+          </button>
+          <button
+            type="button"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium transition-colors border border-slate-700"
             onClick={onReturnLobby}
-            className="action-btn secondary text-rose-300 hover:text-rose-200"
-            title="返回实训大厅"
           >
             <LogOut size={16} />
-            <span>退出</span>
+            <span>返回大厅</span>
           </button>
         </div>
       </header>
@@ -132,7 +130,7 @@ export function D01Experience({ onReturnLobby }: D01ExperienceProps) {
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
                 <span className="font-bold text-amber-300 text-sm">陈师傅（实训总教练）</span>
-                <span className="text-xs px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full font-mono">
+                <span className="text-sm px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full font-mono">
                   D01 · {guidance.title.split('：')[0]}
                 </span>
               </div>
@@ -155,7 +153,7 @@ export function D01Experience({ onReturnLobby }: D01ExperienceProps) {
         </section>
 
         {/* 5-Stage Step Indicators */}
-        <div className="grid grid-cols-5 gap-2 text-xs">
+        <div className="grid grid-cols-5 gap-2 text-sm">
           {[
             { key: 'COIL_CONTACT_ISOLATION', label: '1. 回路分离认知' },
             { key: 'MULTIMETER_PIN_IDENTIFICATION', label: '2. 引脚万用表辨识' },
@@ -182,7 +180,7 @@ export function D01Experience({ onReturnLobby }: D01ExperienceProps) {
                     : 'border-slate-800 bg-slate-900/50 text-slate-500'
                 }`}
               >
-                <span className="block font-mono text-xs text-slate-400">阶段 0{idx + 1}</span>
+                <span className="block font-mono text-sm text-slate-400">阶段 0{idx + 1}</span>
                 <span className="truncate block">{s.label.split('. ')[1]}</span>
               </div>
             );

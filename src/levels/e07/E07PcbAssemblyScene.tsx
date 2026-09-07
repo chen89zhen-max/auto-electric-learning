@@ -149,7 +149,7 @@ export function E07PcbAssemblyScene({
             <Gauge className="w-6 h-6" />
           </div>
           <div>
-            <div className="text-xs text-slate-400 font-semibold tracking-wider uppercase">
+            <div className="text-sm text-slate-400 font-semibold tracking-wider uppercase">
               PCB 质检与焊接工位 (恒温 330°C / DMM / 10X 放大镜)
             </div>
             <div className="text-sm font-bold text-slate-200">
@@ -171,7 +171,7 @@ export function E07PcbAssemblyScene({
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-400">检测工具:</span>
+          <span className="text-sm font-medium text-slate-300">检测工具:</span>
           {(['OFF', 'MAGNIFIER_10X', 'BUZZER_OHM', 'DCV_20'] as const).map((knob) => (
             <button
               key={knob}
@@ -180,7 +180,7 @@ export function E07PcbAssemblyScene({
                 setMeterWarning(null);
                 sounds.playToggleSound?.();
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`px-3.5 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${
                 meterKnob === knob
                   ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30 ring-2 ring-blue-400'
                   : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
@@ -206,10 +206,10 @@ export function E07PcbAssemblyScene({
             <div className="lg:col-span-8 flex flex-col justify-between p-6 bg-slate-950/80 rounded-2xl border border-slate-800 min-h-[360px]">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-bold uppercase text-blue-400 tracking-wider">
+                  <span className="text-sm font-bold uppercase text-blue-400 tracking-wider">
                     工艺规程：电烙铁安全与标准五步焊接法
                   </span>
-                  <span className="text-xs font-mono text-emerald-400">恒温焊台: 330°C / 施焊时间: 2~3秒</span>
+                  <span className="text-sm font-mono text-emerald-400">恒温焊台: 330°C / 施焊时间: 2~3秒</span>
                 </div>
 
                 {/* 五步法交互导航 */}
@@ -221,14 +221,14 @@ export function E07PcbAssemblyScene({
                         setS1CurrentStepIdx(idx);
                         sounds.playToggleSound?.();
                       }}
-                      className={`p-2 rounded-xl text-center border transition-all ${
+                      className={`p-2 rounded-xl text-center border transition-all cursor-pointer ${
                         s1CurrentStepIdx === idx
                           ? 'border-blue-500 bg-blue-500/20 text-white ring-2 ring-blue-500/40'
                           : 'border-slate-800 bg-slate-900 text-slate-400 hover:border-slate-700'
                       }`}
                     >
-                      <div className="text-xs font-bold text-blue-400">第 {step.num} 步</div>
-                      <div className="text-xs font-bold mt-0.5">{step.name}</div>
+                      <div className="text-sm font-bold text-blue-400">第 {step.num} 步</div>
+                      <div className="text-sm font-bold mt-0.5">{step.name}</div>
                     </button>
                   ))}
                 </div>
@@ -236,7 +236,7 @@ export function E07PcbAssemblyScene({
                 {/* 当前步骤操作详解 */}
                 <div className="p-5 bg-slate-900 border border-slate-700 rounded-xl flex items-center justify-between">
                   <div>
-                    <div className="text-xs text-amber-400 font-bold mb-1">
+                    <div className="text-sm text-amber-400 font-bold mb-1">
                       操作要领 · 第 {FIVE_STEPS[s1CurrentStepIdx].num} 步：{FIVE_STEPS[s1CurrentStepIdx].name}
                     </div>
                     <p className="text-sm text-slate-200">{FIVE_STEPS[s1CurrentStepIdx].desc}</p>
@@ -248,16 +248,16 @@ export function E07PcbAssemblyScene({
                 {/* 焊前 6 项安全点检 */}
                 <div className="mt-4 p-3 bg-slate-900/90 rounded-xl border border-amber-500/30 flex flex-col gap-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                    <span className="text-sm font-bold text-amber-300 flex items-center gap-1.5">
                       <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
                       电烙铁通电前 6 项安全必检（未全部确认严禁通电加热）
                     </span>
-                    <span className="text-xs font-mono text-slate-400">
+                    <span className="text-sm font-mono text-slate-300">
                       已核验: {Object.values(s1CheckedItems).filter(Boolean).length} / 6
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-sm">
                     {E07_PRE_POWER_CHECKLIST.map((item) => {
                       const isChecked = !!s1CheckedItems[item.id];
                       return (
@@ -275,26 +275,26 @@ export function E07PcbAssemblyScene({
                               : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700'
                           }`}
                         >
-                          <span className={`w-4 h-4 rounded flex items-center justify-center text-xs font-bold border ${
+                          <span className={`w-4 h-4 rounded flex items-center justify-center text-sm font-bold border ${
                             isChecked ? 'bg-emerald-600 border-emerald-400 text-white' : 'border-slate-600'
                           }`}>
                             {isChecked ? '✓' : ''}
                           </span>
-                          <span className="text-xs leading-tight">{item.label}</span>
+                          <span className="text-sm leading-tight">{item.label}</span>
                         </button>
                       );
                     })}
                   </div>
 
                   {s1SafetyWarning && (
-                    <div className="p-2 bg-rose-950/60 border border-rose-500 rounded text-rose-300 text-xs flex items-center gap-1.5">
+                    <div className="p-2 bg-rose-950/60 border border-rose-500 rounded text-rose-300 text-sm flex items-center gap-1.5">
                       <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
                       <span>{s1SafetyWarning}</span>
                     </div>
                   )}
 
                   <div className="flex items-center justify-between pt-1">
-                    <span className="text-xs text-slate-500">
+                    <span className="text-sm text-slate-300">
                       {s1HeatingStarted ? '🔥 焊台已接通并加温至 330°C' : '请逐项核对无隐患后通电'}
                     </span>
                     <button
@@ -312,7 +312,7 @@ export function E07PcbAssemblyScene({
                         setS1HeatingStarted(true);
                         setS1SafetyWarning(null);
                       }}
-                      className={`px-3 py-1.5 rounded text-xs font-bold transition-all cursor-pointer ${
+                      className={`px-3.5 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${
                         s1HeatingStarted
                           ? 'bg-emerald-600 text-white'
                           : 'bg-amber-600 hover:bg-amber-500 text-white shadow-xs'
@@ -324,7 +324,7 @@ export function E07PcbAssemblyScene({
                 </div>
               </div>
 
-              <div className="text-xs text-slate-400 pt-4 border-t border-slate-800 font-mono">
+              <div className="text-sm text-slate-300 pt-4 border-t border-slate-800 font-mono">
                 安全红线: 严禁甩动烙铁甩锡！烙铁离开必须归位到烙铁架！单点加热严禁超过 4 秒以防焊盘脱落！
               </div>
             </div>
@@ -336,7 +336,7 @@ export function E07PcbAssemblyScene({
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   工艺安全理论验证
                 </h4>
-                <p className="text-xs text-slate-400 mb-4">
+                <p className="text-sm text-slate-300 mb-4">
                   关于手工焊接五步法及施焊时间控制，下列哪项规范是正确的？
                 </p>
 
@@ -353,7 +353,7 @@ export function E07PcbAssemblyScene({
                         setS1Choice(opt.id);
                         sounds.playToggleSound?.();
                       }}
-                      className={`w-full text-left p-3 rounded-xl border text-xs transition-all ${
+                      className={`w-full text-left p-3 rounded-xl border text-sm transition-all cursor-pointer ${
                         s1Choice === opt.id
                           ? 'border-blue-500 bg-blue-500/10 text-white font-bold'
                           : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700'
@@ -388,13 +388,13 @@ export function E07PcbAssemblyScene({
                         alert('规程有误！过度加热会导致焊盘脱落，吹气会导致焊点内部晶格粗糙冷焊！');
                       }
                     }}
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold"
+                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold cursor-pointer"
                   >
                     提交工艺判定
                   </Button>
                 ) : (
                   <div className="space-y-2">
-                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs flex items-center gap-2">
+                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-sm flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 shrink-0" />
                       <span>工艺规范考核过关！牢记 2~3 秒与五步黄金流程。</span>
                     </div>
@@ -404,7 +404,7 @@ export function E07PcbAssemblyScene({
                         assessment.startStage('standard');
                         onAdvanceStep();
                       }}
-                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold flex items-center justify-center gap-1 cursor-pointer"
                     >
                       进入步骤 2：PCB 插装与焊接实操 <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
@@ -423,10 +423,10 @@ export function E07PcbAssemblyScene({
             <div className="lg:col-span-8 p-6 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between min-h-[380px]">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-bold uppercase text-blue-400">
+                  <span className="text-sm font-bold uppercase text-blue-400">
                     装配工位：元器件引脚成型、极性核对与插装焊接
                   </span>
-                  <span className="text-xs text-slate-400">
+                  <span className="text-sm text-slate-300">
                     工序进度: {[
                       s2InsertedParts.resistor && '电阻',
                       s2InsertedParts.diode && '二极管',
@@ -441,14 +441,14 @@ export function E07PcbAssemblyScene({
                 <div className="p-4 bg-emerald-950/40 border-2 border-emerald-800/80 rounded-xl mb-4 relative min-h-[160px] flex items-center justify-around">
                   {/* 色环电阻 */}
                   <div className="p-3 bg-slate-900/90 rounded-lg border border-slate-700 text-center">
-                    <div className="text-xs text-slate-400 mb-1">R1 贴板电阻</div>
+                    <div className="text-sm text-slate-300 mb-1">R1 贴板电阻</div>
                     <Button
                       size="sm"
                       onClick={() => {
                         setS2InsertedParts((p) => ({ ...p, resistor: true }));
                         sounds.playToggleSound?.();
                       }}
-                      className={s2InsertedParts.resistor ? 'bg-emerald-600 text-white text-sm font-semibold' : 'bg-slate-700 text-slate-300 text-sm font-semibold'}
+                      className={s2InsertedParts.resistor ? 'bg-emerald-600 text-white text-sm font-semibold cursor-pointer' : 'bg-slate-700 text-slate-300 text-sm font-semibold cursor-pointer'}
                     >
                       {s2InsertedParts.resistor ? '✓ 已水平平贴插装' : '折弯引脚并插装'}
                     </Button>
@@ -456,14 +456,14 @@ export function E07PcbAssemblyScene({
 
                   {/* 二极管 */}
                   <div className="p-3 bg-slate-900/90 rounded-lg border border-slate-700 text-center">
-                    <div className="text-xs text-slate-400 mb-1">D1 二极管 (色环对齐阴极)</div>
+                    <div className="text-sm text-slate-300 mb-1">D1 二极管 (色环对齐阴极)</div>
                     <Button
                       size="sm"
                       onClick={() => {
                         setS2InsertedParts((p) => ({ ...p, diode: true }));
                         sounds.playToggleSound?.();
                       }}
-                      className={s2InsertedParts.diode ? 'bg-emerald-600 text-white text-sm font-semibold' : 'bg-slate-700 text-slate-300 text-sm font-semibold'}
+                      className={s2InsertedParts.diode ? 'bg-emerald-600 text-white text-sm font-semibold cursor-pointer' : 'bg-slate-700 text-slate-300 text-sm font-semibold cursor-pointer'}
                     >
                       {s2InsertedParts.diode ? '✓ 极性核对插装' : '核对色环方向插装'}
                     </Button>
@@ -471,14 +471,14 @@ export function E07PcbAssemblyScene({
 
                   {/* 电解电容 */}
                   <div className="p-3 bg-slate-900/90 rounded-lg border border-slate-700 text-center">
-                    <div className="text-xs text-slate-400 mb-1">C1 电解电容 (白条对阴影)</div>
+                    <div className="text-sm text-slate-300 mb-1">C1 电解电容 (白条对阴影)</div>
                     <Button
                       size="sm"
                       onClick={() => {
                         setS2InsertedParts((p) => ({ ...p, capacitor: true }));
                         sounds.playToggleSound?.();
                       }}
-                      className={s2InsertedParts.capacitor ? 'bg-emerald-600 text-white text-sm font-semibold' : 'bg-slate-700 text-slate-300 text-sm font-semibold'}
+                      className={s2InsertedParts.capacitor ? 'bg-emerald-600 text-white text-sm font-semibold cursor-pointer' : 'bg-slate-700 text-slate-300 text-sm font-semibold cursor-pointer'}
                     >
                       {s2InsertedParts.capacitor ? '✓ 负极对阴影插装' : '核对极性插装'}
                     </Button>
@@ -493,7 +493,7 @@ export function E07PcbAssemblyScene({
                       setS2InsertedParts((p) => ({ ...p, soldered: true }));
                       sounds.playSuccessSound?.();
                     }}
-                    className={s2InsertedParts.soldered ? 'bg-emerald-600 text-white text-xs' : 'bg-blue-600 text-white text-xs'}
+                    className={s2InsertedParts.soldered ? 'bg-emerald-600 text-white text-sm font-semibold cursor-pointer' : 'bg-blue-600 text-white text-sm font-semibold cursor-pointer'}
                   >
                     {s2InsertedParts.soldered ? '✓ 五步法施焊完成 (半月形光泽)' : '执行 330°C 五步法施焊'}
                   </Button>
@@ -504,14 +504,14 @@ export function E07PcbAssemblyScene({
                       setS2InsertedParts((p) => ({ ...p, trimmed: true }));
                       sounds.playToggleSound?.();
                     }}
-                    className={s2InsertedParts.trimmed ? 'bg-emerald-600 text-white text-xs' : 'bg-slate-700 text-slate-300 text-xs'}
+                    className={s2InsertedParts.trimmed ? 'bg-emerald-600 text-white text-sm font-semibold cursor-pointer' : 'bg-slate-700 text-slate-300 text-sm font-semibold cursor-pointer'}
                   >
                     {s2InsertedParts.trimmed ? '✓ 引脚齐根平整剪除 (留1mm)' : '斜口钳剪脚并酒精清洗'}
                   </Button>
                 </div>
               </div>
 
-              <div className="text-xs text-slate-400 pt-4 border-t border-slate-800">
+              <div className="text-sm text-slate-300 pt-4 border-t border-slate-800">
                 工艺标准: 元器件贴板紧密，剪脚留长 1~1.5mm，板面无焦黑及残留锡渣松香。
               </div>
             </div>
@@ -523,7 +523,7 @@ export function E07PcbAssemblyScene({
                   <Zap className="w-4 h-4 text-cyan-400" />
                   极性与插装质量准则
                 </h4>
-                <p className="text-xs text-slate-400 mb-4">
+                <p className="text-sm text-slate-300 mb-4">
                   插装铝电解电容器时，引脚极性与 PCB 丝印标记应如何严格对应？
                 </p>
 
@@ -540,7 +540,7 @@ export function E07PcbAssemblyScene({
                         setS2Choice(opt.id);
                         sounds.playToggleSound?.();
                       }}
-                      className={`w-full text-left p-3 rounded-xl border text-xs transition-all ${
+                      className={`w-full text-left p-3 rounded-xl border text-sm transition-all cursor-pointer ${
                         s2Choice === opt.id
                           ? 'border-blue-500 bg-blue-500/10 text-white font-bold'
                           : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700'
@@ -568,13 +568,13 @@ export function E07PcbAssemblyScene({
                         alert('判定有误！电解电容反接会炸膛，白条必须对齐阴影区！');
                       }
                     }}
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold"
+                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold cursor-pointer"
                   >
                     提交装配检验
                   </Button>
                 ) : (
                   <div className="space-y-2">
-                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs flex items-center gap-2">
+                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-sm flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 shrink-0" />
                       <span>插装焊接规范标准！极性正确，引脚剪切平整。</span>
                     </div>
@@ -584,7 +584,7 @@ export function E07PcbAssemblyScene({
                         assessment.startStage('calculation');
                         onAdvanceStep();
                       }}
-                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold flex items-center justify-center gap-1 cursor-pointer"
                     >
                       进入步骤 3：焊点质量形态标准 <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
@@ -603,7 +603,7 @@ export function E07PcbAssemblyScene({
             <div className="lg:col-span-8 p-6 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between min-h-[380px]">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-bold uppercase text-blue-400">
+                  <span className="text-sm font-bold uppercase text-blue-400">
                     显微质检：IPC-A-610 工业焊点形态切片库
                   </span>
                   <div className="flex gap-1">
@@ -621,7 +621,7 @@ export function E07PcbAssemblyScene({
                           setS3SelectedJoint(j.id);
                           sounds.playToggleSound?.();
                         }}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-bold border ${
+                        className={`px-3 py-1.5 rounded-lg text-sm font-bold border transition-all cursor-pointer ${
                           s3SelectedJoint === j.id
                             ? 'border-blue-500 bg-blue-500/20 text-white'
                             : 'border-slate-800 bg-slate-900 text-slate-400 hover:border-slate-700'
@@ -659,7 +659,7 @@ export function E07PcbAssemblyScene({
                     </svg>
                   </div>
 
-                  <div className="max-w-xs text-xs space-y-2">
+                  <div className="max-w-xs text-sm space-y-2">
                     <div className="font-bold text-slate-200">
                       形态名称:{' '}
                       <span className="text-emerald-400">
@@ -679,7 +679,7 @@ export function E07PcbAssemblyScene({
                 </div>
               </div>
 
-              <div className="text-xs text-slate-400 pt-4 border-t border-slate-800">
+              <div className="text-sm text-slate-300 pt-4 border-t border-slate-800">
                 标准定义: 工业 IPC-A-610 标准要求：良好焊点必须具备凹面半月形轮廓，润湿角 θ &lt; 30°。
               </div>
             </div>
@@ -691,7 +691,7 @@ export function E07PcbAssemblyScene({
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   焊点质量标准判定
                 </h4>
-                <p className="text-xs text-slate-400 mb-4">
+                <p className="text-sm text-slate-300 mb-4">
                   在汽车精密电路板制造与返修验收中，下列哪种焊点形态符合工业交付质量标准？
                 </p>
 
@@ -708,7 +708,7 @@ export function E07PcbAssemblyScene({
                         setS3Choice(opt.id);
                         sounds.playToggleSound?.();
                       }}
-                      className={`w-full text-left p-3 rounded-xl border text-xs transition-all ${
+                      className={`w-full text-left p-3 rounded-xl border text-sm transition-all cursor-pointer ${
                         s3Choice === opt.id
                           ? 'border-blue-500 bg-blue-500/10 text-white font-bold'
                           : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700'
@@ -736,13 +736,13 @@ export function E07PcbAssemblyScene({
                         alert('判定有误！优质焊点必须是光润凹面半月形，而不是堆积死锡球！');
                       }
                     }}
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold"
+                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold cursor-pointer"
                   >
                     提交标准判定
                   </Button>
                 ) : (
                   <div className="space-y-2">
-                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs flex items-center gap-2">
+                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-sm flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 shrink-0" />
                       <span>标准掌握完全达标！具备专业 IPC 质检眼光。</span>
                     </div>
@@ -752,7 +752,7 @@ export function E07PcbAssemblyScene({
                         assessment.startStage('blind_test');
                         onAdvanceStep();
                       }}
-                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold flex items-center justify-center gap-1 cursor-pointer"
                     >
                       进入步骤 4：典型工艺缺陷盲测 <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
@@ -771,10 +771,10 @@ export function E07PcbAssemblyScene({
             <div className="lg:col-span-7 p-6 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between min-h-[380px]">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-bold uppercase text-blue-400">
+                  <span className="text-sm font-bold uppercase text-blue-400">
                     质检台：待检训练板 4 处可疑焊点盲测
                   </span>
-                  <span className="text-xs text-slate-400">请配合放大镜与万用表蜂鸣档</span>
+                  <span className="text-sm text-slate-300">请配合放大镜与万用表蜂鸣档</span>
                 </div>
 
                 {/* 缺陷点切换 */}
@@ -786,7 +786,7 @@ export function E07PcbAssemblyScene({
                         setS4DefectIdx(idx);
                         sounds.playToggleSound?.();
                       }}
-                      className={`p-2 rounded-xl text-xs font-bold border transition-all ${
+                      className={`p-2.5 rounded-xl text-sm font-bold border transition-all cursor-pointer ${
                         s4DefectIdx === idx
                           ? 'border-blue-500 bg-blue-500/20 text-white ring-2 ring-blue-500/40'
                           : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700'
@@ -799,20 +799,20 @@ export function E07PcbAssemblyScene({
 
                 {/* 显微镜与万用表复检卡 */}
                 <div className="p-5 bg-slate-900 border border-slate-700 rounded-xl space-y-3">
-                  <div className="text-xs text-slate-400">
+                  <div className="text-sm text-slate-300">
                     质检坐标: <span className="text-white font-bold">{activeDefect.location}</span>
                   </div>
 
                   <div className="p-3 bg-slate-950 rounded-lg border border-slate-800 flex items-center justify-between">
                     <div>
-                      <div className="text-xs text-slate-400">10X 显微镜视觉形态</div>
+                      <div className="text-sm text-slate-300">10X 显微镜视觉形态</div>
                       <div className="text-sm font-bold text-amber-300 mt-1">{activeDefect.visualFeature}</div>
                     </div>
                   </div>
 
                   <div className="p-3 bg-slate-950 rounded-lg border border-slate-800 flex items-center justify-between">
                     <div>
-                      <div className="text-xs text-slate-400">万用表电阻/蜂鸣档实测</div>
+                      <div className="text-sm text-slate-300">万用表电阻/蜂鸣档实测</div>
                       <div className="text-sm font-mono font-bold text-cyan-400 mt-1">
                         {activeDefect.multimeterOhm < 1 ? (
                           <span className="text-rose-400 animate-pulse">0.1 Ω (蜂鸣器短路狂叫！)</span>
@@ -827,7 +827,7 @@ export function E07PcbAssemblyScene({
                 </div>
               </div>
 
-              <div className="text-xs text-slate-400 pt-4 border-t border-slate-800">
+              <div className="text-sm text-slate-300 pt-4 border-t border-slate-800">
                 盲测准则: 0.1Ω狂叫为桥连短路；几百欧接触不良为冷焊虚焊；白条反向为极性反插；撕裂断线为焊盘脱落。
               </div>
             </div>
@@ -839,11 +839,11 @@ export function E07PcbAssemblyScene({
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   PCB 质检报告卡
                 </h4>
-                <p className="text-xs text-slate-400 mb-3">为 4 处可疑位置判定缺陷类型：</p>
+                <p className="text-sm text-slate-300 mb-3">为 4 处可疑位置判定缺陷类型：</p>
 
                 <div className="space-y-3">
                   {E07_DEFECTS.map((def) => (
-                    <div key={def.id} className="p-3 bg-slate-900/80 rounded-xl border border-slate-800 text-xs">
+                    <div key={def.id} className="p-3 bg-slate-900/80 rounded-xl border border-slate-800 text-sm">
                       <div className="font-bold text-slate-200 mb-1.5">{def.location}</div>
                       <div className="grid grid-cols-2 gap-1.5">
                         {[
@@ -859,7 +859,7 @@ export function E07PcbAssemblyScene({
                               setS4Diagnoses((prev) => ({ ...prev, [def.id]: opt.val }));
                               sounds.playToggleSound?.();
                             }}
-                            className={`p-1.5 rounded-lg border text-center transition-all ${
+                            className={`p-2 rounded-lg border text-center text-sm font-medium transition-all cursor-pointer ${
                               s4Diagnoses[def.id] === opt.val
                                 ? 'border-blue-500 bg-blue-500/20 text-white font-bold'
                                 : 'border-slate-800 bg-slate-950/50 text-slate-400 hover:border-slate-700'
@@ -893,13 +893,13 @@ export function E07PcbAssemblyScene({
                         alert('诊断存在错误，请核对万用表电阻读数与显微镜观察特征！');
                       }
                     }}
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold"
+                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold cursor-pointer"
                   >
                     提交四处质检结论
                   </Button>
                 ) : (
                   <div className="space-y-2">
-                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs flex items-center gap-2">
+                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-sm flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 shrink-0" />
                       <span>4 处工艺缺陷定位 100% 正确！具备资深硬件 QA 质检能力！</span>
                     </div>
@@ -909,7 +909,7 @@ export function E07PcbAssemblyScene({
                         assessment.startStage('transfer', 'transfer');
                         onAdvanceStep();
                       }}
-                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold flex items-center justify-center gap-1 cursor-pointer"
                     >
                       进入步骤 5：实车工程返修与交付 <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
@@ -928,13 +928,13 @@ export function E07PcbAssemblyScene({
             <div className="lg:col-span-8 p-6 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between min-h-[380px]">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-bold uppercase text-blue-400">
+                  <span className="text-sm font-bold uppercase text-blue-400">
                     实车工单：组合仪表按键失效与液晶背光黑屏返修
                   </span>
-                  <span className="text-xs text-rose-400 font-mono font-bold">工单编号: WO-PCB-8890</span>
+                  <span className="text-sm text-rose-400 font-mono font-bold">工单编号: WO-PCB-8890</span>
                 </div>
 
-                <div className="p-4 bg-slate-900/80 rounded-xl border border-slate-800 text-xs space-y-3">
+                <div className="p-4 bg-slate-900/80 rounded-xl border border-slate-800 text-sm space-y-3">
                   <div className="text-slate-300">
                     <span className="text-slate-500 font-bold">故障描述:</span> 夜间行车仪表盘背光完全不亮，且里程复位按键完全无响应。
                   </div>
@@ -949,7 +949,7 @@ export function E07PcbAssemblyScene({
                         setS5BridgeCleared(true);
                         sounds.playSuccessSound?.();
                       }}
-                      className={s5BridgeCleared ? 'bg-emerald-600 text-white text-xs' : 'bg-blue-600 text-white text-xs'}
+                      className={s5BridgeCleared ? 'bg-emerald-600 text-white text-sm font-medium cursor-pointer' : 'bg-blue-600 text-white text-sm font-medium cursor-pointer'}
                     >
                       {s5BridgeCleared ? '✓ 纯铜吸锡带已清除锡桥' : '使用吸锡带吸除电源短路桥连'}
                     </Button>
@@ -960,7 +960,7 @@ export function E07PcbAssemblyScene({
                         setS5ColdJointFixed(true);
                         sounds.playSuccessSound?.();
                       }}
-                      className={s5ColdJointFixed ? 'bg-emerald-600 text-white text-xs' : 'bg-blue-600 text-white text-xs'}
+                      className={s5ColdJointFixed ? 'bg-emerald-600 text-white text-sm font-medium cursor-pointer' : 'bg-blue-600 text-white text-sm font-medium cursor-pointer'}
                     >
                       {s5ColdJointFixed ? '✓ 松香助焊剂补透虚焊' : '涂抹助焊剂补焊 LED 虚焊点'}
                     </Button>
@@ -970,10 +970,10 @@ export function E07PcbAssemblyScene({
                 {s5BridgeCleared && s5ColdJointFixed && (
                   <div className="mt-4 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-between">
                     <div>
-                      <div className="text-xs font-bold text-emerald-300">
+                      <div className="text-sm font-bold text-emerald-300">
                         ✓ 桥连与虚焊均已手工返修完毕，板面无水酒精清洁光亮，请通电试机
                       </div>
-                      <div className="text-xs text-slate-400 mt-1">
+                      <div className="text-sm text-slate-300 mt-1">
                         通电指标: 全屏背光均匀点亮，按键灵敏，工作电流稳定在 120mA。
                       </div>
                     </div>
@@ -983,7 +983,7 @@ export function E07PcbAssemblyScene({
                         setS5PowerTested(true);
                         sounds.playToggleSound?.();
                       }}
-                      className={s5PowerTested ? 'bg-emerald-600 text-white text-xs' : 'bg-blue-600 text-white text-xs'}
+                      className={s5PowerTested ? 'bg-emerald-600 text-white text-sm font-medium cursor-pointer' : 'bg-blue-600 text-white text-sm font-medium cursor-pointer'}
                     >
                       {s5PowerTested ? '✓ 仪表板通电试机正常' : '接入 12V 供电试机'}
                     </Button>
@@ -992,7 +992,7 @@ export function E07PcbAssemblyScene({
               </div>
 
               {s5PowerTested && (
-                <div className="flex items-center gap-4 pt-4 border-t border-slate-800 text-xs font-mono">
+                <div className="flex items-center gap-4 pt-4 border-t border-slate-800 text-sm font-mono">
                   <div className="text-emerald-400 font-bold">仪表板背光全亮 💡</div>
                   <div>工作母线电流: <span className="text-cyan-400 font-bold">121.5 mA (标准)</span></div>
                   <div>按键功能: <span className="text-emerald-400 font-bold">100% 灵敏响应</span></div>
@@ -1007,10 +1007,10 @@ export function E07PcbAssemblyScene({
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                   教师现场实物量规评定单 (E07-PHYSICAL-v1)
                 </h4>
-                <p className="text-xs text-slate-400 mb-3">依据国家职业标准及实操量规规范评定：</p>
+                <p className="text-sm text-slate-300 mb-3">依据国家职业标准及实操量规规范评定：</p>
 
                 {physicalEvaluation ? (
-                  <div className="space-y-2 text-xs">
+                  <div className="space-y-2 text-sm">
                     <div className="p-3 bg-emerald-950/40 border border-emerald-500/40 rounded-xl space-y-2">
                       <div className="flex items-center justify-between text-emerald-300 font-bold">
                         <span className="flex items-center gap-1.5">
@@ -1019,7 +1019,7 @@ export function E07PcbAssemblyScene({
                         </span>
                         <span className="font-mono text-sm">{physicalEvaluation.totalScore} 分 (已入库)</span>
                       </div>
-                      <div className="text-[11px] text-slate-300 space-y-0.5">
+                      <div className="text-sm text-slate-300 space-y-0.5">
                         <div>验收教师：<strong>{physicalEvaluation.teacherName}</strong></div>
                         <div>签署时间：{new Date(physicalEvaluation.signedAt).toLocaleString('zh-CN')}</div>
                         {physicalEvaluation.comment && <div>评语：{physicalEvaluation.comment}</div>}
@@ -1047,15 +1047,15 @@ export function E07PcbAssemblyScene({
                     </div>
                   </div>
                 ) : (
-                  <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-2.5 text-xs text-amber-200">
+                  <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-2.5 text-sm text-amber-200">
                     <div className="flex items-center gap-2 font-bold text-amber-300">
                       <AlertTriangle className="w-4 h-4 shrink-0" />
                       <span>虚拟训练已完成，实物焊接等待任课教师验收</span>
                     </div>
-                    <p className="text-slate-300 text-[11px] leading-relaxed">
+                    <p className="text-slate-300 text-sm leading-relaxed">
                       请携带焊接成品前往实训工位，由任课教师在教师工作台录入实物量规评语与各维度得分。
                     </p>
-                    <div className="space-y-1.5 pt-2 border-t border-amber-500/20 text-[11px] text-slate-400">
+                    <div className="space-y-1.5 pt-2 border-t border-amber-500/20 text-sm text-slate-300">
                       <div className="flex justify-between">
                         <span>1. 供电前外观与安全核验:</span>
                         <span className="font-mono text-slate-300">满分 20 分</span>
@@ -1097,12 +1097,12 @@ export function E07PcbAssemblyScene({
                         s5PowerTested,
                       });
                     }}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold cursor-pointer"
                   >
                     完成虚拟排故与通电测试并提交
                   </Button>
                 ) : (
-                  <div className="p-3 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs flex items-center gap-2">
+                  <div className="p-3 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-sm flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 shrink-0" />
                     <span>
                       {physicalEvaluation

@@ -133,7 +133,7 @@ export function E01DiodeScene({
             <Gauge className="w-6 h-6" />
           </div>
           <div>
-            <div className="text-xs text-slate-400 font-semibold tracking-wider uppercase">
+            <div className="text-sm text-slate-400 font-semibold tracking-wider uppercase">
               汽车数字万用表 (DMM-890)
             </div>
             <div className="text-sm font-bold text-slate-200">
@@ -155,7 +155,7 @@ export function E01DiodeScene({
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-400">旋钮挡位:</span>
+          <span className="text-sm text-slate-300 font-medium">旋钮挡位:</span>
           {(['OFF', 'DIODE', 'OHM_2K', 'DCV_20'] as const).map((knob) => (
             <button
               key={knob}
@@ -164,7 +164,7 @@ export function E01DiodeScene({
                 setMeterWarning(null);
                 sounds.playToggleSound?.();
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`px-3.5 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${
                 meterKnob === knob
                   ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30 ring-2 ring-blue-400'
                   : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
@@ -189,10 +189,10 @@ export function E01DiodeScene({
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
             <div className="lg:col-span-8 flex flex-col justify-between p-6 bg-slate-950/80 rounded-2xl border border-slate-800 min-h-[360px]">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase text-blue-400 tracking-wider">
+                <span className="text-sm font-bold uppercase text-blue-400 tracking-wider">
                   电路实验台：二极管极性与负载响应
                 </span>
-                <span className="text-xs text-slate-400">供电: 12V 稳压电源</span>
+                <span className="text-sm text-slate-400">供电: 12V 稳压电源</span>
               </div>
 
               {/* 动态可视化电路 */}
@@ -268,7 +268,7 @@ export function E01DiodeScene({
                     sounds.playToggleSound?.();
                   }}
                   variant="outline"
-                  className="border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs"
+                  className="border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm cursor-pointer"
                 >
                   反转二极管接入方向 (当前: {s1Polarity === 'FORWARD' ? '正向导通' : '反向截止'})
                 </Button>
@@ -282,7 +282,7 @@ export function E01DiodeScene({
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   认知判定与理论验证
                 </h4>
-                <p className="text-xs text-slate-400 mb-4">
+                <p className="text-sm text-slate-300 mb-4">
                   观察上述正反接入现象，选择对硅二极管导通特性的正确描述：
                 </p>
 
@@ -299,7 +299,7 @@ export function E01DiodeScene({
                         setS1Choice(opt.id);
                         sounds.playToggleSound?.();
                       }}
-                      className={`w-full text-left p-3 rounded-xl border text-xs transition-all ${
+                      className={`w-full text-left p-3 rounded-xl border text-sm transition-all cursor-pointer ${
                         s1Choice === opt.id
                           ? 'border-blue-500 bg-blue-500/10 text-white font-bold'
                           : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700'
@@ -327,13 +327,13 @@ export function E01DiodeScene({
                         alert('结论有误，请仔细观察正接与反接时的电压与电流读数！');
                       }
                     }}
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold"
+                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold"
                   >
                     提交判定
                   </Button>
                 ) : (
                   <div className="space-y-2">
-                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs flex items-center gap-2">
+                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-sm flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 shrink-0" />
                       <span>判定正确！硅二极管具备单向导电性，正向导通压降约为 0.7V。</span>
                     </div>
@@ -343,7 +343,7 @@ export function E01DiodeScene({
                         assessment.startStage('standard');
                         onAdvanceStep();
                       }}
-                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold flex items-center justify-center gap-1"
                     >
                       进入步骤 2：万用表规范测试 <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
@@ -362,17 +362,17 @@ export function E01DiodeScene({
             <div className="lg:col-span-8 p-6 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between min-h-[380px]">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-bold uppercase text-blue-400">
+                  <span className="text-sm font-bold uppercase text-blue-400">
                     实训台：万用表二极管挡检测规范
                   </span>
-                  <span className="text-xs text-slate-400">
+                  <span className="text-sm text-slate-300 font-medium">
                     表笔接线: {s2ProbeDirection === 'ANODE_RED' ? '红笔接阳极(+) / 黑笔接阴极(-)' : '红笔接阴极(-) / 黑笔接阳极(+)'}
                   </span>
                 </div>
 
                 {/* 万用表 LCD 屏 */}
                 <div className="p-6 bg-slate-900 border-2 border-slate-700 rounded-2xl max-w-sm mx-auto shadow-inner flex flex-col items-center">
-                  <div className="text-xs text-slate-400 mb-1 flex items-center justify-between w-full">
+                  <div className="text-sm text-slate-400 mb-1 flex items-center justify-between w-full">
                     <span>DIGITAL MULTIMETER</span>
                     <span className="text-emerald-400 font-mono">AUTO POWER</span>
                   </div>
@@ -384,7 +384,7 @@ export function E01DiodeScene({
                       {meterKnob === 'DCV_20' && '0.00 V'}
                     </span>
                   </div>
-                  <div className="text-xs text-slate-500 mt-2">
+                  <div className="text-sm text-slate-400 mt-2">
                     {meterKnob === 'DIODE' && (s2ProbeDirection === 'ANODE_RED' ? '正向导通管压降 (642mV)' : '反向截止开路 (Over Limit)')}
                     {meterKnob === 'OFF' && '万用表未开机'}
                   </div>
@@ -398,11 +398,11 @@ export function E01DiodeScene({
                     sounds.playToggleSound?.();
                   }}
                   variant="outline"
-                  className="border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs"
+                  className="border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm cursor-pointer"
                 >
                   对调红黑表笔位置 (当前: {s2ProbeDirection === 'ANODE_RED' ? '正向接法' : '反向接法'})
                 </Button>
-                <div className="text-xs text-slate-400">
+                <div className="text-sm text-slate-400">
                   提示: 必须先旋动上方表头至 <span className="text-blue-400 font-bold">[DIODE]</span> 挡！
                 </div>
               </div>
@@ -415,7 +415,7 @@ export function E01DiodeScene({
                   <Zap className="w-4 h-4 text-cyan-400" />
                   好坏与极性判别标准
                 </h4>
-                <p className="text-xs text-slate-400 mb-4">
+                <p className="text-sm text-slate-300 mb-4">
                   根据万用表二极管档测量规范，如何判定该二极管性能良好？
                 </p>
 
@@ -432,7 +432,7 @@ export function E01DiodeScene({
                         setS2Choice(opt.id);
                         sounds.playToggleSound?.();
                       }}
-                      className={`w-full text-left p-3 rounded-xl border text-xs transition-all ${
+                      className={`w-full text-left p-3 rounded-xl border text-sm transition-all cursor-pointer ${
                         s2Choice === opt.id
                           ? 'border-blue-500 bg-blue-500/10 text-white font-bold'
                           : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700'
@@ -461,13 +461,13 @@ export function E01DiodeScene({
                         alert('判别错误！双向均为0是击穿，双向均为OL是断路！');
                       }
                     }}
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold"
+                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold"
                   >
                     提交测量结论
                   </Button>
                 ) : (
                   <div className="space-y-2">
-                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs flex items-center gap-2">
+                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-sm flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 shrink-0" />
                       <span>规范检测通过！红正黑负有压降，对调显示 OL，二极管性能良好。</span>
                     </div>
@@ -477,7 +477,7 @@ export function E01DiodeScene({
                         assessment.startStage('calculation');
                         onAdvanceStep();
                       }}
-                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold flex items-center justify-center gap-1"
                     >
                       进入步骤 3：稳压与限流计算 <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
@@ -496,11 +496,11 @@ export function E01DiodeScene({
             <div className="lg:col-span-8 p-6 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between min-h-[380px]">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-bold uppercase text-blue-400">
+                  <span className="text-sm font-bold uppercase text-blue-400">
                     LED 指示灯与稳压二极管 (Zener) 定量保护分析
                   </span>
                   <div className="flex items-center gap-2">
-                    <label htmlFor="e01-voltage-input" className="text-xs text-slate-400">电源电压:</label>
+                    <label htmlFor="e01-voltage-input" className="text-sm text-slate-300 font-medium">电源电压:</label>
                     <input
                       id="e01-voltage-input"
                       type="range"
@@ -511,14 +511,14 @@ export function E01DiodeScene({
                       onChange={(e) => setS3InputVoltage(parseFloat(e.target.value))}
                       className="w-24 accent-blue-500"
                     />
-                    <span className="text-xs font-mono font-bold text-blue-300">{s3InputVoltage.toFixed(1)}V</span>
+                    <span className="text-sm font-mono font-bold text-blue-300">{s3InputVoltage.toFixed(1)}V</span>
                   </div>
                 </div>
 
                 {/* 调节限流电阻阻值 */}
                 <div className="p-4 bg-slate-900/90 border border-slate-800 rounded-xl space-y-4">
                   <div>
-                    <div className="flex justify-between text-xs text-slate-300 mb-1">
+                    <div className="flex justify-between text-sm text-slate-300 mb-1">
                       <span>限流电阻阻值 R:</span>
                       <span className="font-mono font-bold text-emerald-400">{s3ResistorOhm} Ω</span>
                     </div>
@@ -537,7 +537,7 @@ export function E01DiodeScene({
                   </div>
 
                   <div className="flex items-center justify-between pt-2 border-t border-slate-800">
-                    <div className="text-xs text-slate-400">稳压保护电路 (Uz = 5.1V):</div>
+                    <div className="text-sm text-slate-300 font-medium">稳压保护电路 (Uz = 5.1V):</div>
                     <Button
                       onClick={() => {
                         setS3ZenerEnabled(!s3ZenerEnabled);
@@ -545,10 +545,10 @@ export function E01DiodeScene({
                       }}
                       variant="outline"
                       size="sm"
-                      className={`text-xs ${
+                      className={`text-sm cursor-pointer ${
                         s3ZenerEnabled
-                          ? 'border-emerald-500 bg-emerald-500/20 text-emerald-300'
-                          : 'border-slate-700 bg-slate-800 text-slate-400'
+                          ? 'border-emerald-500 bg-emerald-500/20 text-emerald-300 font-semibold'
+                          : 'border-slate-700 bg-slate-800 text-slate-300'
                       }`}
                     >
                       {s3ZenerEnabled ? '稳压二极管已接入 (嵌位5.1V)' : '未接入稳压管 (直接受供电波动)'}
@@ -559,7 +559,7 @@ export function E01DiodeScene({
                 {/* LED 发光状态与警告 */}
                 <div className="grid grid-cols-3 gap-3 mt-4 text-center">
                   <div className="p-3 bg-slate-900/60 rounded-xl border border-slate-800">
-                    <div className="text-xs text-slate-400">LED 回路电流</div>
+                    <div className="text-sm text-slate-300">LED 回路电流</div>
                     <div
                       className={`text-lg font-mono font-black ${
                         s3LedCurrent > 35
@@ -573,12 +573,12 @@ export function E01DiodeScene({
                     </div>
                   </div>
                   <div className="p-3 bg-slate-900/60 rounded-xl border border-slate-800">
-                    <div className="text-xs text-slate-400">LED 端压降</div>
+                    <div className="text-sm text-slate-300">LED 端压降</div>
                     <div className="text-lg font-mono font-black text-amber-300">2.0 V</div>
                   </div>
                   <div className="p-3 bg-slate-900/60 rounded-xl border border-slate-800">
-                    <div className="text-xs text-slate-400">器件工作状态</div>
-                    <div className="text-xs font-bold mt-1">
+                    <div className="text-sm text-slate-300">器件工作状态</div>
+                    <div className="text-sm font-bold mt-1">
                       {s3LedCurrent > 35 && <span className="text-rose-400">⚠️ 严重过流！烧毁隐患</span>}
                       {s3LedCurrent >= 10 && s3LedCurrent <= 35 && <span className="text-emerald-400">✓ 正常发光 (15~25mA)</span>}
                       {s3LedCurrent < 10 && <span className="text-slate-400">发光暗淡微弱</span>}
@@ -587,7 +587,7 @@ export function E01DiodeScene({
                 </div>
               </div>
 
-              <div className="text-xs text-slate-400 pt-4 border-t border-slate-800 font-mono">
+              <div className="text-sm text-slate-300 pt-4 border-t border-slate-800 font-mono">
                 公式: R = (U_in - U_led) / I_target = ({s3ZenerEnabled ? '5.1' : s3InputVoltage.toFixed(1)} - 2.0) / {(s3LedCurrent / 1000).toFixed(4)}A
               </div>
             </div>
@@ -599,7 +599,7 @@ export function E01DiodeScene({
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   工程计算工单
                 </h4>
-                <p className="text-xs text-slate-400 mb-4">
+                <p className="text-sm text-slate-300 mb-4">
                   汽车电网标称 12V，LED 导通电压 2.0V，要求额定工作电流严格控制在 20mA (0.02A)，应串联多大阻值的限流电阻？
                 </p>
 
@@ -616,7 +616,7 @@ export function E01DiodeScene({
                         setS3Choice(opt.id);
                         sounds.playToggleSound?.();
                       }}
-                      className={`w-full text-left p-3 rounded-xl border text-xs transition-all ${
+                      className={`w-full text-left p-3 rounded-xl border text-sm transition-all cursor-pointer ${
                         s3Choice === opt.id
                           ? 'border-blue-500 bg-blue-500/10 text-white font-bold'
                           : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700'
@@ -648,13 +648,13 @@ export function E01DiodeScene({
                         alert('计算有误！R = (12V - 2V) / 0.02A = 10V / 0.02A = 500Ω！');
                       }
                     }}
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold"
+                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold"
                   >
                     提交计算结论
                   </Button>
                 ) : (
                   <div className="space-y-2">
-                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs flex items-center gap-2">
+                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-sm flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 shrink-0" />
                       <span>计算准确！R = (12 - 2) / 0.02 = 500Ω，能可靠保护汽车指示灯！</span>
                     </div>
@@ -664,7 +664,7 @@ export function E01DiodeScene({
                         assessment.startStage('blind_test');
                         onAdvanceStep();
                       }}
-                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold flex items-center justify-center gap-1"
                     >
                       进入步骤 4：典型故障盲测 <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
@@ -683,10 +683,10 @@ export function E01DiodeScene({
             <div className="lg:col-span-7 p-6 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between min-h-[380px]">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-bold uppercase text-blue-400">
+                  <span className="text-sm font-bold uppercase text-blue-400">
                     实训测试台：未知二极管盲测工位 (4 组样品)
                   </span>
-                  <span className="text-xs text-slate-400">请使用万用表二极管档测量</span>
+                  <span className="text-sm text-slate-300 font-medium">请使用万用表二极管档测量</span>
                 </div>
 
                 {/* 样件切换标签 */}
@@ -698,7 +698,7 @@ export function E01DiodeScene({
                         setS4SampleIndex(idx);
                         sounds.playToggleSound?.();
                       }}
-                      className={`p-2 rounded-xl text-xs font-bold border transition-all ${
+                      className={`p-2.5 rounded-xl text-sm font-bold border transition-all cursor-pointer ${
                         s4SampleIndex === idx
                           ? 'border-blue-500 bg-blue-500/20 text-white ring-2 ring-blue-500/40'
                           : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700'
@@ -711,7 +711,7 @@ export function E01DiodeScene({
 
                 {/* 万用表测试当前样件 */}
                 <div className="p-5 bg-slate-900 border border-slate-700 rounded-xl flex flex-col items-center">
-                  <div className="text-xs text-slate-400 mb-2">
+                  <div className="text-sm text-slate-300 mb-2">
                     当前测试对象: <span className="text-white font-bold">{activeSample.name}</span>
                   </div>
                   <div className="w-48 h-20 bg-emerald-950/60 border border-emerald-800 rounded-xl flex items-center justify-center font-mono text-3xl font-black text-emerald-400">
@@ -733,7 +733,7 @@ export function E01DiodeScene({
                         setS4ProbeDir(s4ProbeDir === 'FORWARD' ? 'REVERSE' : 'FORWARD');
                         sounds.playToggleSound?.();
                       }}
-                      className="text-xs border-slate-700 bg-slate-800 text-slate-200"
+                      className="text-sm border-slate-700 bg-slate-800 text-slate-200 cursor-pointer"
                     >
                       翻转表笔方向 (当前: {s4ProbeDir === 'FORWARD' ? '红阳黑阴(正向)' : '红阴黑阳(反向)'})
                     </Button>
@@ -741,7 +741,7 @@ export function E01DiodeScene({
                 </div>
               </div>
 
-              <div className="text-xs text-slate-400 pt-4 border-t border-slate-800">
+              <div className="text-sm text-slate-300 pt-4 border-t border-slate-800">
                 诊断小技巧: 正常管子正向导通(约0.6V)、反向OL；击穿为双向0V；断路为双向OL；漏电管反向有异常压降。
               </div>
             </div>
@@ -753,11 +753,11 @@ export function E01DiodeScene({
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   盲测诊断报告表
                 </h4>
-                <p className="text-xs text-slate-400 mb-3">为 4 组样件分别下达最终物理状态判定：</p>
+                <p className="text-sm text-slate-300 mb-3">为 4 组样件分别下达最终物理状态判定：</p>
 
                 <div className="space-y-3">
                   {E01_SAMPLES.map((smp) => (
-                    <div key={smp.id} className="p-3 bg-slate-900/80 rounded-xl border border-slate-800 text-xs">
+                    <div key={smp.id} className="p-3 bg-slate-900/80 rounded-xl border border-slate-800 text-sm">
                       <div className="font-bold text-slate-200 mb-1.5">{smp.name}</div>
                       <div className="grid grid-cols-2 gap-1.5">
                         {[
@@ -773,7 +773,7 @@ export function E01DiodeScene({
                               setS4Diagnoses((prev) => ({ ...prev, [smp.id]: opt.val }));
                               sounds.playToggleSound?.();
                             }}
-                            className={`p-1.5 rounded-lg border text-center transition-all ${
+                            className={`p-2 rounded-lg border text-center text-sm font-medium transition-all cursor-pointer ${
                               s4Diagnoses[smp.id] === opt.val
                                 ? 'border-blue-500 bg-blue-500/20 text-white font-bold'
                                 : 'border-slate-800 bg-slate-950/50 text-slate-400 hover:border-slate-700'
@@ -807,13 +807,13 @@ export function E01DiodeScene({
                         alert('诊断有误，请重新对测不准的样件对调表笔复验！');
                       }
                     }}
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold"
+                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold"
                   >
                     提交四组诊断报告
                   </Button>
                 ) : (
                   <div className="space-y-2">
-                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs flex items-center gap-2">
+                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-sm flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 shrink-0" />
                       <span>全组盲测分类准确！具备专业板级元器件检修能力！</span>
                     </div>
@@ -823,7 +823,7 @@ export function E01DiodeScene({
                         assessment.startStage('transfer', 'transfer');
                         onAdvanceStep();
                       }}
-                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold flex items-center justify-center gap-1"
                     >
                       进入步骤 5：实车工程修复与交付 <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
@@ -842,18 +842,18 @@ export function E01DiodeScene({
             <div className="lg:col-span-8 p-6 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between min-h-[380px]">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-bold uppercase text-blue-400">
+                  <span className="text-sm font-bold uppercase text-blue-400">
                     实车工单：改装示宽灯连续烧损排故
                   </span>
-                  <span className="text-xs text-rose-400 font-mono font-bold">故障代码: B1388-13</span>
+                  <span className="text-sm text-rose-400 font-mono font-bold">故障代码: B1388-13</span>
                 </div>
 
-                <div className="p-4 bg-slate-900/80 rounded-xl border border-slate-800 text-xs space-y-3">
+                <div className="p-4 bg-slate-900/80 rounded-xl border border-slate-800 text-sm space-y-3">
                   <div className="text-slate-300">
-                    <span className="text-slate-500 font-bold">报修现象:</span> 客户自行改装的 LED 示宽灯装车通电仅 20 分钟即灯珠爆裂冒烟，连续换了 3 批灯珠全部烧黑！
+                    <span className="text-slate-400 font-bold">报修现象:</span> 客户自行改装的 LED 示宽灯装车通电仅 20 分钟即灯珠爆裂冒烟，连续换了 3 批灯珠全部烧黑！
                   </div>
                   <div className="text-slate-300">
-                    <span className="text-slate-500 font-bold">排查操作:</span> 请用万用表电阻挡 (2kΩ) 测量电路板上的限流电阻 R。
+                    <span className="text-slate-400 font-bold">排查操作:</span> 请用万用表电阻挡 (2kΩ) 测量电路板上的限流电阻 R。
                   </div>
 
                   <div className="flex items-center gap-4 pt-2">
@@ -864,13 +864,13 @@ export function E01DiodeScene({
                         setS5Measured(true);
                         sounds.playToggleSound?.();
                       }}
-                      className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs"
+                      className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-sm cursor-pointer"
                     >
                       测量在板限流电阻 R
                     </Button>
 
                     {s5Measured && (
-                      <div className="text-xs font-mono">
+                      <div className="text-sm font-mono">
                         实测阻值:{' '}
                         <span className="text-rose-400 font-bold font-mono">
                           {s5Repaired ? '470.0 Ω (正常)' : '10.2 Ω (严重偏小！阻值错误)'}
@@ -882,7 +882,7 @@ export function E01DiodeScene({
 
                 {s5Measured && !s5Repaired && (
                   <div className="mt-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-3">
-                    <div className="text-xs text-amber-300 font-bold">
+                    <div className="text-sm text-amber-300 font-bold">
                       根因查明：前序改装人员误用了 10Ω 小电阻，导致 LED 工作电流达到 (12-2)/10 = 1000mA (1A)，超额定50倍瞬间烧毁！请从备料库选用规范电阻更换：
                     </div>
                     <div className="flex gap-2">
@@ -897,10 +897,10 @@ export function E01DiodeScene({
                             setS5SelectedResistor(item.r);
                             sounds.playToggleSound?.();
                           }}
-                          className={`p-2 rounded-lg border text-xs text-left transition-all ${
+                          className={`p-2.5 rounded-lg border text-sm text-left transition-all cursor-pointer ${
                             s5SelectedResistor === item.r
                               ? 'border-emerald-500 bg-emerald-500/20 text-white font-bold'
-                              : 'border-slate-800 bg-slate-900 text-slate-400'
+                              : 'border-slate-800 bg-slate-900 text-slate-300'
                           }`}
                         >
                           {item.label}
@@ -920,7 +920,7 @@ export function E01DiodeScene({
                           alert('所选阻值不符合设计规范！请选择 470Ω 限流电阻！');
                         }
                       }}
-                      className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold"
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold"
                     >
                       焊接更换选定电阻
                     </Button>
@@ -930,10 +930,10 @@ export function E01DiodeScene({
                 {s5Repaired && (
                   <div className="mt-4 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-between">
                     <div>
-                      <div className="text-xs font-bold text-emerald-300">
+                      <div className="text-sm font-bold text-emerald-300">
                         ✓ 470Ω 规范电阻已焊接就绪，请闭合点火开关通电复验
                       </div>
-                      <div className="text-xs text-slate-400 mt-1">
+                      <div className="text-sm text-slate-300 mt-1">
                         复验指标: 工作电流应稳定在 20~22mA，LED 发光清澈均匀。
                       </div>
                     </div>
@@ -943,7 +943,7 @@ export function E01DiodeScene({
                         setS5PowerOn(!s5PowerOn);
                         sounds.playToggleSound?.();
                       }}
-                      className={s5PowerOn ? 'bg-amber-600 text-white text-xs' : 'bg-blue-600 text-white text-xs'}
+                      className={s5PowerOn ? 'bg-amber-600 text-white text-sm cursor-pointer' : 'bg-blue-600 text-white text-sm cursor-pointer'}
                     >
                       {s5PowerOn ? '断开点火电源' : '通电试机复验'}
                     </Button>
@@ -952,7 +952,7 @@ export function E01DiodeScene({
               </div>
 
               {s5PowerOn && (
-                <div className="flex items-center gap-4 pt-4 border-t border-slate-800 text-xs font-mono">
+                <div className="flex items-center gap-4 pt-4 border-t border-slate-800 text-sm font-mono">
                   <div className="text-emerald-400 font-bold">LED 点亮正常 💡</div>
                   <div>工作电流: <span className="text-cyan-400 font-bold">21.3 mA</span></div>
                   <div>温升监控: <span className="text-emerald-400 font-bold">32°C (低温稳定)</span></div>
@@ -967,11 +967,11 @@ export function E01DiodeScene({
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                   维修质量交付单
                 </h4>
-                <p className="text-xs text-slate-400 mb-3">
+                <p className="text-sm text-slate-300 mb-3">
                   核对维修项目与出厂安全标准：
                 </p>
 
-                <div className="space-y-2 text-xs">
+                <div className="space-y-2 text-sm">
                   <div className="p-2.5 bg-slate-900 rounded-lg border border-slate-800 flex justify-between">
                     <span className="text-slate-400">故障部位:</span>
                     <span className="text-slate-200 font-bold">示宽灯驱动板限流电阻</span>
@@ -999,7 +999,7 @@ export function E01DiodeScene({
                     onChange={(e) => setS5Signed(e.target.checked)}
                     className="rounded accent-emerald-500"
                   />
-                  <label htmlFor="sign" className="text-xs text-slate-300 cursor-pointer">
+                  <label htmlFor="sign" className="text-sm text-slate-300 cursor-pointer">
                     维修技师已完成通电试机，确认无过热烧毁隐患，同意交车签字
                   </label>
                 </div>
@@ -1021,12 +1021,12 @@ export function E01DiodeScene({
                       const finalResult = assessment.completeLevel();
                       onComplete?.(finalResult);
                     }}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold"
                   >
                     签字交车并生成实训报告
                   </Button>
                 ) : (
-                  <div className="p-3 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs flex items-center gap-2">
+                  <div className="p-3 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-sm flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 shrink-0" />
                     <span>交车成功！整车示宽灯回路完全符合主机厂电气标准！</span>
                   </div>

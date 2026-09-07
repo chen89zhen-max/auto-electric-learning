@@ -165,7 +165,7 @@ export function C03IndependentDeliveryScene({
   return (
     <div className="flex-1 flex flex-col gap-4 min-h-[580px] p-2 text-slate-800">
       {/* 5-Stage Step Navigation Header */}
-      <div className="flex flex-wrap items-center gap-1.5 p-2 bg-slate-100/90 rounded-xl border border-slate-200 text-xs font-bold">
+      <div className="flex flex-wrap items-center gap-1.5 p-2 bg-slate-100/90 rounded-xl border border-slate-200 text-sm font-bold">
         {[
           { key: 'WORK_ORDER_INTAKE', label: '1. 独立接车问诊' },
           { key: 'INDEPENDENT_STRATEGY', label: '2. 自主排故策略' },
@@ -194,7 +194,7 @@ export function C03IndependentDeliveryScene({
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
         {/* Left Circuit Visual Canvas */}
         <div className="xl:col-span-8 flex flex-col bg-slate-900 rounded-2xl border border-slate-800 shadow-lg overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-2.5 bg-slate-950/80 border-b border-slate-800 text-xs text-slate-300">
+          <div className="flex items-center justify-between px-4 py-2.5 bg-slate-950/80 border-b border-slate-800 text-sm text-slate-300">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
               <strong className="text-slate-100 font-bold text-sm">
@@ -372,16 +372,16 @@ export function C03IndependentDeliveryScene({
           </div>
 
           {/* Bottom Interactive Toolbar */}
-          <div className="px-4 py-2 bg-slate-950/90 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div className="px-4 py-2 bg-slate-950/90 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 text-sm">
             <div className="flex items-center gap-2">
-              <span className="text-slate-400 font-semibold">动态实操动作：</span>
+              <span className="text-slate-400 font-semibold text-sm">动态实操动作：</span>
               <Button
                 size="sm"
                 variant="outline"
-                className="border-amber-500 text-amber-300 hover:bg-slate-800 cursor-pointer"
+                className="border-amber-500 text-amber-300 hover:bg-slate-800 cursor-pointer text-sm font-semibold"
                 onClick={triggerWiggleTest}
               >
-                <Vibrate size={15} className="mr-1" />
+                <Vibrate size={16} className="mr-1" />
                 模拟路面颠簸·线束摇晃测试 (Wiggle Test)
               </Button>
             </div>
@@ -392,7 +392,7 @@ export function C03IndependentDeliveryScene({
                   size="sm"
                   disabled={repairPinReformed}
                   variant={repairPinReformed ? 'default' : 'outline'}
-                  className={repairPinReformed ? 'bg-emerald-700 text-white' : 'border-amber-500 text-amber-300 cursor-pointer'}
+                  className={repairPinReformed ? 'bg-emerald-700 text-white text-sm' : 'border-amber-500 text-amber-300 cursor-pointer text-sm'}
                   onClick={() => {
                     sounds.click();
                     setRepairPinReformed(true);
@@ -404,7 +404,7 @@ export function C03IndependentDeliveryScene({
                   size="sm"
                   disabled={!repairPinReformed || repairTpaInstalled}
                   variant={repairTpaInstalled ? 'default' : 'outline'}
-                  className={repairTpaInstalled ? 'bg-emerald-700 text-white' : 'border-amber-500 text-amber-300 cursor-pointer'}
+                  className={repairTpaInstalled ? 'bg-emerald-700 text-white text-sm' : 'border-amber-500 text-amber-300 cursor-pointer text-sm'}
                   onClick={() => {
                     sounds.click();
                     setRepairTpaInstalled(true);
@@ -427,46 +427,46 @@ export function C03IndependentDeliveryScene({
                   FLUKE-DMM 汽车高级诊断表
                 </span>
               </div>
-              <span className="text-xs px-2 py-0.5 rounded bg-slate-900 text-emerald-400 font-mono">
+              <span className="text-sm px-2 py-0.5 rounded bg-slate-900 text-emerald-400 font-mono">
                 PEAK-CAPTURE
               </span>
             </div>
 
             {/* LCD Readout (h-32) */}
             <div className="relative h-32 bg-slate-950 rounded-xl p-3 border-2 border-slate-900 flex flex-col justify-between shadow-inner">
-              <div className="flex justify-between items-center text-xs font-mono text-slate-500">
+              <div className="flex justify-between items-center text-sm font-mono text-slate-500">
                 <span>DYNAMIC SAMPLING</span>
                 <span>{meterKnob === 'OFF' ? 'POWER OFF' : 'DC VOLTAGE'}</span>
               </div>
 
               <div className="flex items-baseline justify-end gap-2 pr-2">
-                <span className={`text-4xl lg:text-5xl font-black font-mono tracking-wider ${dmmDisplay.color}`}>
+                <span className={`text-4xl font-mono font-bold tracking-wider ${dmmDisplay.color}`}>
                   {dmmDisplay.value}
                 </span>
                 <span className="text-lg font-bold text-slate-400">V</span>
               </div>
 
-              <div className="text-right text-xs font-mono text-slate-400 truncate">
+              <div className="text-right text-sm font-mono text-slate-400 truncate">
                 {dmmDisplay.unit}
               </div>
             </div>
 
             {meterWarning && (
-              <div className="mt-2 text-xs font-bold text-rose-400 bg-rose-950/40 p-2 rounded border border-rose-800 flex items-center gap-1.5 animate-bounce">
+              <div className="mt-2 text-sm font-bold text-rose-400 bg-rose-950/40 p-2 rounded border border-rose-800 flex items-center gap-1.5 animate-bounce">
                 <AlertTriangle size={14} />
                 <span>{meterWarning}</span>
               </div>
             )}
           </div>
 
-          {/* Rotary Knob Controls */}
+          {/* Controls: Knob & Wiggle Simulator */}
           <div className="mt-3 pt-3 border-t border-slate-700 flex flex-col gap-2">
-            <span className="text-sm font-bold text-slate-400">万用表功能旋钮挡位：</span>
-            <div className="grid grid-cols-3 gap-1.5">
+            <span className="text-sm font-bold text-slate-400">诊断表功能挡位：</span>
+            <div className="grid grid-cols-3 gap-2">
               {[
                 { key: 'OFF', label: '关机 (OFF)' },
-                { key: 'DCV_20', label: '电压 DC 20V' },
-                { key: 'OHM', label: '电阻 Ω' },
+                { key: 'DCV_20', label: 'DC 20V' },
+                { key: 'OHM', label: '导通/电阻' },
               ].map((knobItem) => {
                 const isSelected = meterKnob === knobItem.key;
                 return (
@@ -496,7 +496,7 @@ export function C03IndependentDeliveryScene({
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                <span className="text-sm font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
                   实训工单 · 独立接车问诊
                 </span>
                 <h3 className="text-base font-black text-slate-900 mt-1">
@@ -543,7 +543,7 @@ export function C03IndependentDeliveryScene({
             </div>
 
             <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-              <span className="text-xs text-slate-500">
+              <span className="text-sm text-slate-500">
                 {s1Submitted ? '✓ 问诊假设建立完成。进入步骤 2 规划排查策略。' : '根据车主问诊信息确认排查假说'}
               </span>
               {!s1Submitted ? (
@@ -589,7 +589,7 @@ export function C03IndependentDeliveryScene({
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                <span className="text-sm font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
                   实训工单 · 策略规划
                 </span>
                 <h3 className="text-base font-black text-slate-900 mt-1">
@@ -636,7 +636,7 @@ export function C03IndependentDeliveryScene({
             </div>
 
             <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-              <span className="text-xs text-slate-500">
+              <span className="text-sm text-slate-500">
                 {s2Submitted ? '✓ 策略审批通过。进入步骤 3 执行动态无损排查。' : '确立科学排查方案后提交'}
               </span>
               {!s2Submitted ? (
@@ -682,7 +682,7 @@ export function C03IndependentDeliveryScene({
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-xs font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                <span className="text-sm font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
                   实训工单 · 动态排故证据
                 </span>
                 <h3 className="text-base font-black text-slate-900 mt-1">
@@ -729,7 +729,7 @@ export function C03IndependentDeliveryScene({
             </div>
 
             <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-              <span className="text-xs text-slate-500">
+              <span className="text-sm text-slate-500">
                 {s3Submitted ? '✓ 退针证据确凿！进入步骤 4 执行标准端子修复。' : '在上方点击“线束摇晃测试”后勾选实测证据'}
               </span>
               {!s3Submitted ? (
@@ -775,7 +775,7 @@ export function C03IndependentDeliveryScene({
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                <span className="text-sm font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                   实训工单 · 标准修复与闭环复验
                 </span>
                 <h3 className="text-base font-black text-slate-900 mt-1">
@@ -784,7 +784,7 @@ export function C03IndependentDeliveryScene({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm">
               <div className="flex items-center gap-2">
                 <span className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-white ${repairPinReformed ? 'bg-emerald-600' : 'bg-slate-400'}`}>1</span>
                 <span>端子挑舌修复：金属弹片恢复 15N 锁止保持力 {repairPinReformed && '✓'}</span>
@@ -817,9 +817,9 @@ export function C03IndependentDeliveryScene({
               <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-sm flex flex-col gap-2">
                 <div className="flex items-center justify-between font-bold text-emerald-950">
                   <span>闭环全负荷复验数据单：</span>
-                  <span className="text-xs bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded">完全达标</span>
+                  <span className="text-sm bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded">完全达标</span>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-slate-700">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-slate-700">
                   <div className="bg-white p-2 rounded border border-emerald-200">
                     稳态工作电压：<strong className="text-emerald-700 text-sm">11.95 V</strong>
                   </div>
@@ -837,7 +837,7 @@ export function C03IndependentDeliveryScene({
             )}
 
             <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-              <span className="text-xs text-slate-500">
+              <span className="text-sm text-slate-500">
                 {s4Submitted ? '✓ 复检验收合格。进入步骤 5 独立交车答辩。' : '完成工艺加固并通电复验后提交'}
               </span>
               <Button
@@ -869,7 +869,7 @@ export function C03IndependentDeliveryScene({
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                <span className="text-sm font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                   交车答辩 · 客户交付闭环
                 </span>
                 <h3 className="text-base font-black text-slate-900 mt-1">
@@ -916,7 +916,7 @@ export function C03IndependentDeliveryScene({
             </div>
 
             <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-              <span className="text-xs text-slate-500">
+              <span className="text-sm text-slate-500">
                 {s5Signed
                   ? '✓ 《新能源汽车电器维修竣工交车单》已签署！客户高度认可，首次独立交车圆满闭环！'
                   : '做出专业技术答辩并签署竣工交车单'}

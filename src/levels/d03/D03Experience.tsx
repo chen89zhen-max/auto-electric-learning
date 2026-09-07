@@ -132,7 +132,7 @@ export function D03Experience({ onReturnLobby }: D03ExperienceProps) {
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
                 <span className="font-bold text-teal-300 text-sm">陈师傅（实训总教练）</span>
-                <span className="text-xs px-2 py-0.5 bg-teal-500/10 text-teal-400 border border-teal-500/20 rounded-full font-mono">
+                <span className="text-sm px-2 py-0.5 bg-teal-500/10 text-teal-400 border border-teal-500/20 rounded-full font-mono">
                   D03 · {guidance.title.split('：')[0]}
                 </span>
               </div>
@@ -155,7 +155,7 @@ export function D03Experience({ onReturnLobby }: D03ExperienceProps) {
         </section>
 
         {/* 5-Stage Step Indicators */}
-        <div className="grid grid-cols-5 gap-2 text-xs">
+        <div className="grid grid-cols-5 gap-2 text-sm">
           {[
             { key: 'FARADAY_INDUCTION_AND_RIGHT_HAND_RULE', label: '1. 右手定则切割' },
             { key: 'SINE_AC_WAVEFORM_AND_THREE_ELEMENTS', label: '2. 正弦波三要素' },
@@ -182,7 +182,7 @@ export function D03Experience({ onReturnLobby }: D03ExperienceProps) {
                     : 'border-slate-800 bg-slate-900/50 text-slate-500'
                 }`}
               >
-                <span className="block font-mono text-xs text-slate-400">阶段 0{idx + 1}</span>
+                <span className="block font-mono text-sm text-slate-400">阶段 0{idx + 1}</span>
                 <span className="truncate block">{s.label.split('. ')[1]}</span>
               </div>
             );

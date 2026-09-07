@@ -130,7 +130,7 @@ export function E05LogicGatesScene({
             <Gauge className="w-6 h-6" />
           </div>
           <div>
-            <div className="text-xs text-slate-400 font-semibold tracking-wider uppercase">
+            <div className="text-sm text-slate-400 font-semibold tracking-wider uppercase">
               数字逻辑测试仪 (LOGIC-PROBE / DMM)
             </div>
             <div className="text-sm font-bold text-slate-200">
@@ -152,7 +152,7 @@ export function E05LogicGatesScene({
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-400">旋钮挡位:</span>
+          <span className="text-sm font-medium text-slate-300">旋钮挡位:</span>
           {(['OFF', 'LOGIC_PROBE', 'DCV_20', 'OHM_200'] as const).map((knob) => (
             <button
               key={knob}
@@ -161,7 +161,7 @@ export function E05LogicGatesScene({
                 setMeterWarning(null);
                 sounds.playToggleSound?.();
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`px-3.5 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${
                 meterKnob === knob
                   ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30 ring-2 ring-blue-400'
                   : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
@@ -186,7 +186,7 @@ export function E05LogicGatesScene({
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
             <div className="lg:col-span-8 flex flex-col justify-between p-6 bg-slate-950/80 rounded-2xl border border-slate-800 min-h-[360px]">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase text-blue-400 tracking-wider">
+                <span className="text-sm font-bold uppercase text-blue-400 tracking-wider">
                   逻辑门符号与输出仿真：{s1Gate} 门
                 </span>
                 <div className="flex gap-1">
@@ -197,7 +197,7 @@ export function E05LogicGatesScene({
                         setS1Gate(g);
                         sounds.playToggleSound?.();
                       }}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-bold border ${
+                      className={`px-3 py-1.5 rounded-lg text-sm font-bold border transition-all cursor-pointer ${
                         s1Gate === g
                           ? 'border-blue-500 bg-blue-500/20 text-white'
                           : 'border-slate-800 bg-slate-900 text-slate-400 hover:border-slate-700'
@@ -255,7 +255,7 @@ export function E05LogicGatesScene({
                       setS1InA(!s1InA);
                       sounds.playToggleSound?.();
                     }}
-                    className={s1InA ? 'bg-emerald-600 text-white text-xs' : 'bg-slate-700 text-slate-300 text-xs'}
+                    className={s1InA ? 'bg-emerald-600 text-white text-sm cursor-pointer' : 'bg-slate-700 text-slate-300 text-sm cursor-pointer'}
                   >
                     输入端 A: {s1InA ? '高电平 1 (5V)' : '低电平 0 (0V)'}
                   </Button>
@@ -266,14 +266,14 @@ export function E05LogicGatesScene({
                         setS1InB(!s1InB);
                         sounds.playToggleSound?.();
                       }}
-                      className={s1InB ? 'bg-emerald-600 text-white text-xs' : 'bg-slate-700 text-slate-300 text-xs'}
+                      className={s1InB ? 'bg-emerald-600 text-white text-sm cursor-pointer' : 'bg-slate-700 text-slate-300 text-sm cursor-pointer'}
                     >
                       输入端 B: {s1InB ? '高电平 1 (5V)' : '低电平 0 (0V)'}
                     </Button>
                   )}
                 </div>
 
-                <div className="text-xs font-mono">
+                <div className="text-sm font-mono">
                   布尔表达式:{' '}
                   <span className="text-amber-300 font-bold">
                     {s1Gate === 'AND' && 'Y = A · B (全1出1)'}
@@ -293,7 +293,7 @@ export function E05LogicGatesScene({
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   认知判定与理论验证
                 </h4>
-                <p className="text-xs text-slate-400 mb-4">
+                <p className="text-sm text-slate-300 mb-4">
                   关于基本逻辑门电路的真值表规律，下列哪项表述是完全正确的？
                 </p>
 
@@ -310,7 +310,7 @@ export function E05LogicGatesScene({
                         setS1Choice(opt.id);
                         sounds.playToggleSound?.();
                       }}
-                      className={`w-full text-left p-3 rounded-xl border text-xs transition-all ${
+                      className={`w-full text-left p-3 rounded-xl border text-sm transition-all cursor-pointer ${
                         s1Choice === opt.id
                           ? 'border-blue-500 bg-blue-500/10 text-white font-bold'
                           : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700'
@@ -338,13 +338,13 @@ export function E05LogicGatesScene({
                         alert('结论有误！与门是“全1出1”，或门是“有1出1”！');
                       }
                     }}
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold"
+                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold cursor-pointer"
                   >
                     提交认知判定
                   </Button>
                 ) : (
                   <div className="space-y-2">
-                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs flex items-center gap-2">
+                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-sm flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 shrink-0" />
                       <span>判定正确！牢固建立全1出1与有1出1的布尔真值模型。</span>
                     </div>
@@ -354,7 +354,7 @@ export function E05LogicGatesScene({
                         assessment.startStage('standard');
                         onAdvanceStep();
                       }}
-                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold flex items-center justify-center gap-1 cursor-pointer"
                     >
                       进入步骤 2：试验箱实测验证 <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
@@ -373,10 +373,10 @@ export function E05LogicGatesScene({
             <div className="lg:col-span-8 p-6 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between min-h-[380px]">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-bold uppercase text-blue-400">
+                  <span className="text-sm font-bold uppercase text-blue-400">
                     试验箱工位：74HC08 四 2 输入与门真值表实测
                   </span>
-                  <span className="text-xs text-slate-400">
+                  <span className="text-sm text-slate-300">
                     当前输入: A={s2SwitchA ? '1' : '0'}, B={s2SwitchB ? '1' : '0'} → 输出 Y={s2CurrentOut ? '1 (灯亮)' : '0 (灯灭)'}
                   </span>
                 </div>
@@ -384,35 +384,35 @@ export function E05LogicGatesScene({
                 {/* 拨动开关与 LED */}
                 <div className="p-4 bg-slate-900/80 rounded-xl border border-slate-800 flex items-center justify-around mb-4">
                   <div className="text-center">
-                    <div className="text-xs text-slate-400 mb-1">电平开关 A</div>
+                    <div className="text-sm text-slate-300 mb-1">电平开关 A</div>
                     <Button
                       size="sm"
                       onClick={() => {
                         setS2SwitchA(!s2SwitchA);
                         sounds.playToggleSound?.();
                       }}
-                      className={s2SwitchA ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-300'}
+                      className={s2SwitchA ? 'bg-emerald-600 text-white text-sm cursor-pointer' : 'bg-slate-700 text-slate-300 text-sm cursor-pointer'}
                     >
                       {s2SwitchA ? '拨向上 (1/5V)' : '拨向下 (0/GND)'}
                     </Button>
                   </div>
 
                   <div className="text-center">
-                    <div className="text-xs text-slate-400 mb-1">电平开关 B</div>
+                    <div className="text-sm text-slate-300 mb-1">电平开关 B</div>
                     <Button
                       size="sm"
                       onClick={() => {
                         setS2SwitchB(!s2SwitchB);
                         sounds.playToggleSound?.();
                       }}
-                      className={s2SwitchB ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-300'}
+                      className={s2SwitchB ? 'bg-emerald-600 text-white text-sm cursor-pointer' : 'bg-slate-700 text-slate-300 text-sm cursor-pointer'}
                     >
                       {s2SwitchB ? '拨向上 (1/5V)' : '拨向下 (0/GND)'}
                     </Button>
                   </div>
 
                   <div className="text-center">
-                    <div className="text-xs text-slate-400 mb-1">输出指示灯 Y</div>
+                    <div className="text-sm text-slate-300 mb-1">输出指示灯 Y</div>
                     <div
                       className={`w-10 h-10 rounded-full mx-auto flex items-center justify-center font-bold text-sm border-2 ${
                         s2CurrentOut
@@ -434,7 +434,7 @@ export function E05LogicGatesScene({
                       setS2VerifiedRows((prev) => ({ ...prev, [key]: true }));
                       sounds.playToggleSound?.();
                     }}
-                    className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold"
+                    className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold cursor-pointer"
                   >
                     记录当前组合 (A={s2SwitchA ? '1' : '0'}, B={s2SwitchB ? '1' : '0'}) 到真值表
                   </Button>
@@ -442,7 +442,7 @@ export function E05LogicGatesScene({
               </div>
 
               {/* 真值表记录卡 */}
-              <div className="grid grid-cols-4 gap-2 pt-4 border-t border-slate-800 text-center text-xs">
+              <div className="grid grid-cols-4 gap-2 pt-4 border-t border-slate-800 text-center text-sm">
                 {[
                   { a: '0', b: '0', exp: '0' },
                   { a: '0', b: '1', exp: '0' },
@@ -473,7 +473,7 @@ export function E05LogicGatesScene({
                   <Zap className="w-4 h-4 text-cyan-400" />
                   实测结果确认
                 </h4>
-                <p className="text-xs text-slate-400 mb-4">
+                <p className="text-sm text-slate-300 mb-4">
                   拨动全部 4 种电平开关组合后，74HC08 与门输出 LED 只有在何种条件下才被点亮？
                 </p>
 
@@ -490,7 +490,7 @@ export function E05LogicGatesScene({
                         setS2Choice(opt.id);
                         sounds.playToggleSound?.();
                       }}
-                      className={`w-full text-left p-3 rounded-xl border text-xs transition-all ${
+                      className={`w-full text-left p-3 rounded-xl border text-sm transition-all cursor-pointer ${
                         s2Choice === opt.id
                           ? 'border-blue-500 bg-blue-500/10 text-white font-bold'
                           : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700'
@@ -519,13 +519,13 @@ export function E05LogicGatesScene({
                         alert('结论有误，请先完成全部 4 组真值表实测记录！');
                       }
                     }}
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold"
+                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold cursor-pointer"
                   >
                     提交实测真值表
                   </Button>
                 ) : (
                   <div className="space-y-2">
-                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs flex items-center gap-2">
+                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-sm flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 shrink-0" />
                       <span>真值表验证 100% 吻合！数字试验箱实操规范过关。</span>
                     </div>
@@ -535,7 +535,7 @@ export function E05LogicGatesScene({
                         assessment.startStage('calculation');
                         onAdvanceStep();
                       }}
-                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold flex items-center justify-center gap-1 cursor-pointer"
                     >
                       进入步骤 3：汽车安全联锁设计 <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
@@ -554,53 +554,53 @@ export function E05LogicGatesScene({
             <div className="lg:col-span-8 p-6 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between min-h-[380px]">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-bold uppercase text-blue-400">
+                  <span className="text-sm font-bold uppercase text-blue-400">
                     实车联锁逻辑仿真：安全带未系报警联锁
                   </span>
-                  <span className={`text-xs font-bold font-mono ${s3AlarmTriggered ? 'text-rose-400 animate-pulse' : 'text-emerald-400'}`}>
+                  <span className={`text-sm font-bold font-mono ${s3AlarmTriggered ? 'text-rose-400 animate-pulse' : 'text-emerald-400'}`}>
                     {s3AlarmTriggered ? '🚨 蜂鸣报警激活！' : '✓ 静音正常'}
                   </span>
                 </div>
 
                 {/* 三项输入条件 */}
-                <div className="grid grid-cols-3 gap-3 p-4 bg-slate-900/90 rounded-xl border border-slate-800 mb-4 text-xs">
+                <div className="grid grid-cols-3 gap-3 p-4 bg-slate-900/90 rounded-xl border border-slate-800 mb-4 text-sm">
                   <div className="p-3 bg-slate-950 rounded-lg border border-slate-800 text-center">
-                    <div className="text-slate-400 mb-1">条件 A: 压力传感器</div>
+                    <div className="text-sm text-slate-300 mb-1">条件 A: 压力传感器</div>
                     <Button
                       size="sm"
                       onClick={() => {
                         setS3SeatOccupied(!s3SeatOccupied);
                         sounds.playToggleSound?.();
                       }}
-                      className={s3SeatOccupied ? 'bg-blue-600 text-white text-xs' : 'bg-slate-700 text-slate-300 text-xs'}
+                      className={s3SeatOccupied ? 'bg-blue-600 text-white text-sm cursor-pointer' : 'bg-slate-700 text-slate-300 text-sm cursor-pointer'}
                     >
                       {s3SeatOccupied ? '有人入座 (A=1)' : '无人空座 (A=0)'}
                     </Button>
                   </div>
 
                   <div className="p-3 bg-slate-950 rounded-lg border border-slate-800 text-center">
-                    <div className="text-slate-400 mb-1">条件 B: 安全带锁扣</div>
+                    <div className="text-sm text-slate-300 mb-1">条件 B: 安全带锁扣</div>
                     <Button
                       size="sm"
                       onClick={() => {
                         setS3SeatbeltUnbuckled(!s3SeatbeltUnbuckled);
                         sounds.playToggleSound?.();
                       }}
-                      className={s3SeatbeltUnbuckled ? 'bg-amber-600 text-white text-xs' : 'bg-emerald-600 text-white text-xs'}
+                      className={s3SeatbeltUnbuckled ? 'bg-amber-600 text-white text-sm cursor-pointer' : 'bg-emerald-600 text-white text-sm cursor-pointer'}
                     >
                       {s3SeatbeltUnbuckled ? '未系安全带 (B=1)' : '已牢固系好 (B=0)'}
                     </Button>
                   </div>
 
                   <div className="p-3 bg-slate-950 rounded-lg border border-slate-800 text-center">
-                    <div className="text-slate-400 mb-1">条件 C: 车速信号</div>
+                    <div className="text-sm text-slate-300 mb-1">条件 C: 车速信号</div>
                     <Button
                       size="sm"
                       onClick={() => {
                         setS3SpeedOver20(!s3SpeedOver20);
                         sounds.playToggleSound?.();
                       }}
-                      className={s3SpeedOver20 ? 'bg-rose-600 text-white text-xs' : 'bg-slate-700 text-slate-300 text-xs'}
+                      className={s3SpeedOver20 ? 'bg-rose-600 text-white text-sm cursor-pointer' : 'bg-slate-700 text-slate-300 text-sm cursor-pointer'}
                     >
                       {s3SpeedOver20 ? '车速>20km/h (C=1)' : '驻车静止 (C=0)'}
                     </Button>
@@ -609,10 +609,10 @@ export function E05LogicGatesScene({
 
                 {/* 逻辑综合判定示意 */}
                 <div className="p-4 bg-slate-900 border border-slate-700 rounded-xl flex items-center justify-between">
-                  <div className="text-xs font-mono">
+                  <div className="text-sm font-mono">
                     逻辑表达式: <span className="text-emerald-400 font-bold">Alarm = A · B · C (三输入与门)</span>
                   </div>
-                  <div className="text-xs font-mono">
+                  <div className="text-sm font-mono">
                     当前输出: <span className={`font-bold ${s3AlarmTriggered ? 'text-rose-400' : 'text-slate-400'}`}>
                       {s3AlarmTriggered ? '1 (报警鸣叫)' : '0 (不报警)'}
                     </span>
@@ -620,7 +620,7 @@ export function E05LogicGatesScene({
                 </div>
               </div>
 
-              <div className="text-xs text-slate-400 pt-4 border-t border-slate-800 font-mono">
+              <div className="text-sm text-slate-300 pt-4 border-t border-slate-800 font-mono">
                 安全规范: 只有驾驶员在座(A=1)、未系安全带(B=1)且车辆正在行驶(C=1)三者同时成立时，系统才触发声音与灯光报警。
               </div>
             </div>
@@ -632,7 +632,7 @@ export function E05LogicGatesScene({
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   逻辑设计工单
                 </h4>
-                <p className="text-xs text-slate-400 mb-4">
+                <p className="text-sm text-slate-300 mb-4">
                   若驾驶员坐在车内(A=1)但车辆处于静止驻车状态(C=0)，即便未系安全带(B=1)，报警蜂鸣器是否应该鸣叫？对应的布尔逻辑值是多少？
                 </p>
 
@@ -649,7 +649,7 @@ export function E05LogicGatesScene({
                         setS3Choice(opt.id);
                         sounds.playToggleSound?.();
                       }}
-                      className={`w-full text-left p-3 rounded-xl border text-xs transition-all ${
+                      className={`w-full text-left p-3 rounded-xl border text-sm transition-all cursor-pointer ${
                         s3Choice === opt.id
                           ? 'border-blue-500 bg-blue-500/10 text-white font-bold'
                           : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700'
@@ -677,13 +677,13 @@ export function E05LogicGatesScene({
                         alert('逻辑理解有误！与门要求全为1才输出1，C=0时不应触发蜂鸣！');
                       }
                     }}
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold"
+                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold cursor-pointer"
                   >
                     提交设计结论
                   </Button>
                 ) : (
                   <div className="space-y-2">
-                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs flex items-center gap-2">
+                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-sm flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 shrink-0" />
                       <span>设计分析完全正确！三条件与门联锁完全符合乘用车安全法规！</span>
                     </div>
@@ -693,7 +693,7 @@ export function E05LogicGatesScene({
                         assessment.startStage('blind_test');
                         onAdvanceStep();
                       }}
-                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold flex items-center justify-center gap-1 cursor-pointer"
                     >
                       进入步骤 4：逻辑芯片盲测 <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
@@ -712,7 +712,7 @@ export function E05LogicGatesScene({
             <div className="lg:col-span-7 p-6 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between min-h-[380px]">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-bold uppercase text-blue-400">
+                  <span className="text-sm font-bold uppercase text-blue-400">
                     实训测试台：4 片未知 74HC08 芯片盲测
                   </span>
                   <div className="flex gap-2">
@@ -722,7 +722,7 @@ export function E05LogicGatesScene({
                         setS4InA(!s4InA);
                         sounds.playToggleSound?.();
                       }}
-                      className={s4InA ? 'bg-emerald-600 text-white text-xs' : 'bg-slate-700 text-slate-300 text-xs'}
+                      className={s4InA ? 'bg-emerald-600 text-white text-sm cursor-pointer' : 'bg-slate-700 text-slate-300 text-sm cursor-pointer'}
                     >
                       A={s4InA ? '1' : '0'}
                     </Button>
@@ -732,7 +732,7 @@ export function E05LogicGatesScene({
                         setS4InB(!s4InB);
                         sounds.playToggleSound?.();
                       }}
-                      className={s4InB ? 'bg-emerald-600 text-white text-xs' : 'bg-slate-700 text-slate-300 text-xs'}
+                      className={s4InB ? 'bg-emerald-600 text-white text-sm cursor-pointer' : 'bg-slate-700 text-slate-300 text-sm cursor-pointer'}
                     >
                       B={s4InB ? '1' : '0'}
                     </Button>
@@ -748,7 +748,7 @@ export function E05LogicGatesScene({
                         setS4SampleIndex(idx);
                         sounds.playToggleSound?.();
                       }}
-                      className={`p-2 rounded-xl text-xs font-bold border transition-all ${
+                      className={`p-2.5 rounded-xl text-sm font-bold border transition-all cursor-pointer ${
                         s4SampleIndex === idx
                           ? 'border-blue-500 bg-blue-500/20 text-white ring-2 ring-blue-500/40'
                           : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700'
@@ -761,19 +761,19 @@ export function E05LogicGatesScene({
 
                 {/* 仪表显示 */}
                 <div className="p-5 bg-slate-900 border border-slate-700 rounded-xl flex flex-col items-center">
-                  <div className="text-xs text-slate-400 mb-2">
+                  <div className="text-sm text-slate-300 mb-2">
                     测试对象: <span className="text-white font-bold">{activeSample.name}</span>
                   </div>
                   <div className="w-48 h-20 bg-emerald-950/60 border border-emerald-800 rounded-xl flex items-center justify-center font-mono text-3xl font-black text-emerald-400">
                     {s4SampleOut ? 'HIGH (1 / 5V)' : 'LOW (0 / 0V)'}
                   </div>
-                  <div className="text-xs text-slate-400 mt-2">
+                  <div className="text-sm text-slate-300 mt-2">
                     当前输入: A={s4InA ? '1' : '0'}, B={s4InB ? '1' : '0'}
                   </div>
                 </div>
               </div>
 
-              <div className="text-xs text-slate-400 pt-4 border-t border-slate-800">
+              <div className="text-sm text-slate-300 pt-4 border-t border-slate-800">
                 诊断提示: 良好管仅 11 输出 1；若输入 00 时输出仍有 1 或 10 输出 1，为输入端内部悬空虚高；恒为 0 且无功耗为 VCC 虚焊或输出接地击穿。
               </div>
             </div>
@@ -785,11 +785,11 @@ export function E05LogicGatesScene({
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   逻辑芯片诊断工单
                 </h4>
-                <p className="text-xs text-slate-400 mb-3">判定 4 片未知芯片的内部物理状态：</p>
+                <p className="text-sm text-slate-300 mb-3">判定 4 片未知芯片的内部物理状态：</p>
 
                 <div className="space-y-3">
                   {E05_SAMPLES.map((smp) => (
-                    <div key={smp.id} className="p-3 bg-slate-900/80 rounded-xl border border-slate-800 text-xs">
+                    <div key={smp.id} className="p-3 bg-slate-900/80 rounded-xl border border-slate-800 text-sm">
                       <div className="font-bold text-slate-200 mb-1.5">{smp.name}</div>
                       <div className="grid grid-cols-2 gap-1.5">
                         {[
@@ -805,7 +805,7 @@ export function E05LogicGatesScene({
                               setS4Diagnoses((prev) => ({ ...prev, [smp.id]: opt.val }));
                               sounds.playToggleSound?.();
                             }}
-                            className={`p-1.5 rounded-lg border text-center transition-all ${
+                            className={`p-2 rounded-lg border text-center text-sm font-medium transition-all cursor-pointer ${
                               s4Diagnoses[smp.id] === opt.val
                                 ? 'border-blue-500 bg-blue-500/20 text-white font-bold'
                                 : 'border-slate-800 bg-slate-950/50 text-slate-400 hover:border-slate-700'
@@ -839,13 +839,13 @@ export function E05LogicGatesScene({
                         alert('诊断存在偏差，请通过改变输入组合再次校验！');
                       }
                     }}
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold"
+                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold cursor-pointer"
                   >
                     提交四组诊断结论
                   </Button>
                 ) : (
                   <div className="space-y-2">
-                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs flex items-center gap-2">
+                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-sm flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 shrink-0" />
                       <span>全组盲测分类 100% 正确！具备板级数字逻辑精准排查能力！</span>
                     </div>
@@ -855,7 +855,7 @@ export function E05LogicGatesScene({
                         assessment.startStage('transfer', 'transfer');
                         onAdvanceStep();
                       }}
-                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1"
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold flex items-center justify-center gap-1 cursor-pointer"
                     >
                       进入步骤 5：实车工程修复与交付 <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
@@ -874,13 +874,13 @@ export function E05LogicGatesScene({
             <div className="lg:col-span-8 p-6 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between min-h-[380px]">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-bold uppercase text-blue-400">
+                  <span className="text-sm font-bold uppercase text-blue-400">
                     实车工单：系好安全带后报警蜂鸣器仍持续鸣叫
                   </span>
-                  <span className="text-xs text-rose-400 font-mono font-bold">故障代码: B1206-11</span>
+                  <span className="text-sm text-rose-400 font-mono font-bold">故障代码: B1206-11</span>
                 </div>
 
-                <div className="p-4 bg-slate-900/80 rounded-xl border border-slate-800 text-xs space-y-3">
+                <div className="p-4 bg-slate-900/80 rounded-xl border border-slate-800 text-sm space-y-3">
                   <div className="text-slate-300">
                     <span className="text-slate-500 font-bold">报修现象:</span> 车辆行驶中，驾驶员即便插牢安全带插扣，仪表盘红灯与蜂鸣器依然尖叫不止。
                   </div>
@@ -896,13 +896,13 @@ export function E05LogicGatesScene({
                         setS5Measured(true);
                         sounds.playToggleSound?.();
                       }}
-                      className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs"
+                      className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-sm cursor-pointer"
                     >
                       万用表测量锁扣信号线对地电阻
                     </Button>
 
                     {s5Measured && (
-                      <div className="text-xs font-mono">
+                      <div className="text-sm font-mono">
                         实测对地电阻:{' '}
                         <span className="text-rose-400 font-bold">
                           {s5Repaired ? 'OL (绝缘正常)' : '0.1 Ω (严重短路搭铁！)'}
@@ -914,7 +914,7 @@ export function E05LogicGatesScene({
 
                 {s5Measured && !s5Repaired && (
                   <div className="mt-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-3">
-                    <div className="text-xs text-amber-300 font-bold">
+                    <div className="text-sm text-amber-300 font-bold">
                       根因查明：锁扣线束在座椅滑轨下被割破外皮搭铁短路，导致 BCM 逻辑输入端恒为高电平 1！
                     </div>
                     <Button
@@ -923,7 +923,7 @@ export function E05LogicGatesScene({
                         setS5Repaired(true);
                         sounds.playSuccessSound?.();
                       }}
-                      className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold"
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold cursor-pointer"
                     >
                       更换原厂安全带锁扣总成线束并套耐磨波纹管
                     </Button>
@@ -933,10 +933,10 @@ export function E05LogicGatesScene({
                 {s5Repaired && (
                   <div className="mt-4 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-between">
                     <div>
-                      <div className="text-xs font-bold text-emerald-300">
+                      <div className="text-sm font-bold text-emerald-300">
                         ✓ 新线束已更换并固定于安全卡槽，请插拔安全带验证消除报警
                       </div>
-                      <div className="text-xs text-slate-400 mt-1">
+                      <div className="text-sm text-slate-300 mt-1">
                         复验验收标准: 插上安全带立刻停止报警，拔出安全带即刻恢复报警。
                       </div>
                     </div>
@@ -946,7 +946,7 @@ export function E05LogicGatesScene({
                         setS5BuckleState(s5BuckleState === 'BUCKLED' ? 'UNBUCKLED' : 'BUCKLED');
                         sounds.playToggleSound?.();
                       }}
-                      className={s5BuckleState === 'BUCKLED' ? 'bg-emerald-600 text-white text-xs' : 'bg-amber-600 text-white text-xs'}
+                      className={s5BuckleState === 'BUCKLED' ? 'bg-emerald-600 text-white text-sm cursor-pointer' : 'bg-amber-600 text-white text-sm cursor-pointer'}
                     >
                       {s5BuckleState === 'BUCKLED' ? '已插入安全带 (静音)' : '拔出安全带 (报警)'}
                     </Button>
@@ -955,7 +955,7 @@ export function E05LogicGatesScene({
               </div>
 
               {s5Repaired && (
-                <div className="flex items-center gap-4 pt-4 border-t border-slate-800 text-xs font-mono">
+                <div className="flex items-center gap-4 pt-4 border-t border-slate-800 text-sm font-mono">
                   <div className="text-emerald-400 font-bold">
                     {s5BuckleState === 'BUCKLED' ? '安全带系好，报警已静音 ✓' : '安全带拔出，报警正鸣叫 🚨'}
                   </div>
@@ -972,9 +972,9 @@ export function E05LogicGatesScene({
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                   工程交付验收单
                 </h4>
-                <p className="text-xs text-slate-400 mb-3">核验安全联锁修复指标：</p>
+                <p className="text-sm text-slate-300 mb-3">核验安全联锁修复指标：</p>
 
-                <div className="space-y-2 text-xs">
+                <div className="space-y-2 text-sm">
                   <div className="p-2.5 bg-slate-900 rounded-lg border border-slate-800 flex justify-between">
                     <span className="text-slate-400">故障部位:</span>
                     <span className="text-slate-200 font-bold">安全带锁扣信号线磨破搭铁</span>
@@ -1002,7 +1002,7 @@ export function E05LogicGatesScene({
                     onChange={(e) => setS5Signed(e.target.checked)}
                     className="rounded accent-emerald-500"
                   />
-                  <label htmlFor="e05-sign" className="text-xs text-slate-300 cursor-pointer">
+                  <label htmlFor="e05-sign" className="text-sm text-slate-300 cursor-pointer">
                     维修技师已通过实车路试插拔联锁复验，确认符合乘用车安全法规，准予交车
                   </label>
                 </div>
@@ -1023,12 +1023,12 @@ export function E05LogicGatesScene({
                         s5BuckleState,
                       });
                     }}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold cursor-pointer"
                   >
                     签署交车工单
                   </Button>
                 ) : (
-                  <div className="p-3 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs flex items-center gap-2">
+                  <div className="p-3 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-sm flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 shrink-0" />
                     <span>交车成功！整车安全联锁控制系统完全恢复出厂品质！</span>
                   </div>

@@ -128,7 +128,7 @@ export function E01Experience({ onReturnLobby }: E01ExperienceProps) {
       </header>
 
       {/* 5-Stage Progressive Training Progress Bar */}
-      <nav className="training-stage-stepper px-6 py-2.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between text-xs overflow-x-auto">
+      <nav className="training-stage-stepper px-6 py-2.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between text-sm overflow-x-auto">
         {(
           [
             { id: 'DIODE_CONDUCTION_COGNITION', num: '1', name: '单向导电认知' },
@@ -152,7 +152,7 @@ export function E01Experience({ onReturnLobby }: E01ExperienceProps) {
               }`}
             >
               <span
-                className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
+                className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${
                   isActive
                     ? 'bg-blue-600 text-white'
                     : isPast
@@ -172,7 +172,7 @@ export function E01Experience({ onReturnLobby }: E01ExperienceProps) {
       <section className="bg-slate-800/80 border-b border-slate-700/80 px-6 py-3 flex items-center gap-4">
         <MasterChenAvatar emotion={guidance.mentorEmotion} size={48} />
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 text-xs font-bold text-amber-400">
+          <div className="flex items-center gap-2 text-sm font-bold text-amber-400">
             <span>实训导师 · 陈师傅</span>
             <span className="text-slate-500">|</span>
             <span className="text-slate-300 font-normal">{guidance.title}</span>
@@ -228,7 +228,7 @@ export function E01Experience({ onReturnLobby }: E01ExperienceProps) {
                 ✕
               </button>
             </div>
-            <div className="space-y-3 text-xs text-slate-300">
+            <div className="space-y-3 text-sm text-slate-300">
               <div className="p-3 bg-slate-800/60 rounded-xl">
                 <span className="font-bold text-blue-400">教材目标:</span> 学习任务 15 二极管及其应用的分析 (17页)
               </div>
@@ -247,7 +247,7 @@ export function E01Experience({ onReturnLobby }: E01ExperienceProps) {
             </div>
             <button
               onClick={() => setShowWorkOrder(false)}
-              className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold"
+              className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold"
             >
               已查阅，继续实训
             </button>

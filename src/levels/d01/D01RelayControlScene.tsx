@@ -164,7 +164,7 @@ export function D01RelayControlScene({
           </div>
           <button
             onClick={() => setMeterWarning(null)}
-            className="text-xs px-2 py-1 bg-amber-500/30 hover:bg-amber-500/50 rounded text-amber-100"
+            className="text-sm font-bold px-3 py-1 bg-amber-500/30 hover:bg-amber-500/50 rounded text-amber-100"
           >
             知道了
           </button>
@@ -180,7 +180,7 @@ export function D01RelayControlScene({
               <Zap className="w-5 h-5 text-amber-400 animate-pulse" />
               <span className="font-semibold text-slate-200">继电器电磁与主回路可视化实验台</span>
             </div>
-            <div className="text-xs px-2.5 py-1 bg-slate-800 text-amber-300 rounded font-mono">
+            <div className="text-sm px-2.5 py-1 bg-slate-800 text-amber-300 rounded font-mono">
               {currentStep === 'COIL_CONTACT_ISOLATION' && '步骤1: 控/负回路分离'}
               {currentStep === 'MULTIMETER_PIN_IDENTIFICATION' && '步骤2: 引脚万用表辨识'}
               {currentStep === 'RELAY_ENERGIZATION_AND_SWITCH' && '步骤3: 电磁吸合规律'}
@@ -387,16 +387,16 @@ export function D01RelayControlScene({
           </div>
 
           {/* Interactive Toggle Controls */}
-          <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-slate-900 border border-slate-800 rounded-lg">
+          <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-slate-900 border border-slate-800 rounded-lg text-sm">
             {currentStep === 'COIL_CONTACT_ISOLATION' && (
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-slate-400">驱动模式对比:</span>
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-sm text-slate-400 font-semibold">驱动模式对比:</span>
                 <button
                   onClick={() => {
                     sounds.click();
                     setS1Mode('DIRECT');
                   }}
-                  className={`px-3 py-1.5 rounded text-xs font-semibold ${
+                  className={`px-3 py-1.5 rounded text-sm font-semibold cursor-pointer ${
                     s1Mode === 'DIRECT' ? 'bg-rose-600 text-white' : 'bg-slate-800 text-slate-300'
                   }`}
                 >
@@ -407,7 +407,7 @@ export function D01RelayControlScene({
                     sounds.click();
                     setS1Mode('RELAY');
                   }}
-                  className={`px-3 py-1.5 rounded text-xs font-semibold ${
+                  className={`px-3 py-1.5 rounded text-sm font-semibold cursor-pointer ${
                     s1Mode === 'RELAY' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300'
                   }`}
                 >
@@ -417,14 +417,14 @@ export function D01RelayControlScene({
             )}
 
             {currentStep === 'MULTIMETER_PIN_IDENTIFICATION' && (
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400">测量引脚对:</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm text-slate-400 font-semibold">测量引脚对:</span>
                 <button
                   onClick={() => {
                     sounds.click();
                     setS2SelectedPins('85_86');
                   }}
-                  className={`px-2.5 py-1 rounded text-xs ${
+                  className={`px-3 py-1.5 rounded text-sm font-medium cursor-pointer ${
                     s2SelectedPins === '85_86' ? 'bg-amber-600 text-white' : 'bg-slate-800 text-slate-300'
                   }`}
                 >
@@ -435,7 +435,7 @@ export function D01RelayControlScene({
                     sounds.click();
                     setS2SelectedPins('30_87');
                   }}
-                  className={`px-2.5 py-1 rounded text-xs ${
+                  className={`px-3 py-1.5 rounded text-sm font-medium cursor-pointer ${
                     s2SelectedPins === '30_87' ? 'bg-amber-600 text-white' : 'bg-slate-800 text-slate-300'
                   }`}
                 >
@@ -446,7 +446,7 @@ export function D01RelayControlScene({
                     sounds.click();
                     setS2SelectedPins('85_30');
                   }}
-                  className={`px-2.5 py-1 rounded text-xs ${
+                  className={`px-3 py-1.5 rounded text-sm font-medium cursor-pointer ${
                     s2SelectedPins === '85_30' ? 'bg-amber-600 text-white' : 'bg-slate-800 text-slate-300'
                   }`}
                 >
@@ -467,28 +467,28 @@ export function D01RelayControlScene({
                     setS3SwitchClosed(!s3SwitchClosed);
                     setS3Observed(true);
                   }}
-                  className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 ${
+                  className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 cursor-pointer ${
                     s3SwitchClosed ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
                   }`}
                 >
                   <Sparkles className="w-4 h-4" />
                   {s3SwitchClosed ? '控制开关已闭合 (大灯点亮中)' : '点击闭合微动控制开关'}
                 </button>
-                <span className="text-xs text-slate-400">
+                <span className="text-sm text-slate-400">
                   {s3SwitchClosed ? '磁场吸合衔铁，大灯回路形成' : '线圈未通电，触点处于常开状态'}
                 </span>
               </div>
             )}
 
             {currentStep === 'BLIND_RELAY_FAULT_DIAGNOSIS' && (
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400">测量项目:</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm text-slate-400 font-semibold">测量项目:</span>
                 <button
                   onClick={() => {
                     sounds.click();
                     setS4TestTarget('COIL');
                   }}
-                  className={`px-2.5 py-1 rounded text-xs ${
+                  className={`px-3 py-1.5 rounded text-sm font-medium cursor-pointer ${
                     s4TestTarget === 'COIL' ? 'bg-sky-600 text-white' : 'bg-slate-800 text-slate-300'
                   }`}
                 >
@@ -499,7 +499,7 @@ export function D01RelayControlScene({
                     sounds.click();
                     setS4TestTarget('CONTACT');
                   }}
-                  className={`px-2.5 py-1 rounded text-xs ${
+                  className={`px-3 py-1.5 rounded text-sm font-medium cursor-pointer ${
                     s4TestTarget === 'CONTACT' ? 'bg-sky-600 text-white' : 'bg-slate-800 text-slate-300'
                   }`}
                 >
@@ -510,7 +510,7 @@ export function D01RelayControlScene({
                     sounds.click();
                     setS4TestTarget('DROP');
                   }}
-                  className={`px-2.5 py-1 rounded text-xs ${
+                  className={`px-3 py-1.5 rounded text-sm font-medium cursor-pointer ${
                     s4TestTarget === 'DROP' ? 'bg-sky-600 text-white' : 'bg-slate-800 text-slate-300'
                   }`}
                 >
@@ -527,7 +527,7 @@ export function D01RelayControlScene({
                     sounds.success();
                     setS5Repaired(true);
                   }}
-                  className={`px-3 py-1.5 rounded text-xs font-semibold ${
+                  className={`px-3 py-1.5 rounded text-sm font-semibold cursor-pointer ${
                     s5Repaired ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-500/50' : 'bg-blue-600 hover:bg-blue-500 text-white'
                   }`}
                 >
@@ -539,7 +539,7 @@ export function D01RelayControlScene({
                       sounds.click();
                       setS5SwitchOn(!s5SwitchOn);
                     }}
-                    className={`px-3 py-1.5 rounded text-xs font-semibold ${
+                    className={`px-3 py-1.5 rounded text-sm font-semibold cursor-pointer ${
                       s5SwitchOn ? 'bg-amber-600 text-white' : 'bg-slate-800 text-slate-300'
                     }`}
                   >
@@ -558,16 +558,16 @@ export function D01RelayControlScene({
             <div className="flex items-center justify-between border-b border-slate-800 pb-2">
               <div className="flex items-center gap-2">
                 <Gauge className="w-4 h-4 text-emerald-400" />
-                <span className="text-xs font-bold text-slate-300">工业级万用表 (VC890D)</span>
+                <span className="text-sm font-bold text-slate-300">工业级万用表 (VC890D)</span>
               </div>
-              <span className="text-[11px] font-mono text-slate-400">
+              <span className="text-sm font-mono text-slate-300">
                 旋钮: {meterKnob === 'OFF' ? '关机 OFF' : meterKnob}
               </span>
             </div>
 
             {/* LCD Display */}
             <div className="bg-emerald-950/30 border border-emerald-500/40 rounded-lg p-3 my-3 text-center">
-              <div className="text-xs text-emerald-400/70 font-mono tracking-widest uppercase mb-1">
+              <div className="text-sm text-emerald-400/70 font-mono tracking-widest uppercase mb-1">
                 {meterKnob === 'DCV_20' ? 'DC VOLTAGE (20V)' : meterKnob === 'OHM_200' ? 'RESISTANCE (200Ω)' : 'POWER OFF'}
               </div>
               <div className="text-4xl lg:text-5xl font-mono font-black text-emerald-400 tracking-tight">
@@ -618,7 +618,7 @@ export function D01RelayControlScene({
                   sounds.click();
                   setMeterKnob('OFF');
                 }}
-                className={`py-1.5 px-2 text-xs rounded font-mono font-bold ${
+                className={`py-2 px-2 text-sm rounded font-mono font-bold cursor-pointer ${
                   meterKnob === 'OFF' ? 'bg-rose-700 text-white ring-2 ring-rose-400' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                 }`}
               >
@@ -630,7 +630,7 @@ export function D01RelayControlScene({
                   setMeterKnob('DCV_20');
                   setMeterWarning(null);
                 }}
-                className={`py-1.5 px-2 text-xs rounded font-mono font-bold ${
+                className={`py-2 px-2 text-sm rounded font-mono font-bold cursor-pointer ${
                   meterKnob === 'DCV_20' ? 'bg-emerald-600 text-white ring-2 ring-emerald-400' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                 }`}
               >
@@ -642,7 +642,7 @@ export function D01RelayControlScene({
                   setMeterKnob('OHM_200');
                   setMeterWarning(null);
                 }}
-                className={`py-1.5 px-2 text-xs rounded font-mono font-bold ${
+                className={`py-2 px-2 text-sm rounded font-mono font-bold cursor-pointer ${
                   meterKnob === 'OHM_200' ? 'bg-amber-600 text-white ring-2 ring-amber-400' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                 }`}
               >
@@ -683,7 +683,7 @@ export function D01RelayControlScene({
                           sounds.click();
                           setS1Choice(opt.id);
                         }}
-                        className={`w-full text-left p-2.5 rounded-lg border text-xs transition-all ${borderClass}`}
+                        className={`w-full text-left p-3 rounded-lg border text-sm transition-all cursor-pointer ${borderClass}`}
                       >
                         <span className="font-bold mr-1.5">{opt.id}.</span> {opt.text}
                       </button>
@@ -706,7 +706,7 @@ export function D01RelayControlScene({
                     }}
                     className="w-full bg-sky-600 hover:bg-sky-500 text-sm font-semibold py-2"
                   >
-                    提交判别分析
+                    提交电学决策结论
                   </Button>
                 ) : s1Choice === 'A' ? (
                   <Button
@@ -717,7 +717,7 @@ export function D01RelayControlScene({
                     }}
                     className="w-full bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold py-2"
                   >
-                    通过！进入引脚万用表辨识 <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                    回答正确！进入引脚万用表辨识 <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
                 ) : (
                   <Button
@@ -728,7 +728,7 @@ export function D01RelayControlScene({
                     variant="outline"
                     className="w-full text-sm"
                   >
-                    重新思考
+                    重新作答
                   </Button>
                 )}
               </div>
@@ -764,7 +764,7 @@ export function D01RelayControlScene({
                           sounds.click();
                           setS2Answer(opt.id);
                         }}
-                        className={`w-full text-left p-2.5 rounded-lg border text-xs transition-all ${borderClass}`}
+                        className={`w-full text-left p-3 rounded-lg border text-sm transition-all cursor-pointer ${borderClass}`}
                       >
                         <span className="font-bold mr-1.5">{opt.id}.</span> {opt.text}
                       </button>
@@ -846,7 +846,7 @@ export function D01RelayControlScene({
                           sounds.click();
                           setS3Choice(opt.id);
                         }}
-                        className={`w-full text-left p-2.5 rounded-lg border text-xs transition-all ${borderClass}`}
+                        className={`w-full text-left p-3 rounded-lg border text-sm transition-all cursor-pointer ${borderClass}`}
                       >
                         <span className="font-bold mr-1.5">{opt.id}.</span> {opt.text}
                       </button>
@@ -900,11 +900,11 @@ export function D01RelayControlScene({
             {/* Step 4 Question */}
             {currentStep === 'BLIND_RELAY_FAULT_DIAGNOSIS' && (
               <div className="space-y-3">
-                <div className="p-2 bg-slate-900 border border-slate-800 rounded text-xs">
+                <div className="p-2.5 bg-slate-900 border border-slate-800 rounded-lg text-sm">
                   <div className="font-bold text-sky-300">{activeBlind.vehicleName}</div>
                   <div className="text-slate-400">{activeBlind.symptom}</div>
                 </div>
-                <div className="text-xs font-semibold text-amber-300">
+                <div className="text-sm font-semibold text-amber-300">
                   结合万用表测量数据，判定该车辆继电器的故障真因为：
                 </div>
                 <div className="space-y-2">
@@ -931,7 +931,7 @@ export function D01RelayControlScene({
                           sounds.click();
                           setS4Choice(opt.id);
                         }}
-                        className={`w-full text-left p-2.5 rounded-lg border text-xs transition-all ${borderClass}`}
+                        className={`w-full text-left p-3 rounded-lg border text-sm transition-all cursor-pointer ${borderClass}`}
                       >
                         <span className="font-bold mr-1.5">•</span> {opt.text}
                       </button>
@@ -995,7 +995,7 @@ export function D01RelayControlScene({
                 <div className="text-sm font-semibold text-amber-300">
                   【步骤5交付验收】装上原厂合格继电器后，闭合开关通电复测，核验交车标准：
                 </div>
-                <div className="p-3 bg-slate-900 border border-slate-800 rounded-lg space-y-2 text-xs">
+                <div className="p-3 bg-slate-900 border border-slate-800 rounded-lg space-y-2 text-sm">
                   <div className="flex items-center justify-between text-slate-300">
                     <span>1. 触点 30-87 带载跨接电压降:</span>
                     <span className="font-mono text-emerald-400 font-bold">0.03 V (合格 ≤ 0.1V)</span>
@@ -1010,7 +1010,7 @@ export function D01RelayControlScene({
                   </div>
                 </div>
                 <div className="pt-2">
-                  <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-300">
                     <input
                       type="checkbox"
                       checked={s5WorkOrderSigned}
@@ -1041,8 +1041,8 @@ export function D01RelayControlScene({
                     {!s5Repaired ? '请先领用换装新继电器' : !s5SwitchOn ? '请通电闭合开关测试' : !s5WorkOrderSigned ? '请勾选签署交付工单' : '完成交车验收'}
                   </Button>
                 ) : (
-                  <div className="p-3 bg-emerald-950/40 border border-emerald-500/50 rounded-lg text-emerald-300 text-xs flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <div className="p-3 bg-emerald-950/40 border border-emerald-500/50 rounded-lg text-emerald-300 text-sm font-medium flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
                     <span>恭喜！D01 继电器与电磁控制全流程实训圆满闭环完成！</span>
                   </div>
                 )}

@@ -166,7 +166,7 @@ export function D03AlternatorScene({
           </div>
           <button
             onClick={() => setMeterWarning(null)}
-            className="text-xs px-2 py-1 bg-amber-500/30 hover:bg-amber-500/50 rounded text-amber-100"
+            className="text-sm px-3 py-1 bg-amber-500/30 hover:bg-amber-500/50 rounded text-amber-100 cursor-pointer"
           >
             知道了
           </button>
@@ -182,7 +182,7 @@ export function D03AlternatorScene({
               <Activity className="w-5 h-5 text-teal-400 animate-pulse" />
               <span className="font-semibold text-slate-200">汽车交流发电机与电磁感应实验台</span>
             </div>
-            <div className="text-xs px-2.5 py-1 bg-slate-800 text-teal-300 rounded font-mono">
+            <div className="text-sm px-2.5 py-1 bg-slate-800 text-teal-300 rounded font-mono">
               {currentStep === 'FARADAY_INDUCTION_AND_RIGHT_HAND_RULE' && '步骤1: 右手定则切割'}
               {currentStep === 'SINE_AC_WAVEFORM_AND_THREE_ELEMENTS' && '步骤2: 交流正弦波三要素'}
               {currentStep === 'SPEED_CHARACTERISTIC_AND_ROTATION' && '步骤3: 发电机转速特性'}
@@ -447,7 +447,7 @@ export function D03AlternatorScene({
                     sounds.zap();
                     setS1CutDirection('RIGHT');
                   }}
-                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 rounded text-xs font-bold text-white"
+                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 rounded text-sm font-bold text-white cursor-pointer"
                 >
                   向右垂直切割 (磁感线向上穿手心)
                 </button>
@@ -456,7 +456,7 @@ export function D03AlternatorScene({
                     sounds.zap();
                     setS1CutDirection('LEFT');
                   }}
-                  className="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 rounded text-xs font-bold text-white"
+                  className="px-3.5 py-2 bg-sky-600 hover:bg-sky-500 rounded text-sm font-bold text-white cursor-pointer"
                 >
                   向左垂直切割 (速度反向)
                 </button>
@@ -465,7 +465,7 @@ export function D03AlternatorScene({
                     sounds.click();
                     setS1CutDirection('STOP');
                   }}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-xs text-slate-300"
+                  className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 rounded text-sm text-slate-300 cursor-pointer"
                 >
                   导线静止 (停转)
                 </button>
@@ -474,14 +474,14 @@ export function D03AlternatorScene({
 
             {currentStep === 'SINE_AC_WAVEFORM_AND_THREE_ELEMENTS' && (
               <div className="flex items-center gap-3">
-                <span className="text-xs text-slate-400">万用表打表陷阱对比:</span>
+                <span className="text-sm text-slate-300 font-medium">万用表打表陷阱对比:</span>
                 <button
                   onClick={() => {
                     sounds.warningBuzz();
                     setMeterKnob('DCV_20');
                     setS2MeterTested(true);
                   }}
-                  className={`px-3 py-1.5 rounded text-xs font-bold ${
+                  className={`px-3.5 py-2 rounded text-sm font-bold cursor-pointer ${
                     meterKnob === 'DCV_20' ? 'bg-rose-600 text-white' : 'bg-slate-800 text-slate-300'
                   }`}
                 >
@@ -493,7 +493,7 @@ export function D03AlternatorScene({
                     setMeterKnob('ACV_200');
                     setS2MeterTested(true);
                   }}
-                  className={`px-3 py-1.5 rounded text-xs font-bold ${
+                  className={`px-3.5 py-2 rounded text-sm font-bold cursor-pointer ${
                     meterKnob === 'ACV_200' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300'
                   }`}
                 >
@@ -504,13 +504,13 @@ export function D03AlternatorScene({
 
             {currentStep === 'SPEED_CHARACTERISTIC_AND_ROTATION' && (
               <div className="flex items-center gap-3">
-                <span className="text-xs text-slate-400">发动机转速:</span>
+                <span className="text-sm text-slate-300 font-medium">发动机转速:</span>
                 <button
                   onClick={() => {
                     sounds.click();
                     setEngineRpm(800);
                   }}
-                  className={`px-3 py-1 rounded text-xs ${engineRpm === 800 ? 'bg-amber-600 text-white' : 'bg-slate-800 text-slate-300'}`}
+                  className={`px-3.5 py-2 rounded text-sm cursor-pointer ${engineRpm === 800 ? 'bg-amber-600 text-white font-semibold' : 'bg-slate-800 text-slate-300'}`}
                 >
                   800 rpm (怠速充电不足)
                 </button>
@@ -519,7 +519,7 @@ export function D03AlternatorScene({
                     sounds.click();
                     setEngineRpm(2000);
                   }}
-                  className={`px-3 py-1 rounded text-xs ${engineRpm === 2000 ? 'bg-sky-600 text-white' : 'bg-slate-800 text-slate-300'}`}
+                  className={`px-3.5 py-2 rounded text-sm cursor-pointer ${engineRpm === 2000 ? 'bg-sky-600 text-white font-semibold' : 'bg-slate-800 text-slate-300'}`}
                 >
                   2000 rpm (中速满额输出)
                 </button>
@@ -528,7 +528,7 @@ export function D03AlternatorScene({
                     sounds.click();
                     setEngineRpm(3000);
                   }}
-                  className={`px-3 py-1 rounded text-xs ${engineRpm === 3000 ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300'}`}
+                  className={`px-3.5 py-2 rounded text-sm cursor-pointer ${engineRpm === 3000 ? 'bg-indigo-600 text-white font-semibold' : 'bg-slate-800 text-slate-300'}`}
                 >
                   3000 rpm (高速恒压输出)
                 </button>
@@ -537,13 +537,13 @@ export function D03AlternatorScene({
 
             {currentStep === 'BLIND_ALTERNATOR_FAULT_DIAGNOSIS' && (
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400">测量项目:</span>
+                <span className="text-sm text-slate-300 font-medium">测量项目:</span>
                 <button
                   onClick={() => {
                     sounds.click();
                     setS4TestTarget('B_PLUS');
                   }}
-                  className={`px-2.5 py-1 rounded text-xs ${s4TestTarget === 'B_PLUS' ? 'bg-teal-600 text-white' : 'bg-slate-800 text-slate-300'}`}
+                  className={`px-3 py-1.5 rounded text-sm cursor-pointer ${s4TestTarget === 'B_PLUS' ? 'bg-teal-600 text-white font-semibold' : 'bg-slate-800 text-slate-300'}`}
                 >
                   B+ 输出直流电压
                 </button>
@@ -552,7 +552,7 @@ export function D03AlternatorScene({
                     sounds.click();
                     setS4TestTarget('ROTOR_RES');
                   }}
-                  className={`px-2.5 py-1 rounded text-xs ${s4TestTarget === 'ROTOR_RES' ? 'bg-teal-600 text-white' : 'bg-slate-800 text-slate-300'}`}
+                  className={`px-3 py-1.5 rounded text-sm cursor-pointer ${s4TestTarget === 'ROTOR_RES' ? 'bg-teal-600 text-white font-semibold' : 'bg-slate-800 text-slate-300'}`}
                 >
                   转子滑环励磁电阻
                 </button>
@@ -561,7 +561,7 @@ export function D03AlternatorScene({
                     sounds.click();
                     setS4TestTarget('STATOR_PHASE');
                   }}
-                  className={`px-2.5 py-1 rounded text-xs ${s4TestTarget === 'STATOR_PHASE' ? 'bg-teal-600 text-white' : 'bg-slate-800 text-slate-300'}`}
+                  className={`px-3 py-1.5 rounded text-sm cursor-pointer ${s4TestTarget === 'STATOR_PHASE' ? 'bg-teal-600 text-white font-semibold' : 'bg-slate-800 text-slate-300'}`}
                 >
                   定子三相对称电压
                 </button>
@@ -576,7 +576,7 @@ export function D03AlternatorScene({
                     sounds.success();
                     setS5Repaired(true);
                   }}
-                  className={`px-3 py-1.5 rounded text-xs font-semibold ${
+                  className={`px-3.5 py-2 rounded text-sm font-semibold cursor-pointer ${
                     s5Repaired ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-500/50' : 'bg-teal-600 hover:bg-teal-500 text-white'
                   }`}
                 >
@@ -589,7 +589,7 @@ export function D03AlternatorScene({
                         sounds.zap();
                         setS5EngineRunning(!s5EngineRunning);
                       }}
-                      className={`px-3 py-1.5 rounded text-xs font-semibold ${
+                      className={`px-3.5 py-2 rounded text-sm font-semibold cursor-pointer ${
                         s5EngineRunning ? 'bg-amber-600 text-white' : 'bg-slate-800 text-slate-300'
                       }`}
                     >
@@ -601,7 +601,7 @@ export function D03AlternatorScene({
                           sounds.click();
                           setS5HighLoadOn(!s5HighLoadOn);
                         }}
-                        className={`px-3 py-1.5 rounded text-xs font-semibold ${
+                        className={`px-3.5 py-2 rounded text-sm font-semibold cursor-pointer ${
                           s5HighLoadOn ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300'
                         }`}
                       >
@@ -622,16 +622,16 @@ export function D03AlternatorScene({
             <div className="flex items-center justify-between border-b border-slate-800 pb-2">
               <div className="flex items-center gap-2">
                 <Gauge className="w-4 h-4 text-emerald-400" />
-                <span className="text-xs font-bold text-slate-300">工业级万用表 (VC890D)</span>
+                <span className="text-sm font-bold text-slate-300">工业级万用表 (VC890D)</span>
               </div>
-              <span className="text-[11px] font-mono text-slate-400">
+              <span className="text-sm font-mono text-slate-300">
                 旋钮: {meterKnob === 'OFF' ? '关机 OFF' : meterKnob}
               </span>
             </div>
 
             {/* LCD Display */}
             <div className="bg-emerald-950/30 border border-emerald-500/40 rounded-lg p-3 my-3 text-center">
-              <div className="text-xs text-emerald-400/70 font-mono tracking-widest uppercase mb-1">
+              <div className="text-sm text-emerald-400/70 font-mono tracking-widest uppercase mb-1">
                 {meterKnob === 'DCV_20'
                   ? 'DC VOLTAGE (20V)'
                   : meterKnob === 'ACV_200'
@@ -691,7 +691,7 @@ export function D03AlternatorScene({
                   sounds.click();
                   setMeterKnob('OFF');
                 }}
-                className={`py-1.5 px-1 text-xs rounded font-mono font-bold ${
+                className={`py-2 px-2 text-sm rounded font-mono font-bold cursor-pointer ${
                   meterKnob === 'OFF' ? 'bg-rose-700 text-white ring-2 ring-rose-400' : 'bg-slate-800 text-slate-300'
                 }`}
               >
@@ -703,7 +703,7 @@ export function D03AlternatorScene({
                   setMeterKnob('DCV_20');
                   setMeterWarning(null);
                 }}
-                className={`py-1.5 px-1 text-xs rounded font-mono font-bold ${
+                className={`py-2 px-2 text-sm rounded font-mono font-bold cursor-pointer ${
                   meterKnob === 'DCV_20' ? 'bg-emerald-600 text-white ring-2 ring-emerald-400' : 'bg-slate-800 text-slate-300'
                 }`}
               >
@@ -715,7 +715,7 @@ export function D03AlternatorScene({
                   setMeterKnob('ACV_200');
                   setMeterWarning(null);
                 }}
-                className={`py-1.5 px-1 text-xs rounded font-mono font-bold ${
+                className={`py-2 px-2 text-sm rounded font-mono font-bold cursor-pointer ${
                   meterKnob === 'ACV_200' ? 'bg-teal-600 text-white ring-2 ring-teal-400' : 'bg-slate-800 text-slate-300'
                 }`}
               >
@@ -727,7 +727,7 @@ export function D03AlternatorScene({
                   setMeterKnob('OHM_200');
                   setMeterWarning(null);
                 }}
-                className={`py-1.5 px-1 text-xs rounded font-mono font-bold ${
+                className={`py-2 px-2 text-sm rounded font-mono font-bold cursor-pointer ${
                   meterKnob === 'OHM_200' ? 'bg-amber-600 text-white ring-2 ring-amber-400' : 'bg-slate-800 text-slate-300'
                 }`}
               >
@@ -768,7 +768,7 @@ export function D03AlternatorScene({
                           sounds.click();
                           setS1Choice(opt.id);
                         }}
-                        className={`w-full text-left p-2.5 rounded-lg border text-xs transition-all ${borderClass}`}
+                        className={`w-full text-left p-2.5 rounded-lg border text-sm transition-all cursor-pointer ${borderClass}`}
                       >
                         <span className="font-bold mr-1.5">•</span> {opt.text}
                       </button>
@@ -789,7 +789,7 @@ export function D03AlternatorScene({
                         assessment.recordWrong('cognition');
                       }
                     }}
-                    className="w-full bg-teal-600 hover:bg-teal-500 text-xs font-semibold py-2"
+                    className="w-full bg-teal-600 hover:bg-teal-500 text-sm font-semibold py-2"
                   >
                     提交感应电流方向判定
                   </Button>
@@ -800,7 +800,7 @@ export function D03AlternatorScene({
                       assessment.startStage('standard');
                       onAdvanceStep();
                     }}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold py-2"
                   >
                     完全正确！进入正弦交流电三要素实训 <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
@@ -811,7 +811,7 @@ export function D03AlternatorScene({
                       setS1Choice(null);
                     }}
                     variant="outline"
-                    className="w-full text-xs"
+                    className="w-full text-sm"
                   >
                     重新根据右手定则推导
                   </Button>
@@ -849,7 +849,7 @@ export function D03AlternatorScene({
                           sounds.click();
                           setS2Choice(opt.id);
                         }}
-                        className={`w-full text-left p-2.5 rounded-lg border text-xs transition-all ${borderClass}`}
+                        className={`w-full text-left p-2.5 rounded-lg border text-sm transition-all cursor-pointer ${borderClass}`}
                       >
                         <span className="font-bold mr-1.5">•</span> {opt.text}
                       </button>
@@ -870,7 +870,7 @@ export function D03AlternatorScene({
                         assessment.recordWrong('standard');
                       }
                     }}
-                    className="w-full bg-teal-600 hover:bg-teal-500 text-xs font-semibold py-2"
+                    className="w-full bg-teal-600 hover:bg-teal-500 text-sm font-semibold py-2"
                   >
                     {!s2MeterTested ? '请先在左下方对比 DCV 与 ACV 挡位显示' : '提交有效值原理分析'}
                   </Button>
@@ -881,7 +881,7 @@ export function D03AlternatorScene({
                       assessment.startStage('calculation');
                       onAdvanceStep();
                     }}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold py-2"
                   >
                     深刻破除仪表误区！进入转速特性实验 <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
@@ -892,7 +892,7 @@ export function D03AlternatorScene({
                       setS2Choice(null);
                     }}
                     variant="outline"
-                    className="w-full text-xs"
+                    className="w-full text-sm"
                   >
                     重新思考
                   </Button>
@@ -930,7 +930,7 @@ export function D03AlternatorScene({
                           sounds.click();
                           setS3Choice(opt.id);
                         }}
-                        className={`w-full text-left p-2.5 rounded-lg border text-xs transition-all ${borderClass}`}
+                        className={`w-full text-left p-2.5 rounded-lg border text-sm transition-all cursor-pointer ${borderClass}`}
                       >
                         <span className="font-bold mr-1.5">•</span> {opt.text}
                       </button>
@@ -951,7 +951,7 @@ export function D03AlternatorScene({
                         assessment.recordWrong('calculation');
                       }
                     }}
-                    className="w-full bg-teal-600 hover:bg-teal-500 text-xs font-semibold py-2"
+                    className="w-full bg-teal-600 hover:bg-teal-500 text-sm font-semibold py-2"
                   >
                     提交转速特性总结
                   </Button>
@@ -962,7 +962,7 @@ export function D03AlternatorScene({
                       assessment.startStage('blind_test');
                       onAdvanceStep();
                     }}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold py-2"
                   >
                     规律准确！进入独立盲测排故 <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
@@ -973,7 +973,7 @@ export function D03AlternatorScene({
                       setS3Choice(null);
                     }}
                     variant="outline"
-                    className="w-full text-xs"
+                    className="w-full text-sm"
                   >
                     重新思考
                   </Button>
@@ -984,11 +984,11 @@ export function D03AlternatorScene({
             {/* Step 4 Question */}
             {currentStep === 'BLIND_ALTERNATOR_FAULT_DIAGNOSIS' && (
               <div className="space-y-3">
-                <div className="p-2 bg-slate-900 border border-slate-800 rounded text-xs">
+                <div className="p-2.5 bg-slate-900 border border-slate-800 rounded text-sm">
                   <div className="font-bold text-teal-300">{activeBlind.vehicleName}</div>
-                  <div className="text-slate-400">{activeBlind.symptom}</div>
+                  <div className="text-slate-300 mt-0.5">{activeBlind.symptom}</div>
                 </div>
-                <div className="text-xs font-semibold text-teal-300">
+                <div className="text-sm font-semibold text-teal-300">
                   结合打表测得的数据，判定故障真因：
                 </div>
                 <div className="space-y-2">
@@ -1015,7 +1015,7 @@ export function D03AlternatorScene({
                           sounds.click();
                           setS4Choice(opt.id);
                         }}
-                        className={`w-full text-left p-2.5 rounded-lg border text-xs transition-all ${borderClass}`}
+                        className={`w-full text-left p-2.5 rounded-lg border text-sm transition-all cursor-pointer ${borderClass}`}
                       >
                         <span className="font-bold mr-1.5">•</span> {opt.text}
                       </button>
@@ -1040,7 +1040,7 @@ export function D03AlternatorScene({
                         assessment.recordWrong('blind_test');
                       }
                     }}
-                    className="w-full bg-teal-600 hover:bg-teal-500 text-xs font-semibold py-2"
+                    className="w-full bg-teal-600 hover:bg-teal-500 text-sm font-semibold py-2"
                   >
                     提交盲测诊断结论
                   </Button>
@@ -1057,7 +1057,7 @@ export function D03AlternatorScene({
                         onAdvanceStep();
                       }
                     }}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold py-2"
                   >
                     {blindIndex < ALTERNATOR_BLIND_CASES.length - 1 ? '正确！进入下一个发电机案例' : '盲测通关！进入实车修复与交车'}
                   </Button>
@@ -1068,7 +1068,7 @@ export function D03AlternatorScene({
                       setS4Choice(null);
                     }}
                     variant="outline"
-                    className="w-full text-xs"
+                    className="w-full text-sm"
                   >
                     重新打表排查
                   </Button>
@@ -1082,7 +1082,7 @@ export function D03AlternatorScene({
                 <div className="text-sm font-semibold text-teal-300">
                   【步骤5交付验收】换新碳刷调节器并打磨滑环后，实车通电复验：
                 </div>
-                <div className="p-3 bg-slate-900 border border-slate-800 rounded-lg space-y-2 text-xs">
+                <div className="p-3 bg-slate-900 border border-slate-800 rounded-lg space-y-2 text-sm">
                   <div className="flex items-center justify-between text-slate-300">
                     <span>1. 转子滑环静态直流电阻:</span>
                     <span className="font-mono text-emerald-400 font-bold">3.0 Ω (标称 2.8Ω~3.2Ω 合格)</span>
@@ -1097,7 +1097,7 @@ export function D03AlternatorScene({
                   </div>
                 </div>
                 <div className="pt-2">
-                  <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-300">
                     <input
                       type="checkbox"
                       checked={s5WorkOrderSigned}
@@ -1122,12 +1122,12 @@ export function D03AlternatorScene({
                       const finalResult = assessment.completeLevel();
                       onComplete?.(finalResult);
                     }}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold py-2"
                   >
                     {!s5Repaired ? '请先更换碳刷调节器' : !s5EngineRunning ? '请起动发动机测试' : !s5WorkOrderSigned ? '请勾选签署交付工单' : '完成交车验收'}
                   </Button>
                 ) : (
-                  <div className="p-3 bg-emerald-950/40 border border-emerald-500/50 rounded-lg text-emerald-300 text-xs flex items-center gap-2">
+                  <div className="p-3 bg-emerald-950/40 border border-emerald-500/50 rounded-lg text-emerald-300 text-sm flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                     <span>恭喜！D03 交流发电机认知与电磁感应实训圆满闭环完成！</span>
                   </div>

@@ -111,7 +111,7 @@ export function D05TransformerScene({
           </div>
           <button
             onClick={() => setMeterWarning(null)}
-            className="text-xs px-2 py-1 bg-amber-500/30 hover:bg-amber-500/50 rounded text-amber-100"
+            className="text-sm px-3 py-1 bg-amber-500/30 hover:bg-amber-500/50 rounded text-amber-100 cursor-pointer"
           >
             知道了
           </button>
@@ -126,11 +126,11 @@ export function D05TransformerScene({
             <div className="flex items-center gap-2">
               <Cpu className="w-5 h-5 text-purple-400 animate-pulse" />
               <span className="font-semibold text-slate-200">单相变压器与车载逆变升压实验台</span>
-              <span className="text-xs bg-purple-900/60 text-purple-300 border border-purple-500/40 px-2 py-0.5 rounded-full font-bold">
+              <span className="text-sm bg-purple-900/60 text-purple-300 border border-purple-500/40 px-2.5 py-0.5 rounded-full font-bold">
                 ⭐ 选学拓展
               </span>
             </div>
-            <div className="text-xs px-2.5 py-1 bg-slate-800 text-purple-300 rounded font-mono">
+            <div className="text-sm px-2.5 py-1 bg-slate-800 text-purple-300 rounded font-mono">
               {currentStep === 'STRUCTURE_AND_MAGNETIC_FLUX' && '步骤1: 铁芯与交变磁通'}
               {currentStep === 'VOLTAGE_AND_CURRENT_RATIO' && '步骤2: 变压比与变流比'}
               {currentStep === 'DC_INPUT_DISASTER_COUNTEREXAMPLE' && '步骤3: 直流短路反例'}
@@ -340,13 +340,13 @@ export function D05TransformerScene({
                     sounds.click();
                     setS1AcExcited(!s1AcExcited);
                   }}
-                  className={`px-3 py-1.5 rounded text-xs font-bold ${
+                  className={`px-3.5 py-2 rounded text-sm font-bold cursor-pointer ${
                     s1AcExcited ? 'bg-purple-600 text-white' : 'bg-slate-800 text-slate-300'
                   }`}
                 >
                   {s1AcExcited ? '初级输入交流激励 (产生交变磁通)' : '初级断电 (磁通归零)'}
                 </button>
-                <span className="text-xs text-slate-400">
+                <span className="text-sm text-slate-300">
                   原副边无铜丝直连，完全依靠铁芯交变磁通传导能量
                 </span>
               </div>
@@ -354,13 +354,13 @@ export function D05TransformerScene({
 
             {currentStep === 'VOLTAGE_AND_CURRENT_RATIO' && (
               <div className="flex items-center gap-3">
-                <span className="text-xs text-slate-400">匝比模式:</span>
+                <span className="text-sm text-slate-300 font-medium">匝比模式:</span>
                 <button
                   onClick={() => {
                     sounds.click();
                     setS2TurnsMode('STEP_DOWN');
                   }}
-                  className={`px-3 py-1.5 rounded text-xs font-bold ${
+                  className={`px-3.5 py-2 rounded text-sm font-bold cursor-pointer ${
                     s2TurnsMode === 'STEP_DOWN' ? 'bg-sky-600 text-white' : 'bg-slate-800 text-slate-300'
                   }`}
                 >
@@ -371,7 +371,7 @@ export function D05TransformerScene({
                     sounds.click();
                     setS2TurnsMode('STEP_UP');
                   }}
-                  className={`px-3 py-1.5 rounded text-xs font-bold ${
+                  className={`px-3.5 py-2 rounded text-sm font-bold cursor-pointer ${
                     s2TurnsMode === 'STEP_UP' ? 'bg-amber-600 text-white' : 'bg-slate-800 text-slate-300'
                   }`}
                 >
@@ -387,7 +387,7 @@ export function D05TransformerScene({
                     sounds.warningBuzz();
                     setS3FuseBlown(true);
                   }}
-                  className={`px-4 py-1.5 rounded text-xs font-bold ${
+                  className={`px-4 py-2 rounded text-sm font-bold cursor-pointer ${
                     s3FuseBlown ? 'bg-rose-700 text-white' : 'bg-rose-600 hover:bg-rose-500 text-white'
                   }`}
                 >
@@ -399,7 +399,7 @@ export function D05TransformerScene({
                       sounds.click();
                       setS3FuseBlown(false);
                     }}
-                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded text-xs text-slate-300"
+                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-sm text-slate-300 cursor-pointer"
                   >
                     更换新保险丝重置
                   </button>
@@ -409,13 +409,13 @@ export function D05TransformerScene({
 
             {currentStep === 'POLARITY_AND_SAME_NAME_TERMINALS' && (
               <div className="flex items-center gap-3">
-                <span className="text-xs text-slate-400">端子串联方式:</span>
+                <span className="text-sm text-slate-300 font-medium">端子串联方式:</span>
                 <button
                   onClick={() => {
                     sounds.click();
                     setS4Connection('SUBTRACTIVE');
                   }}
-                  className={`px-3 py-1.5 rounded text-xs font-bold ${
+                  className={`px-3.5 py-2 rounded text-sm font-bold cursor-pointer ${
                     s4Connection === 'SUBTRACTIVE' ? 'bg-purple-600 text-white' : 'bg-slate-800 text-slate-300'
                   }`}
                 >
@@ -426,7 +426,7 @@ export function D05TransformerScene({
                     sounds.click();
                     setS4Connection('ADDITIVE');
                   }}
-                  className={`px-3 py-1.5 rounded text-xs font-bold ${
+                  className={`px-3.5 py-2 rounded text-sm font-bold cursor-pointer ${
                     s4Connection === 'ADDITIVE' ? 'bg-purple-600 text-white' : 'bg-slate-800 text-slate-300'
                   }`}
                 >
@@ -442,7 +442,7 @@ export function D05TransformerScene({
                     sounds.zap();
                     setS5InverterOn(!s5InverterOn);
                   }}
-                  className={`px-3 py-1.5 rounded text-xs font-bold ${
+                  className={`px-3.5 py-2 rounded text-sm font-bold cursor-pointer ${
                     s5InverterOn ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300'
                   }`}
                 >
@@ -454,7 +454,7 @@ export function D05TransformerScene({
                       sounds.click();
                       setS5LoadPlugged(!s5LoadPlugged);
                     }}
-                    className={`px-3 py-1.5 rounded text-xs font-semibold ${
+                    className={`px-3.5 py-2 rounded text-sm font-semibold cursor-pointer ${
                       s5LoadPlugged ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300'
                     }`}
                   >
@@ -473,16 +473,16 @@ export function D05TransformerScene({
             <div className="flex items-center justify-between border-b border-slate-800 pb-2">
               <div className="flex items-center gap-2">
                 <Gauge className="w-4 h-4 text-emerald-400" />
-                <span className="text-xs font-bold text-slate-300">工业级万用表 (VC890D)</span>
+                <span className="text-sm font-bold text-slate-300">工业级万用表 (VC890D)</span>
               </div>
-              <span className="text-[11px] font-mono text-slate-400">
+              <span className="text-sm font-mono text-slate-300">
                 旋钮: {meterKnob === 'OFF' ? '关机 OFF' : meterKnob}
               </span>
             </div>
 
             {/* LCD Display */}
             <div className="bg-emerald-950/30 border border-emerald-500/40 rounded-lg p-3 my-3 text-center">
-              <div className="text-xs text-emerald-400/70 font-mono tracking-widest uppercase mb-1">
+              <div className="text-sm text-emerald-400/70 font-mono tracking-widest uppercase mb-1">
                 {meterKnob === 'DCV_20'
                   ? 'DC VOLTAGE (20V)'
                   : meterKnob === 'ACV_750'
@@ -531,7 +531,7 @@ export function D05TransformerScene({
                   sounds.click();
                   setMeterKnob('OFF');
                 }}
-                className={`py-1.5 px-1 text-xs rounded font-mono font-bold ${
+                className={`py-2 px-2 text-sm rounded font-mono font-bold cursor-pointer ${
                   meterKnob === 'OFF' ? 'bg-rose-700 text-white ring-2 ring-rose-400' : 'bg-slate-800 text-slate-300'
                 }`}
               >
@@ -543,7 +543,7 @@ export function D05TransformerScene({
                   setMeterKnob('DCV_20');
                   setMeterWarning(null);
                 }}
-                className={`py-1.5 px-1 text-xs rounded font-mono font-bold ${
+                className={`py-2 px-2 text-sm rounded font-mono font-bold cursor-pointer ${
                   meterKnob === 'DCV_20' ? 'bg-emerald-600 text-white ring-2 ring-emerald-400' : 'bg-slate-800 text-slate-300'
                 }`}
               >
@@ -555,7 +555,7 @@ export function D05TransformerScene({
                   setMeterKnob('ACV_750');
                   setMeterWarning(null);
                 }}
-                className={`py-1.5 px-1 text-xs rounded font-mono font-bold ${
+                className={`py-2 px-2 text-sm rounded font-mono font-bold cursor-pointer ${
                   meterKnob === 'ACV_750' ? 'bg-purple-600 text-white ring-2 ring-purple-400' : 'bg-slate-800 text-slate-300'
                 }`}
               >
@@ -567,7 +567,7 @@ export function D05TransformerScene({
                   setMeterKnob('OHM_200');
                   setMeterWarning(null);
                 }}
-                className={`py-1.5 px-1 text-xs rounded font-mono font-bold ${
+                className={`py-2 px-2 text-sm rounded font-mono font-bold cursor-pointer ${
                   meterKnob === 'OHM_200' ? 'bg-amber-600 text-white ring-2 ring-amber-400' : 'bg-slate-800 text-slate-300'
                 }`}
               >
@@ -608,7 +608,7 @@ export function D05TransformerScene({
                           sounds.click();
                           setS1Choice(opt.id);
                         }}
-                        className={`w-full text-left p-2.5 rounded-lg border text-xs transition-all ${borderClass}`}
+                        className={`w-full text-left p-2.5 rounded-lg border text-sm transition-all cursor-pointer ${borderClass}`}
                       >
                         <span className="font-bold mr-1.5">•</span> {opt.text}
                       </button>
@@ -629,7 +629,7 @@ export function D05TransformerScene({
                         assessment.recordWrong('cognition');
                       }
                     }}
-                    className="w-full bg-purple-600 hover:bg-purple-500 text-xs font-semibold py-2"
+                    className="w-full bg-purple-600 hover:bg-purple-500 text-sm font-semibold py-2"
                   >
                     提交磁耦合原理分析
                   </Button>
@@ -640,7 +640,7 @@ export function D05TransformerScene({
                       assessment.startStage('standard');
                       onAdvanceStep();
                     }}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold py-2"
                   >
                     分析透彻！进入变压比与变流比实验 <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
@@ -651,7 +651,7 @@ export function D05TransformerScene({
                       setS1Choice(null);
                     }}
                     variant="outline"
-                    className="w-full text-xs"
+                    className="w-full text-sm"
                   >
                     重新思考
                   </Button>
@@ -667,7 +667,7 @@ export function D05TransformerScene({
                 </div>
                 <div className="space-y-2">
                   {[
-                    { id: 'A', text: '次级电流(5A)远大于初级电流(0.27A)，根据焦羽热规律次级绕组必须采用截面积粗得多的导线' },
+                    { id: 'A', text: '次级电流(5A)远大于初级电流(0.27A)，根据焦耳热规律次级绕组必须采用截面积粗得多的导线' },
                     { id: 'B', text: '初级电压高，所以初级导线必须比次级粗得多' },
                     { id: 'C', text: '初次级电流相等，导线粗细完全一致' },
                   ].map((opt) => {
@@ -689,7 +689,7 @@ export function D05TransformerScene({
                           sounds.click();
                           setS2Choice(opt.id);
                         }}
-                        className={`w-full text-left p-2.5 rounded-lg border text-xs transition-all ${borderClass}`}
+                        className={`w-full text-left p-2.5 rounded-lg border text-sm transition-all cursor-pointer ${borderClass}`}
                       >
                         <span className="font-bold mr-1.5">•</span> {opt.text}
                       </button>
@@ -710,7 +710,7 @@ export function D05TransformerScene({
                         assessment.recordWrong('standard');
                       }
                     }}
-                    className="w-full bg-purple-600 hover:bg-purple-500 text-xs font-semibold py-2"
+                    className="w-full bg-purple-600 hover:bg-purple-500 text-sm font-semibold py-2"
                   >
                     提交变比与线径分析
                   </Button>
@@ -721,7 +721,7 @@ export function D05TransformerScene({
                       assessment.startStage('calculation');
                       onAdvanceStep();
                     }}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold py-2"
                   >
                     规律准确！进入直流短路灾难反例 <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
@@ -732,7 +732,7 @@ export function D05TransformerScene({
                       setS2Choice(null);
                     }}
                     variant="outline"
-                    className="w-full text-xs"
+                    className="w-full text-sm"
                   >
                     重新思考
                   </Button>
@@ -770,7 +770,7 @@ export function D05TransformerScene({
                           sounds.click();
                           setS3Choice(opt.id);
                         }}
-                        className={`w-full text-left p-2.5 rounded-lg border text-xs transition-all ${borderClass}`}
+                        className={`w-full text-left p-2.5 rounded-lg border text-sm transition-all cursor-pointer ${borderClass}`}
                       >
                         <span className="font-bold mr-1.5">•</span> {opt.text}
                       </button>
@@ -791,7 +791,7 @@ export function D05TransformerScene({
                         assessment.recordWrong('calculation');
                       }
                     }}
-                    className="w-full bg-purple-600 hover:bg-purple-500 text-xs font-semibold py-2"
+                    className="w-full bg-purple-600 hover:bg-purple-500 text-sm font-semibold py-2"
                   >
                     {!s3FuseBlown ? '请先在左侧点击接入直流触发反例' : '提交直流短路原理分析'}
                   </Button>
@@ -802,7 +802,7 @@ export function D05TransformerScene({
                       assessment.startStage('blind_test');
                       onAdvanceStep();
                     }}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold py-2"
                   >
                     反例警示深刻！进入同名端测试 <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
@@ -813,7 +813,7 @@ export function D05TransformerScene({
                       setS3Choice(null);
                     }}
                     variant="outline"
-                    className="w-full text-xs"
+                    className="w-full text-sm"
                   >
                     重新思考
                   </Button>
@@ -851,7 +851,7 @@ export function D05TransformerScene({
                           sounds.click();
                           setS4Choice(opt.id);
                         }}
-                        className={`w-full text-left p-2.5 rounded-lg border text-xs transition-all ${borderClass}`}
+                        className={`w-full text-left p-2.5 rounded-lg border text-sm transition-all cursor-pointer ${borderClass}`}
                       >
                         <span className="font-bold mr-1.5">•</span> {opt.text}
                       </button>
@@ -873,7 +873,7 @@ export function D05TransformerScene({
                         assessment.recordWrong('blind_test');
                       }
                     }}
-                    className="w-full bg-purple-600 hover:bg-purple-500 text-xs font-semibold py-2"
+                    className="w-full bg-purple-600 hover:bg-purple-500 text-sm font-semibold py-2"
                   >
                     提交同名端判定
                   </Button>
@@ -884,7 +884,7 @@ export function D05TransformerScene({
                       assessment.startStage('transfer', 'transfer');
                       onAdvanceStep();
                     }}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold py-2"
                   >
                     判定准确！进入车载逆变升压综合交付 <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
@@ -895,7 +895,7 @@ export function D05TransformerScene({
                       setS4Choice(null);
                     }}
                     variant="outline"
-                    className="w-full text-xs"
+                    className="w-full text-sm"
                   >
                     重新思考
                   </Button>
@@ -909,7 +909,7 @@ export function D05TransformerScene({
                 <div className="text-sm font-semibold text-purple-300">
                   【步骤5交付验收】车载 12V 转 220V 纯正弦波逆变电源性能复验：
                 </div>
-                <div className="p-3 bg-slate-900 border border-slate-800 rounded-lg space-y-2 text-xs">
+                <div className="p-3 bg-slate-900 border border-slate-800 rounded-lg space-y-2 text-sm">
                   <div className="flex items-center justify-between text-slate-300">
                     <span>1. 空载输出正弦交流电压:</span>
                     <span className="font-mono text-emerald-400 font-bold">220.5 V~ (50.0 Hz)</span>
@@ -924,7 +924,7 @@ export function D05TransformerScene({
                   </div>
                 </div>
                 <div className="pt-2">
-                  <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-300">
                     <input
                       type="checkbox"
                       checked={s5WorkOrderSigned}
@@ -949,7 +949,7 @@ export function D05TransformerScene({
                       const finalResult = assessment.completeLevel();
                       onComplete?.(finalResult);
                     }}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold py-2"
                   >
                     {!s5InverterOn
                       ? '请开启逆变器电源'
@@ -960,7 +960,7 @@ export function D05TransformerScene({
                       : '完成选学交车验收'}
                   </Button>
                 ) : (
-                  <div className="p-3 bg-emerald-950/40 border border-emerald-500/50 rounded-lg text-emerald-300 text-xs flex items-center gap-2">
+                  <div className="p-3 bg-emerald-950/40 border border-emerald-500/50 rounded-lg text-emerald-300 text-sm flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                     <span>恭喜！D05 变压器实验室选学实训圆满闭环完成！</span>
                   </div>

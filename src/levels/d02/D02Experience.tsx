@@ -132,7 +132,7 @@ export function D02Experience({ onReturnLobby }: D02ExperienceProps) {
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
                 <span className="font-bold text-sky-300 text-sm">陈师傅（实训总教练）</span>
-                <span className="text-xs px-2 py-0.5 bg-sky-500/10 text-sky-400 border border-sky-500/20 rounded-full font-mono">
+                <span className="text-sm px-2 py-0.5 bg-sky-500/10 text-sky-400 border border-sky-500/20 rounded-full font-mono">
                   D02 · {guidance.title.split('：')[0]}
                 </span>
               </div>
@@ -155,7 +155,7 @@ export function D02Experience({ onReturnLobby }: D02ExperienceProps) {
         </section>
 
         {/* 5-Stage Step Indicators */}
-        <div className="grid grid-cols-5 gap-2 text-xs">
+        <div className="grid grid-cols-5 gap-2 text-sm">
           {[
             { key: 'LORENTZ_FORCE_AND_LEFT_HAND_RULE', label: '1. 左手定则受力' },
             { key: 'COMMUTATOR_AND_CONTINUOUS_ROTATION', label: '2. 换向器连续旋转' },
@@ -182,7 +182,7 @@ export function D02Experience({ onReturnLobby }: D02ExperienceProps) {
                     : 'border-slate-800 bg-slate-900/50 text-slate-500'
                 }`}
               >
-                <span className="block font-mono text-xs text-slate-400">阶段 0{idx + 1}</span>
+                <span className="block font-mono text-sm text-slate-400">阶段 0{idx + 1}</span>
                 <span className="truncate block">{s.label.split('. ')[1]}</span>
               </div>
             );

@@ -166,7 +166,7 @@ export function D04InductanceScene({
           </div>
           <button
             onClick={() => setMeterWarning(null)}
-            className="text-xs px-2 py-1 bg-amber-500/30 hover:bg-amber-500/50 rounded text-amber-100"
+            className="text-sm px-3 py-1 bg-amber-500/30 hover:bg-amber-500/50 rounded text-amber-100 cursor-pointer"
           >
             知道了
           </button>
@@ -182,7 +182,7 @@ export function D04InductanceScene({
               <Flame className="w-5 h-5 text-orange-400 animate-pulse" />
               <span className="font-semibold text-slate-200">自感瞬态反峰与点火互感升压实验台</span>
             </div>
-            <div className="text-xs px-2.5 py-1 bg-slate-800 text-orange-300 rounded font-mono">
+            <div className="text-sm px-2.5 py-1 bg-slate-800 text-orange-300 rounded font-mono">
               {currentStep === 'SELF_INDUCTANCE_AND_TRANSIENT_SPARK' && '步骤1: 自感高压电弧'}
               {currentStep === 'FREEWHEELING_DIODE_PROTECTION' && '步骤2: 续流二极管消弧'}
               {currentStep === 'MUTUAL_INDUCTANCE_IGNITION_COIL' && '步骤3: 互感点火升压'}
@@ -405,13 +405,13 @@ export function D04InductanceScene({
                       setS1SparkOccurred(true);
                     }
                   }}
-                  className={`px-4 py-1.5 rounded text-xs font-bold ${
+                  className={`px-4 py-2 rounded text-sm font-bold cursor-pointer ${
                     s1SwitchClosed ? 'bg-amber-600 text-white' : 'bg-rose-700 hover:bg-rose-600 text-white'
                   }`}
                 >
                   {s1SwitchClosed ? '开关已闭合 (电感充磁稳态)' : '瞬间拉开开关 (观察反峰电弧)'}
                 </button>
-                <span className="text-xs text-slate-400">
+                <span className="text-sm text-slate-300">
                   {s1SparkOccurred ? '⚡ 检测到刀口 450V 强烈电离火花！' : '先闭合开关充磁，然后突然断开'}
                 </span>
               </div>
@@ -425,7 +425,7 @@ export function D04InductanceScene({
                     setS2DiodeConnected(!s2DiodeConnected);
                     setS2Observed(true);
                   }}
-                  className={`px-3 py-1.5 rounded text-xs font-bold ${
+                  className={`px-3.5 py-2 rounded text-sm font-bold cursor-pointer ${
                     s2DiodeConnected ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300'
                   }`}
                 >
@@ -442,7 +442,7 @@ export function D04InductanceScene({
                     }
                     setS2Observed(true);
                   }}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-xs text-slate-300"
+                  className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 rounded text-sm text-slate-300 cursor-pointer"
                 >
                   测试瞬间切断开关
                 </button>
@@ -456,12 +456,12 @@ export function D04InductanceScene({
                     sounds.zap();
                     setS3IgnitionTriggered(true);
                   }}
-                  className="px-4 py-2 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 rounded-lg text-xs font-bold text-white flex items-center gap-2 shadow-lg"
+                  className="px-4 py-2 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 rounded-lg text-sm font-bold text-white flex items-center gap-2 shadow-lg cursor-pointer"
                 >
                   <Sparkles className="w-4 h-4" />
                   切断初级回路触发点火跳火 (Δi/Δt)
                 </button>
-                <span className="text-xs text-slate-400">
+                <span className="text-sm text-slate-300">
                   {s3IgnitionTriggered ? '次级感应 20kV，击穿 0.9mm 间隙电离跳火！' : '点击瞬间切断初级 12V 电流'}
                 </span>
               </div>
@@ -469,13 +469,13 @@ export function D04InductanceScene({
 
             {currentStep === 'BLIND_IGNITION_FAULT_ISOLATION' && (
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400">测量项目:</span>
+                <span className="text-sm text-slate-300 font-medium">测量项目:</span>
                 <button
                   onClick={() => {
                     sounds.click();
                     setS4TestTarget('PRIMARY');
                   }}
-                  className={`px-2.5 py-1 rounded text-xs ${s4TestTarget === 'PRIMARY' ? 'bg-orange-600 text-white' : 'bg-slate-800 text-slate-300'}`}
+                  className={`px-3 py-1.5 rounded text-sm cursor-pointer ${s4TestTarget === 'PRIMARY' ? 'bg-orange-600 text-white font-semibold' : 'bg-slate-800 text-slate-300'}`}
                 >
                   初级绕组电阻 (Ω)
                 </button>
@@ -484,7 +484,7 @@ export function D04InductanceScene({
                     sounds.click();
                     setS4TestTarget('SECONDARY');
                   }}
-                  className={`px-2.5 py-1 rounded text-xs ${s4TestTarget === 'SECONDARY' ? 'bg-orange-600 text-white' : 'bg-slate-800 text-slate-300'}`}
+                  className={`px-3 py-1.5 rounded text-sm cursor-pointer ${s4TestTarget === 'SECONDARY' ? 'bg-orange-600 text-white font-semibold' : 'bg-slate-800 text-slate-300'}`}
                 >
                   次级绕组电阻 (kΩ)
                 </button>
@@ -493,7 +493,7 @@ export function D04InductanceScene({
                     sounds.click();
                     setS4TestTarget('SPARK');
                   }}
-                  className={`px-2.5 py-1 rounded text-xs ${s4TestTarget === 'SPARK' ? 'bg-orange-600 text-white' : 'bg-slate-800 text-slate-300'}`}
+                  className={`px-3 py-1.5 rounded text-sm cursor-pointer ${s4TestTarget === 'SPARK' ? 'bg-orange-600 text-white font-semibold' : 'bg-slate-800 text-slate-300'}`}
                 >
                   跳火试验现象
                 </button>
@@ -508,7 +508,7 @@ export function D04InductanceScene({
                     sounds.success();
                     setS5Repaired(true);
                   }}
-                  className={`px-3 py-1.5 rounded text-xs font-semibold ${
+                  className={`px-3.5 py-2 rounded text-sm font-semibold cursor-pointer ${
                     s5Repaired ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-500/50' : 'bg-orange-600 hover:bg-orange-500 text-white'
                   }`}
                 >
@@ -522,7 +522,7 @@ export function D04InductanceScene({
                         sounds.click();
                         setS5GapAdjusted(true);
                       }}
-                      className={`px-3 py-1.5 rounded text-xs font-semibold ${
+                      className={`px-3.5 py-2 rounded text-sm font-semibold cursor-pointer ${
                         s5GapAdjusted ? 'bg-emerald-900/50 text-emerald-400' : 'bg-slate-800 text-slate-300'
                       }`}
                     >
@@ -533,7 +533,7 @@ export function D04InductanceScene({
                         sounds.zap();
                         setS5SparkTested(true);
                       }}
-                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 rounded text-xs font-semibold text-white"
+                      className="px-3.5 py-2 bg-blue-600 hover:bg-blue-500 rounded text-sm font-semibold text-white cursor-pointer"
                     >
                       执行跳火复测
                     </button>
@@ -551,16 +551,16 @@ export function D04InductanceScene({
             <div className="flex items-center justify-between border-b border-slate-800 pb-2">
               <div className="flex items-center gap-2">
                 <Gauge className="w-4 h-4 text-emerald-400" />
-                <span className="text-xs font-bold text-slate-300">工业级万用表 (VC890D)</span>
+                <span className="text-sm font-bold text-slate-300">工业级万用表 (VC890D)</span>
               </div>
-              <span className="text-[11px] font-mono text-slate-400">
+              <span className="text-sm font-mono text-slate-300">
                 旋钮: {meterKnob === 'OFF' ? '关机 OFF' : meterKnob}
               </span>
             </div>
 
             {/* LCD Display */}
             <div className="bg-emerald-950/30 border border-emerald-500/40 rounded-lg p-3 my-3 text-center">
-              <div className="text-xs text-emerald-400/70 font-mono tracking-widest uppercase mb-1">
+              <div className="text-sm text-emerald-400/70 font-mono tracking-widest uppercase mb-1">
                 {meterKnob === 'DCV_20'
                   ? 'DC VOLTAGE (20V)'
                   : meterKnob === 'OHM_200'
@@ -614,7 +614,7 @@ export function D04InductanceScene({
                   sounds.click();
                   setMeterKnob('OFF');
                 }}
-                className={`py-1.5 px-1 text-xs rounded font-mono font-bold ${
+                className={`py-2 px-2 text-sm rounded font-mono font-bold cursor-pointer ${
                   meterKnob === 'OFF' ? 'bg-rose-700 text-white ring-2 ring-rose-400' : 'bg-slate-800 text-slate-300'
                 }`}
               >
@@ -626,7 +626,7 @@ export function D04InductanceScene({
                   setMeterKnob('DCV_20');
                   setMeterWarning(null);
                 }}
-                className={`py-1.5 px-1 text-xs rounded font-mono font-bold ${
+                className={`py-2 px-2 text-sm rounded font-mono font-bold cursor-pointer ${
                   meterKnob === 'DCV_20' ? 'bg-emerald-600 text-white ring-2 ring-emerald-400' : 'bg-slate-800 text-slate-300'
                 }`}
               >
@@ -638,7 +638,7 @@ export function D04InductanceScene({
                   setMeterKnob('OHM_200');
                   setMeterWarning(null);
                 }}
-                className={`py-1.5 px-1 text-xs rounded font-mono font-bold ${
+                className={`py-2 px-2 text-sm rounded font-mono font-bold cursor-pointer ${
                   meterKnob === 'OHM_200' ? 'bg-amber-600 text-white ring-2 ring-amber-400' : 'bg-slate-800 text-slate-300'
                 }`}
               >
@@ -650,7 +650,7 @@ export function D04InductanceScene({
                   setMeterKnob('OHM_20K');
                   setMeterWarning(null);
                 }}
-                className={`py-1.5 px-1 text-xs rounded font-mono font-bold ${
+                className={`py-2 px-2 text-sm rounded font-mono font-bold cursor-pointer ${
                   meterKnob === 'OHM_20K' ? 'bg-orange-600 text-white ring-2 ring-orange-400' : 'bg-slate-800 text-slate-300'
                 }`}
               >
@@ -691,7 +691,7 @@ export function D04InductanceScene({
                           sounds.click();
                           setS1Choice(opt.id);
                         }}
-                        className={`w-full text-left p-2.5 rounded-lg border text-xs transition-all ${borderClass}`}
+                        className={`w-full text-left p-2.5 rounded-lg border text-sm transition-all cursor-pointer ${borderClass}`}
                       >
                         <span className="font-bold mr-1.5">•</span> {opt.text}
                       </button>
@@ -712,7 +712,7 @@ export function D04InductanceScene({
                         assessment.recordWrong('cognition');
                       }
                     }}
-                    className="w-full bg-orange-600 hover:bg-orange-500 text-xs font-semibold py-2"
+                    className="w-full bg-orange-600 hover:bg-orange-500 text-sm font-semibold py-2"
                   >
                     {!s1SparkOccurred ? '请先在左侧断开开关观察打火' : '提交自感反峰分析'}
                   </Button>
@@ -723,7 +723,7 @@ export function D04InductanceScene({
                       assessment.startStage('standard');
                       onAdvanceStep();
                     }}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold py-2"
                   >
                     深刻洞察！进入续流二极管消弧实训 <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
@@ -734,7 +734,7 @@ export function D04InductanceScene({
                       setS1Choice(null);
                     }}
                     variant="outline"
-                    className="w-full text-xs"
+                    className="w-full text-sm"
                   >
                     重新思考
                   </Button>
@@ -772,7 +772,7 @@ export function D04InductanceScene({
                           sounds.click();
                           setS2Choice(opt.id);
                         }}
-                        className={`w-full text-left p-2.5 rounded-lg border text-xs transition-all ${borderClass}`}
+                        className={`w-full text-left p-2.5 rounded-lg border text-sm transition-all cursor-pointer ${borderClass}`}
                       >
                         <span className="font-bold mr-1.5">•</span> {opt.text}
                       </button>
@@ -793,7 +793,7 @@ export function D04InductanceScene({
                         assessment.recordWrong('standard');
                       }
                     }}
-                    className="w-full bg-orange-600 hover:bg-orange-500 text-xs font-semibold py-2"
+                    className="w-full bg-orange-600 hover:bg-orange-500 text-sm font-semibold py-2"
                   >
                     {!s2Observed ? '请先在左侧加装二极管测试消弧' : '提交续流钳位原理分析'}
                   </Button>
@@ -804,7 +804,7 @@ export function D04InductanceScene({
                       assessment.startStage('calculation');
                       onAdvanceStep();
                     }}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold py-2"
                   >
                     原理透彻！进入汽车点火互感升压实训 <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
@@ -815,7 +815,7 @@ export function D04InductanceScene({
                       setS2Choice(null);
                     }}
                     variant="outline"
-                    className="w-full text-xs"
+                    className="w-full text-sm"
                   >
                     重新思考
                   </Button>
@@ -853,7 +853,7 @@ export function D04InductanceScene({
                           sounds.click();
                           setS3Choice(opt.id);
                         }}
-                        className={`w-full text-left p-2.5 rounded-lg border text-xs transition-all ${borderClass}`}
+                        className={`w-full text-left p-2.5 rounded-lg border text-sm transition-all cursor-pointer ${borderClass}`}
                       >
                         <span className="font-bold mr-1.5">•</span> {opt.text}
                       </button>
@@ -874,7 +874,7 @@ export function D04InductanceScene({
                         assessment.recordWrong('calculation');
                       }
                     }}
-                    className="w-full bg-orange-600 hover:bg-orange-500 text-xs font-semibold py-2"
+                    className="w-full bg-orange-600 hover:bg-orange-500 text-sm font-semibold py-2"
                   >
                     {!s3IgnitionTriggered ? '请先在左侧点击触发跳火' : '提交点火互感原理分析'}
                   </Button>
@@ -885,7 +885,7 @@ export function D04InductanceScene({
                       assessment.startStage('blind_test');
                       onAdvanceStep();
                     }}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold py-2"
                   >
                     完全正确！进入独立盲测排故 <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
@@ -896,7 +896,7 @@ export function D04InductanceScene({
                       setS3Choice(null);
                     }}
                     variant="outline"
-                    className="w-full text-xs"
+                    className="w-full text-sm"
                   >
                     重新思考
                   </Button>
@@ -907,11 +907,11 @@ export function D04InductanceScene({
             {/* Step 4 Question */}
             {currentStep === 'BLIND_IGNITION_FAULT_ISOLATION' && (
               <div className="space-y-3">
-                <div className="p-2 bg-slate-900 border border-slate-800 rounded text-xs">
+                <div className="p-2.5 bg-slate-900 border border-slate-800 rounded text-sm">
                   <div className="font-bold text-orange-300">{activeBlind.vehicleName}</div>
-                  <div className="text-slate-400">{activeBlind.symptom}</div>
+                  <div className="text-slate-300 mt-0.5">{activeBlind.symptom}</div>
                 </div>
-                <div className="text-xs font-semibold text-orange-300">
+                <div className="text-sm font-semibold text-orange-300">
                   结合万用表测得的数据，判定点火系统故障根因：
                 </div>
                 <div className="space-y-2">
@@ -938,7 +938,7 @@ export function D04InductanceScene({
                           sounds.click();
                           setS4Choice(opt.id);
                         }}
-                        className={`w-full text-left p-2.5 rounded-lg border text-xs transition-all ${borderClass}`}
+                        className={`w-full text-left p-2.5 rounded-lg border text-sm transition-all cursor-pointer ${borderClass}`}
                       >
                         <span className="font-bold mr-1.5">•</span> {opt.text}
                       </button>
@@ -963,7 +963,7 @@ export function D04InductanceScene({
                         assessment.recordWrong('blind_test');
                       }
                     }}
-                    className="w-full bg-orange-600 hover:bg-orange-500 text-xs font-semibold py-2"
+                    className="w-full bg-orange-600 hover:bg-orange-500 text-sm font-semibold py-2"
                   >
                     提交盲测诊断结论
                   </Button>
@@ -980,7 +980,7 @@ export function D04InductanceScene({
                         onAdvanceStep();
                       }
                     }}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold py-2"
                   >
                     {blindIndex < IGNITION_BLIND_CASES.length - 1 ? '正确！进入下一个点火案例' : '盲测全通！进入实车修复与交车'}
                   </Button>
@@ -991,7 +991,7 @@ export function D04InductanceScene({
                       setS4Choice(null);
                     }}
                     variant="outline"
-                    className="w-full text-xs"
+                    className="w-full text-sm"
                   >
                     重新打表排查
                   </Button>
@@ -1005,7 +1005,7 @@ export function D04InductanceScene({
                 <div className="text-sm font-semibold text-orange-300">
                   【步骤5交付验收】换新点火线圈与火花塞间隙校准后，实车复测：
                 </div>
-                <div className="p-3 bg-slate-900 border border-slate-800 rounded-lg space-y-2 text-xs">
+                <div className="p-3 bg-slate-900 border border-slate-800 rounded-lg space-y-2 text-sm">
                   <div className="flex items-center justify-between text-slate-300">
                     <span>1. 点火线圈初级绕组电阻:</span>
                     <span className="font-mono text-emerald-400 font-bold">1.0 Ω (标称 0.6Ω~1.5Ω 合格)</span>
@@ -1020,7 +1020,7 @@ export function D04InductanceScene({
                   </div>
                 </div>
                 <div className="pt-2">
-                  <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-300">
                     <input
                       type="checkbox"
                       checked={s5WorkOrderSigned}
@@ -1046,7 +1046,7 @@ export function D04InductanceScene({
                       const finalResult = assessment.completeLevel();
                       onComplete?.(finalResult);
                     }}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold py-2"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold py-2"
                   >
                     {!s5Repaired
                       ? '请先更换点火线圈'
@@ -1059,7 +1059,7 @@ export function D04InductanceScene({
                       : '完成交车验收'}
                   </Button>
                 ) : (
-                  <div className="p-3 bg-emerald-950/40 border border-emerald-500/50 rounded-lg text-emerald-300 text-xs flex items-center gap-2">
+                  <div className="p-3 bg-emerald-950/40 border border-emerald-500/50 rounded-lg text-emerald-300 text-sm flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                     <span>恭喜！D04 自感与互感分析实训圆满闭环完成！</span>
                   </div>

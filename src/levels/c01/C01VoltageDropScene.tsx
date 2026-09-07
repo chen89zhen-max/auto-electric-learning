@@ -259,7 +259,7 @@ export function C01VoltageDropScene({
   return (
     <div className="flex-1 flex flex-col gap-4 min-h-[580px] p-2 text-slate-800">
       {/* 5-Stage Step Navigation Header */}
-      <div className="flex flex-wrap items-center gap-1.5 p-2 bg-slate-100/90 rounded-xl border border-slate-200 text-xs font-bold">
+      <div className="flex flex-wrap items-center gap-1.5 p-2 bg-slate-100/90 rounded-xl border border-slate-200 text-sm font-bold">
         {[
           { key: 'SYMPTOM_AND_HYPOTHESIS', label: '1. 故障复现与假设' },
           { key: 'LOADED_VOLTAGE_DROP_TEST', label: '2. 规范带载压降测试' },
@@ -288,7 +288,7 @@ export function C01VoltageDropScene({
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
         {/* Left Visual Circuit Stage Canvas (h-60 / h-64) */}
         <div className="xl:col-span-8 flex flex-col bg-slate-900 rounded-2xl border border-slate-800 shadow-lg overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-2.5 bg-slate-950/80 border-b border-slate-800 text-xs text-slate-300">
+          <div className="flex items-center justify-between px-4 py-2.5 bg-slate-950/80 border-b border-slate-800 text-sm text-slate-300">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
               <strong className="text-slate-100 font-bold text-sm">
@@ -532,7 +532,7 @@ export function C01VoltageDropScene({
           </div>
 
           {/* Quick interactive circuit controls bar */}
-          <div className="px-4 py-2 bg-slate-950/90 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div className="px-4 py-2 bg-slate-950/90 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 text-sm">
             <div className="flex items-center gap-2">
               <span className="text-slate-400 font-semibold">实训测量控制：</span>
               {currentStep === 'SYMPTOM_AND_HYPOTHESIS' && (
@@ -703,14 +703,14 @@ export function C01VoltageDropScene({
                   FLUKE-DMM 汽车数字万用表
                 </span>
               </div>
-              <span className="text-xs px-2 py-0.5 rounded bg-slate-900 text-slate-400 font-mono">
+              <span className="text-sm px-2 py-0.5 rounded bg-slate-900 text-slate-400 font-mono">
                 CAT III 600V
               </span>
             </div>
 
             {/* Big High-Visibility LCD Screen (h-32) */}
             <div className="relative h-32 bg-slate-950 rounded-xl p-3 border-2 border-slate-900 flex flex-col justify-between shadow-inner">
-              <div className="flex justify-between items-center text-xs font-mono text-slate-500">
+              <div className="flex justify-between items-center text-sm font-mono text-slate-500">
                 <span>AUTO RANGE</span>
                 <span>{meterKnob === 'OFF' ? 'POWER OFF' : 'DC VOLTAGE'}</span>
               </div>
@@ -723,13 +723,13 @@ export function C01VoltageDropScene({
                 <span className="text-lg font-bold text-slate-400">V</span>
               </div>
 
-              <div className="text-right text-xs font-mono text-slate-400 truncate">
+              <div className="text-right text-sm font-mono text-slate-400 truncate">
                 {dmmDisplay.unit}
               </div>
             </div>
 
             {meterWarning && (
-              <div className="mt-2 text-xs font-bold text-rose-400 bg-rose-950/40 p-2 rounded border border-rose-800 flex items-center gap-1.5 animate-bounce">
+              <div className="mt-2 text-sm font-bold text-rose-400 bg-rose-950/40 p-2 rounded border border-rose-800 flex items-center gap-1.5 animate-bounce">
                 <AlertTriangle size={14} />
                 <span>{meterWarning}</span>
               </div>
@@ -766,7 +766,7 @@ export function C01VoltageDropScene({
 
             {/* Stage 4 Probe Selectors */}
             {currentStep === 'BLIND_FAULT_ISOLATION' && (
-              <div className="mt-2 p-2 bg-slate-900 rounded-lg border border-slate-700 text-xs flex flex-col gap-2">
+              <div className="mt-2 p-2 bg-slate-900 rounded-lg border border-slate-700 text-sm flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <span className="text-rose-400 font-bold">红表笔测点：</span>
                   <select
@@ -776,7 +776,7 @@ export function C01VoltageDropScene({
                       requireMeterPowered();
                       setRedProbeNode(e.target.value);
                     }}
-                    className="bg-slate-800 text-slate-200 border border-slate-600 rounded px-2 py-1 text-xs"
+                    className="bg-slate-800 text-slate-200 border border-slate-600 rounded px-2 py-1 text-sm"
                   >
                     <option value="BAT_POS">蓄电池正极柱 (+12V)</option>
                     <option value="FUSE_OUT">保险丝输出端</option>
@@ -795,7 +795,7 @@ export function C01VoltageDropScene({
                       requireMeterPowered();
                       setBlackProbeNode(e.target.value);
                     }}
-                    className="bg-slate-800 text-slate-200 border border-slate-600 rounded px-2 py-1 text-xs"
+                    className="bg-slate-800 text-slate-200 border border-slate-600 rounded px-2 py-1 text-sm"
                   >
                     <option value="LAMP_POS">车灯插头供电引脚</option>
                     <option value="RELAY_OUT">继电器输出端</option>
@@ -818,14 +818,14 @@ export function C01VoltageDropScene({
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                <span className="text-sm font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
                   实训工单 · 假设建立
                 </span>
                 <h3 className="text-base font-black text-slate-900 mt-1">
                   步骤 1 诊断决策：对比拔插开路 12.00V 与插头带载 10.91V，确立首选排查假设
                 </h3>
               </div>
-              <div className="text-right text-xs text-slate-500">
+              <div className="text-right text-sm text-slate-500">
                 空载电压：<strong className="text-slate-800">12.00V</strong> ｜ 带载端压：<strong className="text-rose-600">10.91V</strong>
               </div>
             </div>
@@ -873,7 +873,7 @@ export function C01VoltageDropScene({
             </div>
 
             <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-              <span className="text-xs text-slate-500">
+              <span className="text-sm text-slate-500">
                 {s1Submitted
                   ? '✓ 假设分析已提交。请进入第2阶段进行跨接压降定量验证。'
                   : '请选择首选排查假设后点击提交工单'}
@@ -923,14 +923,14 @@ export function C01VoltageDropScene({
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-xs font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                <span className="text-sm font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
                   实训工单 · 跨接压降测量定位
                 </span>
                 <h3 className="text-base font-black text-slate-900 mt-1">
                   步骤 2：比对供电侧与搭铁侧跨接压降，判定主要虚接故障区段
                 </h3>
               </div>
-              <div className="text-xs text-slate-600 flex items-center gap-3">
+              <div className="text-sm text-slate-600 flex items-center gap-3">
                 <span>供电侧压降：<strong className="text-rose-600 font-bold">0.91 V</strong></span>
                 <span>搭铁侧压降：<strong className="text-emerald-600 font-bold">0.18 V</strong></span>
                 <span>标准限值：<strong>≤ 0.20 V</strong></span>
@@ -975,7 +975,7 @@ export function C01VoltageDropScene({
             </div>
 
             <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-              <span className="text-xs text-slate-500">
+              <span className="text-sm text-slate-500">
                 {s2Submitted
                   ? '✓ 供电侧 0.91V 压降超标证据确凿。请进入第3阶段探究空载反例。'
                   : '在左侧测量供电侧与搭铁侧压降后，选出确切排查结论'}
@@ -1026,7 +1026,7 @@ export function C01VoltageDropScene({
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-xs font-bold text-cyan-700 bg-cyan-50 px-2 py-0.5 rounded border border-cyan-200">
+                <span className="text-sm font-bold text-cyan-700 bg-cyan-50 px-2 py-0.5 rounded border border-cyan-200">
                   反例突破 · 物理本质辨析
                 </span>
                 <h3 className="text-base font-black text-slate-900 mt-1">
@@ -1077,7 +1077,7 @@ export function C01VoltageDropScene({
             </div>
 
             <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-              <span className="text-xs text-slate-500">
+              <span className="text-sm text-slate-500">
                 {s3Submitted
                   ? '✓ 物理反例解析完成：“无载无降，带载现形”。进入第4阶段独立盲测。'
                   : '切换左侧带载与空载状态后，完成反例辨析'}
@@ -1125,19 +1125,19 @@ export function C01VoltageDropScene({
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
+                <span className="text-sm font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
                   独立盲测 · 实车案例自主定损
                 </span>
                 <h3 className="text-base font-black text-slate-900 mt-1">
                   步骤 4：当前排查对象【{activeBlindCase.vehicleName}】，自主跨接打表定位故障元器件
                 </h3>
               </div>
-              <span className="text-xs text-slate-500 font-mono">
+              <span className="text-sm text-slate-500 font-mono">
                 标准：继电器触点压降≤0.1V / 保险丝≤0.05V / 车身搭铁≤0.1V
               </span>
             </div>
 
-            <div className="p-3 bg-purple-50/50 rounded-xl border border-purple-100 text-xs text-purple-900">
+            <div className="p-3 bg-purple-50/50 rounded-xl border border-purple-100 text-sm text-purple-900">
               <p className="font-semibold">{activeBlindCase.description}</p>
             </div>
 
@@ -1170,15 +1170,15 @@ export function C01VoltageDropScene({
                         : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
                     }`}
                   >
-                    <strong className="block text-xs">{opt.label}</strong>
-                    <span className="text-[11px] text-slate-500">{opt.desc}</span>
+                    <strong className="block text-sm font-bold">{opt.label}</strong>
+                    <span className="text-sm text-slate-500">{opt.desc}</span>
                   </button>
                 );
               })}
             </div>
 
             <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-              <span className="text-xs text-slate-500">
+              <span className="text-sm text-slate-500">
                 {s4Submitted
                   ? `✓ 盲测定位结论已提交：${activeBlindCase.explanation}`
                   : '在左侧移动红黑表笔进行跨接测量，选出损坏部件后提交'}
@@ -1230,7 +1230,7 @@ export function C01VoltageDropScene({
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                <span className="text-sm font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                   实训工单 · 修复工艺与闭环验收
                 </span>
                 <h3 className="text-base font-black text-slate-900 mt-1">
@@ -1239,7 +1239,7 @@ export function C01VoltageDropScene({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm">
               <div className="flex items-center gap-2">
                 <span className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-white ${repairCleaned ? 'bg-emerald-600' : 'bg-slate-400'}`}>1</span>
                 <span className={repairCleaned ? 'text-emerald-800 font-bold' : 'text-slate-600'}>触点清洗剂除硫化</span>
@@ -1274,7 +1274,7 @@ export function C01VoltageDropScene({
             )}
 
             {retestPerformed && (
-              <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-300 text-xs text-emerald-950 flex flex-col gap-2">
+              <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-300 text-sm text-emerald-950 flex flex-col gap-2">
                 <div className="flex items-center gap-1.5 font-bold text-emerald-800">
                   <Sparkles size={16} /> 修复后通电复验结果（带载闭环达成）：
                 </div>
@@ -1293,7 +1293,7 @@ export function C01VoltageDropScene({
             )}
 
             <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-              <span className="text-xs text-slate-500">
+              <span className="text-sm text-slate-500">
                 {s5Submitted
                   ? '✓ 《新能源汽车电器维修竣工检验单》已签署，整车合格交付！'
                   : '完成三步工艺并通电复测合格后，签署竣工单'}

@@ -314,7 +314,7 @@ export function C02FaultClassifyScene({
   return (
     <div className="flex-1 flex flex-col gap-4 min-h-[580px] p-2 text-slate-800">
       {/* 5-Stage Step Navigation Header */}
-      <div className="flex flex-wrap items-center gap-1.5 p-2 bg-slate-100/90 rounded-xl border border-slate-200 text-xs font-bold">
+      <div className="flex flex-wrap items-center gap-1.5 p-2 bg-slate-100/90 rounded-xl border border-slate-200 text-sm font-bold">
         {[
           { key: 'SYMPTOM_AND_TOOLS', label: '1. 现象与工具认知' },
           { key: 'OPEN_CIRCUIT_ISOLATION', label: '2. 典型一：回路断路排查' },
@@ -343,14 +343,14 @@ export function C02FaultClassifyScene({
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
         {/* Left Circuit Visual Canvas */}
         <div className="xl:col-span-8 flex flex-col bg-slate-900 rounded-2xl border border-slate-800 shadow-lg overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-2.5 bg-slate-950/80 border-b border-slate-800 text-xs text-slate-300">
+          <div className="flex items-center justify-between px-4 py-2.5 bg-slate-950/80 border-b border-slate-800 text-sm text-slate-300">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
               <strong className="text-slate-100 font-bold text-sm">
                 汽车电气典型故障排查台 (断路 / 短路 / 高阻虚接)
               </strong>
             </div>
-            <div className="flex items-center gap-2 text-xs">
+            <div className="flex items-center gap-2 text-sm">
               <span className="text-slate-400">当前测试工具：</span>
               <button
                 type="button"
@@ -548,7 +548,7 @@ export function C02FaultClassifyScene({
           </div>
 
           {/* Quick Node Selector Toolbar */}
-          <div className="px-4 py-2 bg-slate-950/90 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div className="px-4 py-2 bg-slate-950/90 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 text-sm">
             <div className="flex items-center gap-2">
               <span className="text-slate-400 font-semibold">探针试触测点：</span>
               {[
@@ -568,7 +568,7 @@ export function C02FaultClassifyScene({
                       sounds.click();
                       setTouchedNode(node.key);
                     }}
-                    className={`px-2 py-1 rounded cursor-pointer transition-colors ${
+                    className={`px-2 py-1 rounded text-sm cursor-pointer transition-colors ${
                       isSelected ? 'bg-amber-500 text-slate-950 font-black shadow-xs' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                     }`}
                   >
@@ -582,7 +582,7 @@ export function C02FaultClassifyScene({
               <Button
                 size="sm"
                 variant="outline"
-                className="border-slate-700 text-amber-400 hover:bg-slate-800 cursor-pointer"
+                className="border-slate-700 text-amber-400 hover:bg-slate-800 cursor-pointer text-sm"
                 onClick={() => {
                   sounds.click();
                   setBlindIndex((prev) => (prev + 1) % C02_BLIND_CASES.length);
@@ -608,7 +608,7 @@ export function C02FaultClassifyScene({
                     汽车专用电气试灯 (12V)
                   </span>
                 </div>
-                <span className="text-xs px-2 py-0.5 rounded bg-slate-900 text-amber-400 font-mono">
+                <span className="text-sm px-2 py-0.5 rounded bg-slate-900 text-amber-400 font-mono">
                   定性寻电
                 </span>
               </div>
@@ -635,7 +635,7 @@ export function C02FaultClassifyScene({
                     }
                   />
                 </div>
-                <span className="text-xs font-bold text-slate-300">
+                <span className="text-sm font-bold text-slate-300">
                   {testLightGlow === 'BRIGHT'
                     ? '试灯耀眼发光 (供电正常 ≥9V)'
                     : testLightGlow === 'DIM'
@@ -644,7 +644,7 @@ export function C02FaultClassifyScene({
                 </span>
               </div>
 
-              <div className="mt-3 p-3 bg-slate-900/90 rounded-xl border border-slate-700 text-xs text-slate-400 space-y-1">
+              <div className="mt-3 p-3 bg-slate-900/90 rounded-xl border border-slate-700 text-sm text-slate-400 space-y-1">
                 <p><strong>搭铁夹位置：</strong> 蓄电池负极柱 / 车身搭铁</p>
                 <p><strong>探针接触点：</strong> {touchedNode}</p>
                 <p className="text-amber-300">
@@ -661,14 +661,14 @@ export function C02FaultClassifyScene({
                     数字万用表 (DMM)
                   </span>
                 </div>
-                <span className="text-xs px-2 py-0.5 rounded bg-slate-900 text-slate-400 font-mono">
+                <span className="text-sm px-2 py-0.5 rounded bg-slate-900 text-slate-400 font-mono">
                   定量精测
                 </span>
               </div>
 
               {/* Large LCD (h-32) */}
               <div className="relative h-32 bg-slate-950 rounded-xl p-3 border-2 border-slate-900 flex flex-col justify-between shadow-inner">
-                <div className="flex justify-between items-center text-xs font-mono text-slate-500">
+                <div className="flex justify-between items-center text-sm font-mono text-slate-500">
                   <span>AUTO RANGE</span>
                   <span>{meterKnob === 'OFF' ? 'POWER OFF' : meterKnob === 'OHM' ? 'RESISTANCE' : 'DC VOLTAGE'}</span>
                 </div>
@@ -682,13 +682,13 @@ export function C02FaultClassifyScene({
                   </span>
                 </div>
 
-                <div className="text-right text-xs font-mono text-slate-400 truncate">
+                <div className="text-right text-sm font-mono text-slate-400 truncate">
                   {dmmDisplay.unit}
                 </div>
               </div>
 
               {meterWarning && (
-                <div className="mt-2 text-xs font-bold text-rose-400 bg-rose-950/40 p-2 rounded border border-rose-800 flex items-center gap-1.5 animate-bounce">
+                <div className="mt-2 text-sm font-bold text-rose-400 bg-rose-950/40 p-2 rounded border border-rose-800 flex items-center gap-1.5 animate-bounce">
                   <AlertTriangle size={14} />
                   <span>{meterWarning}</span>
                 </div>
@@ -736,7 +736,7 @@ export function C02FaultClassifyScene({
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                <span className="text-sm font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
                   实训工单 · 现象与工具认知
                 </span>
                 <h3 className="text-base font-black text-slate-900 mt-1">
@@ -783,7 +783,7 @@ export function C02FaultClassifyScene({
             </div>
 
             <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-              <span className="text-xs text-slate-500">
+              <span className="text-sm text-slate-500">
                 {s1Submitted ? '✓ 工具认知完成。进入步骤 2 排查回路断路。' : '选择判断结论后提交工单'}
               </span>
               {!s1Submitted ? (
@@ -829,7 +829,7 @@ export function C02FaultClassifyScene({
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-xs font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                <span className="text-sm font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
                   断路排查 · 跨接测压
                 </span>
                 <h3 className="text-base font-black text-slate-900 mt-1">
@@ -876,7 +876,7 @@ export function C02FaultClassifyScene({
             </div>
 
             <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-              <span className="text-xs text-slate-500">
+              <span className="text-sm text-slate-500">
                 {s2Submitted ? '✓ 断路证据确凿（跨接吃全压）。进入步骤 3 排查短路。' : '根据测量证据提交结论'}
               </span>
               {!s2Submitted ? (
@@ -922,7 +922,7 @@ export function C02FaultClassifyScene({
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-xs font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                <span className="text-sm font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
                   短路排查 · 安全红线
                 </span>
                 <h3 className="text-base font-black text-slate-900 mt-1">
@@ -969,7 +969,7 @@ export function C02FaultClassifyScene({
             </div>
 
             <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-              <span className="text-xs text-slate-500">
+              <span className="text-sm text-slate-500">
                 {s3Submitted ? '✓ 短路安全红线确立。进入步骤 4 独立实车盲测。' : '根据安全规范选择后提交工单'}
               </span>
               {!s3Submitted ? (
@@ -1015,7 +1015,7 @@ export function C02FaultClassifyScene({
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
+                <span className="text-sm font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
                   独立实车盲测 · 四类典型故障定位
                 </span>
                 <h3 className="text-base font-black text-slate-900 mt-1">
@@ -1062,7 +1062,7 @@ export function C02FaultClassifyScene({
             </div>
 
             <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-              <span className="text-xs text-slate-500">
+              <span className="text-sm text-slate-500">
                 {s4Submitted ? `✓ 盲测定位正确！${activeBlind.faultExplanation}` : '使用试灯与万用表打表后选定故障本质'}
               </span>
               {!s4Submitted ? (
@@ -1112,7 +1112,7 @@ export function C02FaultClassifyScene({
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                <span className="text-sm font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                   实训工单 · 规范修复工艺与防磨防护
                 </span>
                 <h3 className="text-base font-black text-slate-900 mt-1">
@@ -1121,7 +1121,7 @@ export function C02FaultClassifyScene({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm">
               <Button
                 disabled={repairInsulated}
                 variant={repairInsulated ? 'default' : 'outline'}
@@ -1179,9 +1179,9 @@ export function C02FaultClassifyScene({
               <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-sm flex flex-col gap-2">
                 <div className="flex items-center justify-between font-bold text-emerald-950">
                   <span>竣工检验单 (合格准予出厂)：</span>
-                  <span className="text-xs bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded">验收合格</span>
+                  <span className="text-sm bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded">验收合格</span>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-slate-700">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-slate-700">
                   <div className="bg-white p-2 rounded border border-emerald-200">
                     工作电压：<strong className="text-emerald-700 text-sm">12.00 V</strong>
                   </div>
@@ -1199,7 +1199,7 @@ export function C02FaultClassifyScene({
             )}
 
             <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-              <span className="text-xs text-slate-500">
+              <span className="text-sm text-slate-500">
                 {s5Submitted
                   ? '✓ 《电气系统故障修复验收合格单》已签署，整车合格交付！'
                   : '三步工艺修复并通电复验合格后交付'}

@@ -83,7 +83,7 @@ export function D05Experience({ onReturnLobby }: D05ExperienceProps) {
           <div>
             <div className="flex items-center gap-2">
               <p className="eyebrow">篇章四：让电和磁配合工作 · 电磁感应高阶</p>
-              <span className="text-xs bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded font-bold">
+              <span className="text-sm bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded font-bold">
                 ⭐ 星号选学
               </span>
             </div>
@@ -93,34 +93,34 @@ export function D05Experience({ onReturnLobby }: D05ExperienceProps) {
 
         <div className="trainee-badge">
           <GraduationCap size={18} />
-          <span>见习电工 · {getStudentDisplayName('见习学员')} ({isCompleted ? '已通过选学验收' : '选学进阶中'})</span>
+          <span>见习电工 · {getStudentDisplayName('见习学员')} ({isCompleted ? '已通过验收' : '实训推进中'})</span>
         </div>
 
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="topbar-actions">
           <FullscreenButton />
           <button
+            type="button"
+            className={`action-btn icon-only ${showWorkOrder ? 'active text-amber-400 border-amber-500/50' : ''}`}
             onClick={() => setShowWorkOrder(!showWorkOrder)}
-            className="action-btn secondary"
-            title="查看任务工单"
+            title="查看实训工单与步骤指南"
           >
-            <ClipboardList size={16} />
-            <span>工单卡</span>
+            <ClipboardList size={18} />
           </button>
           <button
+            type="button"
+            className="action-btn icon-only"
             onClick={handleRestart}
-            className="action-btn secondary"
-            title="重置当前关卡"
+            title="重新开始本次实训"
           >
-            <RotateCcw size={16} />
-            <span>重新开始</span>
+            <RotateCcw size={18} />
           </button>
           <button
+            type="button"
+            className="action-btn primary exit-btn"
             onClick={onReturnLobby}
-            className="action-btn secondary text-rose-300 hover:text-rose-200"
-            title="返回实训大厅"
           >
             <LogOut size={16} />
-            <span>退出</span>
+            <span>返回大厅</span>
           </button>
         </div>
       </header>
@@ -137,7 +137,7 @@ export function D05Experience({ onReturnLobby }: D05ExperienceProps) {
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
                 <span className="font-bold text-purple-300 text-sm">陈师傅（实训总教练）</span>
-                <span className="text-xs px-2 py-0.5 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-full font-mono">
+                <span className="text-sm px-2 py-0.5 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-full font-mono">
                   D05 · {guidance.title.split('：')[0]}
                 </span>
               </div>
@@ -160,7 +160,7 @@ export function D05Experience({ onReturnLobby }: D05ExperienceProps) {
         </section>
 
         {/* 5-Stage Step Indicators */}
-        <div className="grid grid-cols-5 gap-2 text-xs">
+        <div className="grid grid-cols-5 gap-2 text-sm">
           {[
             { key: 'STRUCTURE_AND_MAGNETIC_FLUX', label: '1. 铁芯交变磁通' },
             { key: 'VOLTAGE_AND_CURRENT_RATIO', label: '2. 变压比变流比' },
@@ -187,7 +187,7 @@ export function D05Experience({ onReturnLobby }: D05ExperienceProps) {
                     : 'border-slate-800 bg-slate-900/50 text-slate-500'
                 }`}
               >
-                <span className="block font-mono text-xs text-slate-400">阶段 0{idx + 1}</span>
+                <span className="block font-mono text-sm text-slate-400">阶段 0{idx + 1}</span>
                 <span className="truncate block">{s.label.split('. ')[1]}</span>
               </div>
             );

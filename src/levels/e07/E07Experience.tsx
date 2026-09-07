@@ -153,7 +153,7 @@ export function E07Experience({ onReturnLobby }: E07ExperienceProps) {
       </header>
 
       {/* 5-Stage Stepper */}
-      <nav className="training-stage-stepper px-6 py-2.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between text-xs overflow-x-auto">
+      <nav className="training-stage-stepper px-6 py-2.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between text-sm overflow-x-auto">
         {(
           [
             { id: 'SOLDERING_SAFETY_AND_FIVE_STEPS', num: '1', name: '安全规程与五步法' },
@@ -177,7 +177,7 @@ export function E07Experience({ onReturnLobby }: E07ExperienceProps) {
               }`}
             >
               <span
-                className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
+                className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${
                   isActive
                     ? 'bg-blue-600 text-white'
                     : isPast
@@ -197,7 +197,7 @@ export function E07Experience({ onReturnLobby }: E07ExperienceProps) {
       <section className="bg-slate-800/80 border-b border-slate-700/80 px-6 py-3 flex items-center gap-4">
         <MasterChenAvatar emotion={guidance.mentorEmotion} size={48} />
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 text-xs font-bold text-amber-400">
+          <div className="flex items-center gap-2 text-sm font-bold text-amber-400">
             <span>实训导师 · 陈师傅</span>
             <span className="text-slate-500">|</span>
             <span className="text-slate-300 font-normal">{guidance.title}</span>
@@ -215,7 +215,7 @@ export function E07Experience({ onReturnLobby }: E07ExperienceProps) {
           <div className="space-y-4 max-w-4xl mx-auto">
             {/* 真实实物量规验收卡片 */}
             {physicalEvaluation ? (
-              <div className="p-4 bg-emerald-950/40 border border-emerald-500/40 rounded-2xl text-emerald-200 text-xs space-y-2.5">
+              <div className="p-4 bg-emerald-950/40 border border-emerald-500/40 rounded-2xl text-emerald-200 text-sm space-y-2.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-5 h-5 text-emerald-400" />
@@ -227,12 +227,12 @@ export function E07Experience({ onReturnLobby }: E07ExperienceProps) {
                     实物总分: {physicalEvaluation.totalScore} / 100 分
                   </span>
                 </div>
-                <div className="text-[11px] text-slate-300 flex flex-wrap gap-4">
+                <div className="text-sm text-slate-300 flex flex-wrap gap-4">
                   <span>验收教师：<strong className="text-white">{physicalEvaluation.teacherName}</strong></span>
                   <span>签署时间：{new Date(physicalEvaluation.signedAt).toLocaleString('zh-CN')}</span>
                   {physicalEvaluation.comment && <span>教师评语：{physicalEvaluation.comment}</span>}
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-2 border-t border-emerald-500/30 text-[11px] text-slate-300">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-2 border-t border-emerald-500/30 text-sm text-slate-300">
                   <div className="bg-slate-900/60 p-2 rounded border border-emerald-500/20">
                     供电前外观: <strong className="text-emerald-400">{physicalEvaluation.rubricData?.pre_power_check ?? 0}/20</strong>
                   </div>
@@ -251,17 +251,17 @@ export function E07Experience({ onReturnLobby }: E07ExperienceProps) {
                 </div>
               </div>
             ) : (
-              <div className="p-4 bg-amber-500/10 border border-amber-500/40 rounded-2xl text-amber-200 text-xs space-y-2">
+              <div className="p-4 bg-amber-500/10 border border-amber-500/40 rounded-2xl text-amber-200 text-sm space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 font-bold text-sm text-amber-300">
                     <AlertTriangle className="w-5 h-5 text-amber-400" />
                     <span>虚拟训练已完成，实物焊接等待任课教师验收</span>
                   </div>
-                  <span className="bg-amber-500/20 text-amber-300 px-2.5 py-0.5 rounded text-[11px] font-bold border border-amber-500/40">
+                  <span className="bg-amber-500/20 text-amber-300 px-3 py-1 rounded text-sm font-bold border border-amber-500/40">
                     待教师现场量规评定
                   </span>
                 </div>
-                <p className="text-slate-300 text-xs leading-relaxed">
+                <p className="text-slate-300 text-sm leading-relaxed">
                   请携带手工焊接完成的 PCB 训练板前往实训工位，由任课教师在教师工作台录入实物量规评语与各维度得分。
                 </p>
               </div>
@@ -334,7 +334,7 @@ export function E07Experience({ onReturnLobby }: E07ExperienceProps) {
                 ✕
               </button>
             </div>
-            <div className="space-y-3 text-xs text-slate-300">
+            <div className="space-y-3 text-sm text-slate-300">
               <div className="p-3 bg-slate-800/60 rounded-xl">
                 <span className="font-bold text-blue-400">教材目标:</span> 学习任务 18 印制电路板的焊接 (10页)
               </div>
@@ -353,7 +353,7 @@ export function E07Experience({ onReturnLobby }: E07ExperienceProps) {
             </div>
             <button
               onClick={() => setShowWorkOrder(false)}
-              className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold"
+              className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold"
             >
               已查阅，继续实训
             </button>

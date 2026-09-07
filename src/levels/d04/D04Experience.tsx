@@ -132,7 +132,7 @@ export function D04Experience({ onReturnLobby }: D04ExperienceProps) {
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
                 <span className="font-bold text-orange-300 text-sm">陈师傅（实训总教练）</span>
-                <span className="text-xs px-2 py-0.5 bg-orange-500/10 text-orange-400 border border-orange-500/20 rounded-full font-mono">
+                <span className="text-sm px-2 py-0.5 bg-orange-500/10 text-orange-400 border border-orange-500/20 rounded-full font-mono">
                   D04 · {guidance.title.split('：')[0]}
                 </span>
               </div>
@@ -155,7 +155,7 @@ export function D04Experience({ onReturnLobby }: D04ExperienceProps) {
         </section>
 
         {/* 5-Stage Step Indicators */}
-        <div className="grid grid-cols-5 gap-2 text-xs">
+        <div className="grid grid-cols-5 gap-2 text-sm">
           {[
             { key: 'SELF_INDUCTANCE_AND_TRANSIENT_SPARK', label: '1. 自感反峰电弧' },
             { key: 'FREEWHEELING_DIODE_PROTECTION', label: '2. 续流二极管消弧' },
@@ -182,7 +182,7 @@ export function D04Experience({ onReturnLobby }: D04ExperienceProps) {
                     : 'border-slate-800 bg-slate-900/50 text-slate-500'
                 }`}
               >
-                <span className="block font-mono text-xs text-slate-400">阶段 0{idx + 1}</span>
+                <span className="block font-mono text-sm text-slate-400">阶段 0{idx + 1}</span>
                 <span className="truncate block">{s.label.split('. ')[1]}</span>
               </div>
             );

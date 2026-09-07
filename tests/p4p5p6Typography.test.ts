@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
+import ts from 'typescript';
 
-describe('P4-P6 Typography Guard', () => {
+describe('P4-P6 Typography Guard (AST & JSX Parser)', () => {
   const levelsDir = path.resolve(process.cwd(), 'src/levels');
   const targetLevels = [
     'c01', 'c02', 'c03',
@@ -18,7 +19,7 @@ describe('P4-P6 Typography Guard', () => {
       const fullPath = path.join(dir, entry.name);
       if (entry.isDirectory()) {
         files.push(...getAllTsxFiles(fullPath));
-      } else if (entry.isFile() && (entry.name.endsWith('.tsx') || entry.name.endsWith('.ts'))) {
+      } else if (entry.isFile() && entry.name.endsWith('.tsx')) {
         files.push(fullPath);
       }
     }
@@ -27,14 +28,14 @@ describe('P4-P6 Typography Guard', () => {
 
   const allTargetFiles = targetLevels.flatMap((lvl) => getAllTsxFiles(path.join(levelsDir, lvl)));
 
-  it('strictly forbids text-[10px] across all P4-P6 level components', () => {
+  it('strictly forbids arbitrary pixel font-sizes <= 12px across all P4-P6 level components', () => {
     const violations: { file: string; line: number; text: string }[] = [];
 
     for (const file of allTargetFiles) {
       const content = fs.readFileSync(file, 'utf-8');
       const lines = content.split('\n');
       lines.forEach((line, idx) => {
-        if (line.includes('text-[10px]')) {
+        if (/text-\[(?:1[012]|9|[0-8])px\]/.test(line)) {
           violations.push({
             file: path.relative(process.cwd(), file),
             line: idx + 1,
@@ -46,48 +47,132 @@ describe('P4-P6 Typography Guard', () => {
 
     if (violations.length > 0) {
       const details = violations.map((v) => `${v.file}:${v.line} -> ${v.text}`).join('\n');
-      expect.fail(`Found ${violations.length} instances of illegal text-[10px] in P4-P6:\n${details}`);
+      expect.fail(`Found ${violations.length} instances of illegal sub-13px fonts in P4-P6:\n${details}`);
     }
     expect(violations.length).toBe(0);
   });
 
-  it('requires primary submit buttons and action controls to be at least 14px (text-sm or text-base)', () => {
-    // Audit major submit button patterns across P4-P6
-    const buttonViolations: { file: string; line: number; text: string }[] = [];
+  it('strictly forbids text-xs across P4-P6 level components unless explicitly audited with data-typography="secondary"', () => {
+    const violations: { file: string; line: number; tag: string; snippet: string }[] = [];
+    const auditedSecondaryElements: { file: string; line: number; tag: string; snippet: string }[] = [];
 
-    for (const file of allTargetFiles) {
-      if (!file.endsWith('.tsx')) continue;
-      const content = fs.readFileSync(file, 'utf-8');
-      const lines = content.split('\n');
+    for (const filePath of allTargetFiles) {
+      const content = fs.readFileSync(filePath, 'utf-8');
+      const sourceFile = ts.createSourceFile(
+        filePath,
+        content,
+        ts.ScriptTarget.Latest,
+        true,
+        ts.ScriptKind.TSX
+      );
 
-      lines.forEach((line, idx) => {
-        // Flags submit/advance buttons that shrink down to text-xs
-        if (
-          line.includes('<button') ||
-          line.includes('type="submit"') ||
-          line.includes('onClick=')
-        ) {
-          const surrounding = lines.slice(Math.max(0, idx - 1), Math.min(lines.length, idx + 4)).join(' ');
-          if (
-            (surrounding.includes('提交') || surrounding.includes('确认') || surrounding.includes('下一步')) &&
-            surrounding.includes('text-xs') &&
-            !surrounding.includes('text-sm') &&
-            !surrounding.includes('text-base')
-          ) {
-            buttonViolations.push({
-              file: path.relative(process.cwd(), file),
-              line: idx + 1,
-              text: surrounding.slice(0, 100),
-            });
+      const getLine = (node: ts.Node) => {
+        return sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1;
+      };
+
+      const extractClassNames = (attrNode: ts.JsxAttribute): string[] => {
+        const classes: string[] = [];
+        if (!attrNode.initializer) return classes;
+
+        const collectStrings = (node: ts.Node) => {
+          if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
+            classes.push(...node.text.split(/\s+/));
+          } else if (ts.isTemplateExpression(node)) {
+            classes.push(...node.head.text.split(/\s+/));
+            for (const span of node.templateSpans) {
+              classes.push(...span.literal.text.split(/\s+/));
+              collectStrings(span.expression);
+            }
+          } else {
+            ts.forEachChild(node, collectStrings);
+          }
+        };
+
+        collectStrings(attrNode.initializer);
+        return classes.filter(Boolean);
+      };
+
+      const getAttr = (attributes: ts.JsxAttributes, name: string): ts.JsxAttribute | undefined => {
+        for (const prop of attributes.properties) {
+          if (ts.isJsxAttribute(prop) && prop.name.getText(sourceFile) === name) {
+            return prop;
           }
         }
-      });
+        return undefined;
+      };
+
+      const hasSecondaryAuditAttr = (attributes: ts.JsxAttributes): boolean => {
+        const attr = getAttr(attributes, 'data-typography');
+        if (!attr || !attr.initializer) return false;
+        if (ts.isStringLiteral(attr.initializer)) {
+          return attr.initializer.text === 'secondary';
+        }
+        if (
+          ts.isJsxExpression(attr.initializer) &&
+          attr.initializer.expression &&
+          ts.isStringLiteral(attr.initializer.expression)
+        ) {
+          return attr.initializer.expression.text === 'secondary';
+        }
+        return false;
+      };
+
+      const visit = (node: ts.Node) => {
+        let isOpeningOrSelf = false;
+        let tagName = '';
+        let attributes: ts.JsxAttributes | undefined;
+
+        if (ts.isJsxSelfClosingElement(node)) {
+          isOpeningOrSelf = true;
+          tagName = node.tagName.getText(sourceFile);
+          attributes = node.attributes;
+        } else if (ts.isJsxOpeningElement(node)) {
+          isOpeningOrSelf = true;
+          tagName = node.tagName.getText(sourceFile);
+          attributes = node.attributes;
+        }
+
+        if (isOpeningOrSelf && attributes) {
+          const classAttr = getAttr(attributes, 'className');
+          if (classAttr) {
+            const classList = extractClassNames(classAttr);
+            const hasTextXs = classList.includes('text-xs');
+
+            if (hasTextXs) {
+              const nodeText = node.getText(sourceFile);
+              if (hasSecondaryAuditAttr(attributes)) {
+                auditedSecondaryElements.push({
+                  file: path.relative(process.cwd(), filePath),
+                  line: getLine(node),
+                  tag: tagName,
+                  snippet: nodeText.slice(0, 100).replace(/\s+/g, ' '),
+                });
+              } else {
+                violations.push({
+                  file: path.relative(process.cwd(), filePath),
+                  line: getLine(node),
+                  tag: tagName,
+                  snippet: nodeText.slice(0, 100).replace(/\s+/g, ' '),
+                });
+              }
+            }
+          }
+        }
+
+        ts.forEachChild(node, visit);
+      };
+
+      visit(sourceFile);
     }
 
-    if (buttonViolations.length > 0) {
-      const details = buttonViolations.map((v) => `${v.file}:${v.line} -> ${v.text}`).join('\n');
-      expect.fail(`Found ${buttonViolations.length} action buttons with undersized text-xs (must be >= 14px text-sm):\n${details}`);
+    if (violations.length > 0) {
+      const details = violations
+        .map((v) => `${v.file}:${v.line} [<${v.tag}>] -> ${v.snippet}`)
+        .join('\n');
+      expect.fail(
+        `Found ${violations.length} unauthorized text-xs elements in P4-P6. Elements with text-xs must be elevated to text-sm or explicitly tagged with data-typography="secondary" for audit:\n${details}`
+      );
     }
-    expect(buttonViolations.length).toBe(0);
+    expect(violations.length).toBe(0);
   });
 });
