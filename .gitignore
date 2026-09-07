@@ -51,3 +51,7 @@ next-env.d.ts
 
 # local curriculum source (not part of Sprint 0 application source)
 /学习任务1_用电安全.pdf
+
+# local-only launcher scripts (contain LAN IP, machine-specific)
+/【一键局域网分享】.bat
+/【一键生成公网测试链接】.bat
