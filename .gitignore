@@ -39,5 +39,15 @@ next-env.d.ts
 /work/
 *.tsbuildinfo
 
+# Local deployment state and test artifacts (never commit user or learner data)
+/data/
+/backups/
+/tmp/
+/scratch/
+/.superpowers/
+
+# Licensed source material retained locally for curriculum development
+/教材扫描件/
+
 # local curriculum source (not part of Sprint 0 application source)
 /学习任务1_用电安全.pdf
