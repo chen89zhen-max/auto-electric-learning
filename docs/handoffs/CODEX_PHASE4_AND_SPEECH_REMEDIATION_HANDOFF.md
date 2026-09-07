@@ -7,6 +7,7 @@
 - **审查涉及提交**：
   - `5bf6f9e` (`test: add final p4 p5 p6 production acceptance coverage` - Phase 4 / Task 10)
   - `2d0a38c` (`fix(speech): unify tts engine to middle-aged male voice and mount speech controls across all tasks` - 语音统一化)
+  - `ce15816` (`fix(ui): separate speech controls to first row to prevent text squishing in tutor cards` - 语音按钮分排防挤压)
 - **质量门禁全景**：**67/67 测试文件全绿（461 项用例全数通过），TypeScript 0 错误，Oxlint 0 警告 0 错误，生产 Standalone 构建成功**。
 
 ---
@@ -81,6 +82,13 @@
 - **默认自动播报策略 (`src/components/visuals/SpeechPreferences.ts`)**：
   - 将默认偏好 `autoRead` 置为 `true`，满足进入工位自动播报陈师傅指引的需求；
   - 缓存版本升至 `auto_elec_speech_preferences_v2`，保证新老浏览器即刻生效。
+
+#### 2.4 导师指引卡片分排布局优化（消除按钮水平挤压文字）
+- **现象反馈**：在窄侧边栏（280~320px）导师面板中，语音控件（包含“正在朗读”胶囊、停止、静音与设置4个按钮，宽约180px）与文字水平并列时，将长段指导文本挤压至每行仅剩 4~5 个汉字，纵向严重拉长。
+- **治理实施**：
+  - 00、01、A01、A02、A03、A04、B01—B04、C01—C03 全部 13 关导师面板及 `BSceneFrame` 统一重构为垂直分排容器；
+  - **第一排**：独立放置 `<SpeechControls>` 控件组，右对齐排列，获得充分展示空间；
+  - **第二排**：完整展示导师指导文本，独占卡片 100% 宽度，文字排版疏朗自然，彻底根除水平挤压现象。
 
 ---
 
