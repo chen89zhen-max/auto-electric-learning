@@ -47,9 +47,11 @@ export function TutorPanel({ state }: { state: GameState }) {
 
       {/* Speech Bubble */}
       <div className="message-card relative my-4 p-4 rounded-xl border-l-4 border-amber-400 bg-amber-50/90 text-slate-800 shadow-xs" aria-live="polite">
-        <div className="flex items-start gap-2">
-          <p className="text-sm font-semibold leading-relaxed m-0 flex-1">{message}</p>
-          <SpeechControls currentText={message} />
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-end">
+            <SpeechControls currentText={message} />
+          </div>
+          <p className="text-sm font-semibold leading-relaxed m-0">{message}</p>
         </div>
       </div>
 

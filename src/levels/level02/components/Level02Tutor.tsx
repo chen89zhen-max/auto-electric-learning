@@ -31,9 +31,11 @@ export function Level02Tutor() {
           className="message-card relative my-4 p-4 rounded-xl border-l-4 border-amber-400 bg-amber-50/90 text-slate-800 shadow-xs"
           aria-live="polite"
         >
-          <div className="flex items-start gap-2">
-            <p className="text-sm font-semibold leading-relaxed m-0 flex-1">{state.tutorMessage}</p>
-            <SpeechControls currentText={state.tutorMessage} />
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-end">
+              <SpeechControls currentText={state.tutorMessage} />
+            </div>
+            <p className="text-sm font-semibold leading-relaxed m-0">{state.tutorMessage}</p>
           </div>
         </div>
       </div>

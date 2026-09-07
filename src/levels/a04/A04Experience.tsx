@@ -201,15 +201,17 @@ export function A04Experience({ onReturnLobby }: A04ExperienceProps) {
                 className="message-card relative my-4 p-4 rounded-xl border-l-4 border-red-400 bg-red-50/90 text-slate-800 shadow-xs"
                 aria-live="polite"
               >
-                <div className="flex items-start gap-2">
-                  <p className="text-sm font-semibold leading-relaxed m-0 flex-1">
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-end">
+                    <SpeechControls
+                      currentText={hintRequested ? guidance.hint : guidance.mentorPrompt}
+                    />
+                  </div>
+                  <p className="text-sm font-semibold leading-relaxed m-0">
                     {hintRequested
                       ? guidance.hint
                       : `“${guidance.mentorPrompt}”`}
                   </p>
-                  <SpeechControls
-                    currentText={hintRequested ? guidance.hint : guidance.mentorPrompt}
-                  />
                 </div>
               </div>
 

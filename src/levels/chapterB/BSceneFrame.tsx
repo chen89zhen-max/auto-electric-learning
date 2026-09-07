@@ -36,11 +36,11 @@ export function BSceneFrame({
       <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl bg-slate-900 p-4 text-white">
         <div>
           <p className="text-xs font-bold tracking-wider text-sky-300">实训工单 · 阶段 {stage + 1}/{stageCount}</p>
-          <h2 className="mt-1 text-lg font-black">{title}</h2>
-          <div className="mt-1 flex items-start gap-2">
-            <p className="max-w-3xl text-sm text-slate-300">{instruction}</p>
+          <div className="mt-1 flex flex-wrap items-center gap-3">
+            <h2 className="text-lg font-black">{title}</h2>
             <SpeechControls currentText={instruction} className="text-slate-300 hover:text-white hover:bg-slate-800" />
           </div>
+          <p className="mt-1.5 max-w-3xl text-sm text-slate-300">{instruction}</p>
         </div>
         <Button type="button" variant="outline" onClick={onToggleCounterexample} className="border-amber-300 bg-amber-50 text-amber-950 hover:bg-amber-100">
           <AlertTriangle size={16} /> 查看反例
