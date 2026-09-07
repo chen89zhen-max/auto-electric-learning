@@ -17,11 +17,38 @@ afterAll(() => {
 });
 
 describe('生产初始化与公开注册边界', () => {
-  it('生产环境即使请求演示种子也不创建任何固定账号', () => {
+  it('生产环境默认仅创建全通关测试账号 student_pass，请求演示种子也不创建其他固定账号', () => {
     bootstrapDefaultDataIfNeeded(testDb, {
       environment: 'production',
       enableDemoSeed: true,
     });
+
+    const rows = testDb.prepare<{ username: string; role: string }>(
+      'SELECT username, role FROM users'
+    ).all();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.username).toBe('student_pass');
+    expect(rows[0]?.role).toBe('student');
+
+    const progRow = testDb.prepare<{ progress_data: string }>(
+      "SELECT progress_data FROM user_progress WHERE user_id = 'usr_student_pass'"
+    ).get();
+    expect(progRow).toBeDefined();
+    expect(JSON.parse(progRow!.progress_data).traineeName).toBe('通关学员');
+  });
+
+  it('生产环境显式关闭 ENABLE_TEST_PASS_ACCOUNT 后不创建任何固定账号', () => {
+    const previous = process.env.ENABLE_TEST_PASS_ACCOUNT;
+    process.env.ENABLE_TEST_PASS_ACCOUNT = 'false';
+    try {
+      bootstrapDefaultDataIfNeeded(testDb, {
+        environment: 'production',
+        enableDemoSeed: true,
+      });
+    } finally {
+      if (previous === undefined) delete process.env.ENABLE_TEST_PASS_ACCOUNT;
+      else process.env.ENABLE_TEST_PASS_ACCOUNT = previous;
+    }
 
     const count = testDb.prepare<{ count: number }>('SELECT COUNT(*) as count FROM users').get();
     expect(count?.count).toBe(0);
@@ -32,15 +59,19 @@ describe('生产初始化与公开注册边界', () => {
       environment: 'development',
       enableDemoSeed: false,
     });
-    let count = testDb.prepare<{ count: number }>('SELECT COUNT(*) as count FROM users').get();
-    expect(count?.count).toBe(0);
+    let rows = testDb.prepare<{ username: string; role: string }>(
+      'SELECT username, role FROM users'
+    ).all();
+    // 演示种子关闭时仅保留全通关测试账号
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.username).toBe('student_pass');
 
     bootstrapDefaultDataIfNeeded(testDb, {
       environment: 'development',
       enableDemoSeed: true,
     });
-    count = testDb.prepare<{ count: number }>('SELECT COUNT(*) as count FROM users').get();
-    expect(count?.count).toBeGreaterThan(0);
+    const count = testDb.prepare<{ count: number }>('SELECT COUNT(*) as count FROM users').get();
+    expect(count?.count).toBeGreaterThan(1);
 
     const duplicateTeacher = testDb.prepare<{ id: string }>(
       "SELECT id FROM users WHERE username = 'teacher1'"

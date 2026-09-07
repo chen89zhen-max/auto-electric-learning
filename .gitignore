@@ -55,3 +55,6 @@ next-env.d.ts
 # local-only launcher scripts (contain LAN IP, machine-specific)
 /【一键局域网分享】.bat
 /【一键生成公网测试链接】.bat
+
+# WorkBuddy session memory (not project source)
+/.workbuddy/

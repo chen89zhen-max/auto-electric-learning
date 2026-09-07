@@ -15,6 +15,8 @@ export interface DefaultAccountInfo {
 export interface DemoSeedOptions {
   environment?: string;
   enableDemoSeed?: boolean;
+  /** Enable the all-completed manual-test account (student_pass) outside demo seed. */
+  enableTestPassAccount?: boolean;
 }
 
 export const DEFAULT_ACCOUNTS: DefaultAccountInfo[] = [
@@ -75,6 +77,64 @@ export const DEFAULT_ACCOUNTS: DefaultAccountInfo[] = [
 ];
 
 /**
+ * Ensures the all-completed manual-test account (student_pass) exists in ANY environment,
+ * independent of the demo seed gate, so it is available on production deployments for
+ * teacher-driven manual testing. Controlled by ENABLE_TEST_PASS_ACCOUNT (default on
+ * outside the test environment) or the enableTestPassAccount option.
+ *
+ * Progress is reset to all-completed on every server start, so after each redeploy or
+ * container restart the account is again fully unlocked for testing.
+ */
+export function ensureAllCompletedTestAccount(
+  db: AppDatabase,
+  options: Pick<DemoSeedOptions, 'environment' | 'enableTestPassAccount'> = {}
+): boolean {
+  const environment = options.environment || process.env.NODE_ENV || 'development';
+  const enableTestPass = options.enableTestPassAccount
+    ?? (environment === 'test' ? false : process.env.ENABLE_TEST_PASS_ACCOUNT !== 'false');
+  if (!enableTestPass) return false;
+
+  const acc = DEFAULT_ACCOUNTS.find((item) => item.username === 'student_pass');
+  if (!acc) return false;
+
+  const now = Date.now();
+  db.transaction(() => {
+    // Ensure the dedicated class row exists (no student_class membership on purpose).
+    const checkClass = db.prepare<Record<string, unknown>>('SELECT id FROM classes WHERE id = ?');
+    if (!checkClass.get('class_test_pass')) {
+      db.prepare(
+        `INSERT INTO classes (id, school_id, name, grade, cohort_year, status, created_at, updated_at)
+         VALUES (?, 'default_school', ?, '2024级', 2024, 'active', ?, ?)`
+      ).run('class_test_pass', acc.className, now, now);
+    }
+
+    const userId = `usr_${acc.username}`;
+    const checkUser = db.prepare<Record<string, unknown>>('SELECT id FROM users WHERE username = ?');
+    if (!checkUser.get(acc.username)) {
+      db.prepare(
+        `INSERT INTO users (id, username, password_hash, real_name, role, class_name, status, must_change_password, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, 'active', 0, ?, ?)`
+      ).run(userId, acc.username, hashPassword(acc.passwordText), acc.realName, acc.role, acc.className, now, now);
+    }
+
+    // Always reset to all-completed so the account is ready for manual testing.
+    const progressData = JSON.stringify(createAllCompletedUserProgress(acc.realName));
+    const checkProgress = db.prepare<Record<string, unknown>>('SELECT user_id FROM user_progress WHERE user_id = ?');
+    if (checkProgress.get(userId)) {
+      db.prepare('UPDATE user_progress SET progress_data = ?, last_updated = ? WHERE user_id = ?')
+        .run(progressData, now, userId);
+    } else {
+      db.prepare(
+        `INSERT INTO user_progress (user_id, progress_data, version, last_updated)
+         VALUES (?, ?, 1, ?)`
+      ).run(userId, progressData, now);
+    }
+  });
+
+  return true;
+}
+
+/**
  * Ensures default teaching classes and accounts exist in the SQLite database.
  */
 export function bootstrapDefaultDataIfNeeded(
@@ -83,6 +143,13 @@ export function bootstrapDefaultDataIfNeeded(
 ): boolean {
   const environment = options.environment || process.env.NODE_ENV || 'development';
   const enableDemoSeed = options.enableDemoSeed ?? process.env.ENABLE_DEMO_SEED === 'true';
+
+  // The all-completed manual-test account is environment-independent (default on).
+  ensureAllCompletedTestAccount(db, {
+    environment,
+    enableTestPassAccount: options.enableTestPassAccount,
+  });
+
   if (environment === 'production' || !enableDemoSeed) {
     return false;
   }
