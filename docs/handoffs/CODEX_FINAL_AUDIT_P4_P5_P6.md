@@ -114,3 +114,56 @@ npm run build
 
 主线交付团队确认：**P4（C01-C03）、P5（D01-D05）、P6（E01-E07）全量代码、单测套件、路由挂载与交接文档均已达到工业级上线交付标准。请 Code X 专家予以终极审查与验收盖章！**
 
+---
+
+## 六、Task 1—10 最终整改与上线复验实录 (Post-Remediation Actual Verification)
+
+> **审计执行时间**：2026-09-07
+> **执行环境**：Node v24.16.0 LTS / Windows (群晖部署兼容开发机)
+> **底层数据库**：本地原生 Node.js 内置 SQLite (`node:sqlite` DatabaseSync + WAL 模式)
+
+### 1. 整改任务独立 Commit 轨迹表
+| 任务编号 | 提交哈希 | 提交类型与信息 |
+|---|---|---|
+| Task 1 | `fc6f899` | `feat: add evidence-based assessment scoring` |
+| Task 2 | `08ce7c8` | `refactor: connect p4 p5 p6 levels to real assessment evidence` |
+| Task 3 | `8cc17a4` | `feat: require authorized teacher rubric for e07 physical assessment` |
+| Task 4 | `037208c` | `fix: enforce multimeter safety gates across diagnostic levels` |
+| Task 5 | `515fc7d` | `feat: add short-to-power diagnosis to c02 blind faults` |
+| Task 6 | `07bab33` | `feat: close textbook capability gaps without copying textbook flow` |
+| Task 7 | `ab3bb79` | `fix: enforce student prerequisites on direct level routes` |
+| Task 8 | `e8c6bd0` | `fix(typography): eliminate text-xs and enforce text-sm across P4-P6 with AST guard whitelist` |
+| Task 9 | `4c44010` | `perf: lazy load level and role workspaces` |
+| Task 10 | 待提交 | `test: add final p4 p5 p6 production acceptance coverage` |
+
+### 2. 自动化质量四大门禁（100% 通过）
+1. **单元与端到端测试全套通过 (`npm test`)**：
+   - 测试文件数：**67 passed (67)**（基线：55 files）
+   - 测试用例数：**458 passed (458)**（基线：280 tests）
+   - 包含新增专项：`tests/e2e/roles-and-e07.spec.ts`（4 tests）与 `tests/e2e/p4p5p6-redlines.spec.ts`（113 tests）。
+2. **TypeScript 类型全量静态检查 (`npm run typecheck`)**：
+   - `tsc --noEmit` 输出：**0 errors, exit 0**。
+3. **代码规范与无障碍检查 (`npm run lint`)**：
+   - `oxlint app src tests vitest.config.ts`：**0 warnings, 0 errors**（覆盖 288 个源代码文件）。
+4. **生产环境构建与代码分块检查 (`npm run build`)**：
+   - 5 阶段构建全部成功，用时 5.8s，成功生成 `dist/standalone/`。
+   - 彻底消除全部超过 500kB 的超大块告警；关卡与教师端组件实现动态按需懒加载。
+
+### 3. 端到端浏览器级红线验收实际执行结果
+- **三角色权限隔离与 E07 量规验收 (`tests/e2e/roles-and-e07.spec.ts`)**：
+  - 管理员创建/调整班级、绑定教师与转班生效；
+  - 教师 A 与 教师 B 严格按班级授权隔离，越权查询与跨班代签均被服务端 403 阻断；
+  - 学生角色访问教师与管理员接口严格 403；
+  - E07 实物量规必须由任课教师登录录入五维度打分，服务端独立计算总分防篡改，学生端仅具只读权限。
+- **P4—P6 15 关红线全面回归 (`tests/e2e/p4p5p6-redlines.spec.ts`)**：
+  - 15 关全部在课程注册中心正规登记，支持教师备课直达与学生前置关卡拦截；
+  - 15 关全部遵循 `choice === null` 零剧透初始状态，提交前不预选、不泄露答案；
+  - 15 关全面根除 `<14px`（`text-xs`）字号，保证 1366×768 及 200% 缩放下的无截断与排版韧性；
+  - C03 晃动测试在万用表打表状态下瞬态压降跌为 0.00V 并触发端子虚接故障；
+  - C02 四类经典故障（断路、对地短路、接触不良、对电源短路）物理求解与盲测证据完全齐备；
+  - D02/D03/D04 盲测必须在万用表正规接入状态下方可提交，错误操作全链路声光阻断。
+
+### 4. 群晖 SQLite 部署与可靠性复核
+- `tests/sqliteProductionBoundary.test.ts`（4 tests）通过，禁止将生产数据库挂载于易发写锁异常的 SMB/NFS 共享目录；
+- `tests/sqliteMigrations.test.ts`（5 tests）通过，涵盖 `0008_teacher_physical_rubric.sql` 的正向幂等迁移与回滚验证；
+- `tests/sqliteBackup.test.ts`（4 tests）通过，WAL 模式下快照备份、一致性 `quick_check` 与 `7-4-12` 轮转策略均正常运行。
