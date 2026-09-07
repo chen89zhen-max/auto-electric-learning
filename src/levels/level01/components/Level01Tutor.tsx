@@ -1,10 +1,9 @@
 'use client';
 
-import { Volume2 } from 'lucide-react';
 import dialogue from '@/src/levels/level01/dialogue.json';
 import type { Level01State } from '@/src/levels/level01/level01Types';
 import { MasterChenAvatar, type MasterChenEmotion } from '@/src/components/visuals/MasterChenAvatar';
-import { sounds } from '@/src/components/visuals/SoundEffects';
+import { SpeechControls } from '@/src/components/visuals/SpeechControls';
 
 function message(state: Level01State): string {
   if (state.feedback?.startsWith('⚠')) return dialogue.DIRECT_CONTACT_WARNING;
@@ -47,14 +46,7 @@ export function Level01Tutor({ state }: { state: Level01State }) {
       <div className="message-card relative my-4 p-4 rounded-xl border-l-4 border-amber-400 bg-amber-50/90 text-slate-800 shadow-xs" aria-live="polite">
         <div className="flex items-start gap-2">
           <p className="text-sm font-semibold leading-relaxed m-0 flex-1">{tutorMsg}</p>
-          <button
-            type="button"
-            className="text-amber-700/60 hover:text-amber-800 transition-colors p-1"
-            title="播报语音提示"
-            onClick={() => sounds.click()}
-          >
-            <Volume2 size={16} />
-          </button>
+          <SpeechControls currentText={tutorMsg} />
         </div>
       </div>
 

@@ -18,43 +18,100 @@ export interface SpeakOptions {
   onError?: (err: unknown) => void;
 }
 
-let cachedVoices: SpeechSynthesisVoice[] = [];
+export const DEFAULT_MALE_PITCH = 0.88;
+export const DEFAULT_MALE_RATE = 0.98;
 
-if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-  cachedVoices = window.speechSynthesis.getVoices();
-  if (typeof window.speechSynthesis.addEventListener === 'function') {
-    window.speechSynthesis.addEventListener('voiceschanged', () => {
-      cachedVoices = window.speechSynthesis.getVoices();
-    });
-  } else if ('onvoiceschanged' in window.speechSynthesis) {
-    window.speechSynthesis.onvoiceschanged = () => {
-      cachedVoices = window.speechSynthesis.getVoices();
-    };
+let cachedVoices: SpeechSynthesisVoice[] = [];
+let lockedPreferredVoice: SpeechSynthesisVoice | null = null;
+
+function updateVoices(): void {
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+  const voices = window.speechSynthesis.getVoices();
+  if (voices && voices.length > 0) {
+    cachedVoices = voices;
+    lockedPreferredVoice = findMiddleAgedMaleVoice(voices);
   }
 }
 
-function getPreferredVoice(): SpeechSynthesisVoice | null {
+if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+  updateVoices();
+  if (typeof window.speechSynthesis.addEventListener === 'function') {
+    window.speechSynthesis.addEventListener('voiceschanged', updateVoices);
+  } else if ('onvoiceschanged' in window.speechSynthesis) {
+    window.speechSynthesis.onvoiceschanged = updateVoices;
+  }
+}
+
+/**
+ * Searches and prioritizes Chinese middle-aged male voices (中年男声，稳重沉着，大师傅风范)
+ */
+function findMiddleAgedMaleVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
+  if (!voices || voices.length === 0) return null;
+
+  // Filter for Chinese voices first
+  const zhVoices = voices.filter((v) => {
+    const lang = (v.lang || '').toLowerCase();
+    const name = (v.name || '').toLowerCase();
+    return (
+      lang.includes('zh') ||
+      lang.includes('cmn') ||
+      name.includes('chinese') ||
+      name.includes('中文') ||
+      name.includes('普通话')
+    );
+  });
+
+  const candidates = zhVoices.length > 0 ? zhVoices : voices;
+
+  // Priority 1: Yunyang (云扬) - Middle-aged mature broadcaster male (Windows / Edge flagship male voice)
+  const yunyang = candidates.find((v) => /yunyang|云扬/i.test(v.name));
+  if (yunyang) return yunyang;
+
+  // Priority 2: Yunjian (云健) - Mature male
+  const yunjian = candidates.find((v) => /yunjian|云健/i.test(v.name));
+  if (yunjian) return yunjian;
+
+  // Priority 3: Kangkang (康康) - Windows native offline male
+  const kangkang = candidates.find((v) => /kangkang|康康/i.test(v.name));
+  if (kangkang) return kangkang;
+
+  // Priority 4: Yunxi (云希) - Male
+  const yunxi = candidates.find((v) => /yunxi|云希/i.test(v.name));
+  if (yunxi) return yunxi;
+
+  // Priority 5: Any explicit male voice, excluding known female keywords
+  const explicitMale = candidates.find((v) => {
+    const name = v.name.toLowerCase();
+    const hasMale = /male|man|boy|男|nan|danny|zhiwei|sinji|li-mu/i.test(name);
+    const hasFemale = /female|女|nv|xiaoxiao|huihui|yaoyao|xiaoyi|tingting|meijia|shanchan|xiaomo/i.test(name);
+    return hasMale && !hasFemale;
+  });
+  if (explicitMale) return explicitMale;
+
+  // Priority 6: Chinese voice that is NOT explicitly female
+  const nonFemale = candidates.find((v) => {
+    const name = v.name.toLowerCase();
+    return !/female|女|nv|xiaoxiao|huihui|yaoyao|xiaoyi|tingting|meijia|shanchan|xiaomo/i.test(name);
+  });
+  if (nonFemale) return nonFemale;
+
+  // Priority 7: zh-CN voice
+  const zhCn = candidates.find((v) => (v.lang || '').toLowerCase() === 'zh-cn');
+  if (zhCn) return zhCn;
+
+  return candidates[0] || null;
+}
+
+export function getPreferredVoice(): SpeechSynthesisVoice | null {
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
     return null;
   }
-  const voices = cachedVoices.length > 0 ? cachedVoices : window.speechSynthesis.getVoices();
-  if (!voices || voices.length === 0) {
-    return null;
+  if (lockedPreferredVoice) {
+    return lockedPreferredVoice;
   }
-
-  // 1. Select zh-CN first
-  const zhCnVoice = voices.find((v) => v.lang.toLowerCase() === 'zh-cn');
-  if (zhCnVoice) return zhCnVoice;
-
-  // 2. Select other Chinese voices second (zh-HK, zh-TW, Xiaoxiao, Yunxi, etc.)
-  const anyZhVoice = voices.find(
-    (v) =>
-      v.lang.toLowerCase().startsWith('zh') ||
-      v.name.includes('Chinese') ||
-      v.name.includes('Xiaoxiao') ||
-      v.name.includes('Yunxi')
-  );
-  return anyZhVoice || voices[0] || null;
+  const voices = cachedVoices.length > 0 ? cachedVoices : window.speechSynthesis.getVoices();
+  lockedPreferredVoice = findMiddleAgedMaleVoice(voices);
+  return lockedPreferredVoice;
 }
 
 export function speakText(text: string, options?: SpeakOptions): SpeechResult {
@@ -88,8 +145,9 @@ export function speakText(text: string, options?: SpeakOptions): SpeechResult {
 
     const utterance = new SpeechSynthesisUtterance(clean);
     utterance.lang = 'zh-CN';
-    utterance.rate = options?.rate ?? prefs.rate ?? 1.0;
-    utterance.pitch = options?.pitch ?? 1.0;
+    utterance.rate = options?.rate ?? prefs.rate ?? DEFAULT_MALE_RATE;
+    // Default to middle-aged male pitch (0.88: resonant, deep, steady Master Chen tone)
+    utterance.pitch = options?.pitch ?? DEFAULT_MALE_PITCH;
     utterance.volume = options?.volume ?? prefs.volume ?? 1.0;
 
     const voice = getPreferredVoice();
@@ -123,4 +181,11 @@ export function stopSpeaking(): void {
 
 export function isSpeechSupported(): boolean {
   return typeof window !== 'undefined' && 'speechSynthesis' in window;
+}
+
+export { findMiddleAgedMaleVoice };
+
+export function resetVoiceCache(): void {
+  cachedVoices = [];
+  lockedPreferredVoice = null;
 }

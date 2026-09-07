@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { AlertTriangle, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { SpeechControls } from '@/src/components/visuals/SpeechControls';
 
 export function BSceneFrame({
   title,
@@ -36,7 +37,10 @@ export function BSceneFrame({
         <div>
           <p className="text-xs font-bold tracking-wider text-sky-300">实训工单 · 阶段 {stage + 1}/{stageCount}</p>
           <h2 className="mt-1 text-lg font-black">{title}</h2>
-          <p className="mt-1 max-w-3xl text-sm text-slate-300">{instruction}</p>
+          <div className="mt-1 flex items-start gap-2">
+            <p className="max-w-3xl text-sm text-slate-300">{instruction}</p>
+            <SpeechControls currentText={instruction} className="text-slate-300 hover:text-white hover:bg-slate-800" />
+          </div>
         </div>
         <Button type="button" variant="outline" onClick={onToggleCounterexample} className="border-amber-300 bg-amber-50 text-amber-950 hover:bg-amber-100">
           <AlertTriangle size={16} /> 查看反例

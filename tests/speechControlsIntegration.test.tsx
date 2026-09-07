@@ -13,6 +13,8 @@ import {
 
 describe('Task 8: SpeechControls and Readability Integration', () => {
   const levelDirs = [
+    'a02', 'a03', 'a04',
+    'b01', 'b02', 'b03', 'b04',
     'c01', 'c02', 'c03',
     'd01', 'd02', 'd03', 'd04', 'd05',
     'e01', 'e02', 'e03', 'e04', 'e05', 'e06', 'e07',
@@ -69,7 +71,7 @@ describe('Task 8: SpeechControls and Readability Integration', () => {
     } as unknown as SpeechSynthesis;
   });
 
-  it('verifies all 15 Experience components in C01-E07 actually mount SpeechControls and remove duplicate auto-read effects', () => {
+  it('verifies all Experience components in a02-e07 actually mount SpeechControls and remove duplicate auto-read effects', () => {
     const levelsRoot = path.resolve(process.cwd(), 'src/levels');
 
     for (const lvl of levelDirs) {
@@ -102,32 +104,44 @@ describe('Task 8: SpeechControls and Readability Integration', () => {
     }
   });
 
-  it('keeps autoRead disabled by default: entering level and changing text does NOT call speech', async () => {
+  it('verifies Level 00, 01, A01 and BSceneFrame mount SpeechControls', () => {
+    const cwd = process.cwd();
+    const filesToCheck = [
+      path.join(cwd, 'src/components/TutorPanel.tsx'),
+      path.join(cwd, 'src/levels/level01/components/Level01Tutor.tsx'),
+      path.join(cwd, 'src/levels/level02/components/Level02Tutor.tsx'),
+      path.join(cwd, 'src/levels/chapterB/BSceneFrame.tsx'),
+    ];
+
+    for (const filePath of filesToCheck) {
+      const content = fs.readFileSync(filePath, 'utf-8');
+      expect(content.includes('<SpeechControls'), `${path.basename(filePath)} must mount <SpeechControls />`).toBe(true);
+    }
+  });
+
+  it('has autoRead enabled by default: entering level and changing text automatically calls speech', async () => {
     const speakSpy = vi.spyOn(window.speechSynthesis, 'speak');
 
     const { rerender } = render(<SpeechControls currentText="初次进入实训工位" />);
 
     // Default preference check
-    expect(getSpeechPreferences().autoRead).toBe(false);
-    expect(speakSpy).not.toHaveBeenCalled();
+    expect(getSpeechPreferences().autoRead).toBe(true);
+    expect(speakSpy).toHaveBeenCalledTimes(1);
 
     // Change currentText
     rerender(<SpeechControls currentText="切换到第二步骤" />);
-    expect(speakSpy).not.toHaveBeenCalled();
+    expect(speakSpy).toHaveBeenCalledTimes(2);
   });
 
-  it('speaks only when autoRead is explicitly enabled and text changes', async () => {
-    updateSpeechPreferences({ autoRead: true });
+  it('does not auto-speak when autoRead is explicitly disabled', async () => {
+    updateSpeechPreferences({ autoRead: false });
     const speakSpy = vi.spyOn(window.speechSynthesis, 'speak');
 
     const { rerender } = render(<SpeechControls currentText="步骤1：安全检查" />);
+    expect(speakSpy).not.toHaveBeenCalled();
 
-    // On mount with autoRead=true, it speaks
-    expect(speakSpy).toHaveBeenCalledTimes(1);
-
-    // Text changes, it speaks again
     rerender(<SpeechControls currentText="步骤2：测量搭铁端电压" />);
-    expect(speakSpy).toHaveBeenCalledTimes(2);
+    expect(speakSpy).not.toHaveBeenCalled();
   });
 
   it('persists mute state to localStorage and blocks speech synthesis', async () => {

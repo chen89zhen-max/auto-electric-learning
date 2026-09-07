@@ -1,10 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Volume2 } from 'lucide-react';
 import { MasterChenAvatar } from '@/src/components/visuals/MasterChenAvatar';
 import { useLevel02Store } from '@/src/stores/level02Store';
-import { sounds } from '@/src/components/visuals/SoundEffects';
+import { SpeechControls } from '@/src/components/visuals/SpeechControls';
 
 export function Level02Tutor() {
   const { state } = useLevel02Store();
@@ -34,14 +33,7 @@ export function Level02Tutor() {
         >
           <div className="flex items-start gap-2">
             <p className="text-sm font-semibold leading-relaxed m-0 flex-1">{state.tutorMessage}</p>
-            <button
-              type="button"
-              className="text-amber-700/60 hover:text-amber-800 transition-colors p-1"
-              title="播报提示音"
-              onClick={() => sounds.click()}
-            >
-              <Volume2 size={16} />
-            </button>
+            <SpeechControls currentText={state.tutorMessage} />
           </div>
         </div>
       </div>

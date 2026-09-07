@@ -7,13 +7,12 @@ import {
   HelpCircle,
   LogOut,
   RotateCcw,
-  Volume2,
   Zap,
 } from 'lucide-react';
 import { FullscreenButton } from '@/src/components/FullscreenButton';
 import { AbilityReport } from '@/src/components/AbilityReport';
 import { MasterChenAvatar } from '@/src/components/visuals/MasterChenAvatar';
-import { sounds } from '@/src/components/visuals/SoundEffects';
+import { SpeechControls } from '@/src/components/visuals/SpeechControls';
 import { getStudentDisplayName } from '@/src/stores/authStore';
 import { A02VoltageScene } from './scenes/A02VoltageScene';
 import { A02_STAGE_CONTENT, type A02Step } from './a02Training';
@@ -204,14 +203,9 @@ export function A02Experience({ onReturnLobby }: A02ExperienceProps) {
                       ? guidance.hint
                       : `“${guidance.mentorPrompt}”`}
                   </p>
-                  <button
-                    type="button"
-                    className="text-amber-700/60 hover:text-amber-800 transition-colors p-1"
-                    title="播报提示音"
-                    onClick={() => sounds.click()}
-                  >
-                    <Volume2 size={16} />
-                  </button>
+                  <SpeechControls
+                    currentText={hintRequested ? guidance.hint : guidance.mentorPrompt}
+                  />
                 </div>
               </div>
 

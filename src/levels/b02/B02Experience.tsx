@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   ClipboardList,
   GraduationCap,
@@ -8,13 +8,11 @@ import {
   Lightbulb,
   LogOut,
   RotateCcw,
-  Volume2,
 } from 'lucide-react';
 import { FullscreenButton } from '@/src/components/FullscreenButton';
 import { AbilityReport } from '@/src/components/AbilityReport';
 import { MasterChenAvatar } from '@/src/components/visuals/MasterChenAvatar';
-import { sounds } from '@/src/components/visuals/SoundEffects';
-import { speakText, stopSpeaking } from '@/src/components/visuals/SpeechTts';
+import { SpeechControls } from '@/src/components/visuals/SpeechControls';
 import { getStudentDisplayName } from '@/src/stores/authStore';
 import { B02LoadConnectionScene } from './B02LoadConnectionScene';
 import { B02_STAGE_CONTENT, type B02Step } from './b02Training';
@@ -32,15 +30,6 @@ export function B02Experience({ onReturnLobby }: B02ExperienceProps) {
   const [hintRequested, setHintRequested] = useState(false);
 
   const guidance = B02_STAGE_CONTENT[currentStep];
-
-  // Auto-speak Master Chen's prompt or hint on new dialog
-  useEffect(() => {
-    const textToSpeak = hintRequested ? guidance.hint : guidance.mentorPrompt;
-    speakText(textToSpeak);
-    return () => {
-      stopSpeaking();
-    };
-  }, [currentStep, hintRequested, guidance.mentorPrompt, guidance.hint]);
 
   const handleStepComplete = (step: B02Step, evidence: Record<string, unknown>) => {
     setStepEvidences((prev) => ({
@@ -213,18 +202,9 @@ export function B02Experience({ onReturnLobby }: B02ExperienceProps) {
                       ? guidance.hint
                       : `“${guidance.mentorPrompt}”`}
                   </p>
-                  <button
-                    type="button"
-                    className="text-amber-700/70 hover:text-amber-900 transition-colors p-1.5 cursor-pointer rounded hover:bg-amber-100"
-                    title="重播陈师傅语音"
-                    onClick={() => {
-                      sounds.click();
-                      const textToSpeak = hintRequested ? guidance.hint : guidance.mentorPrompt;
-                      speakText(textToSpeak);
-                    }}
-                  >
-                    <Volume2 size={18} />
-                  </button>
+                  <SpeechControls
+                    currentText={hintRequested ? guidance.hint : guidance.mentorPrompt}
+                  />
                 </div>
               </div>
 

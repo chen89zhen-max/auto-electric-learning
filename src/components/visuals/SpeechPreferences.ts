@@ -5,10 +5,10 @@ export interface SpeechPreferences {
   rate: number; // 0.5 to 2.0
 }
 
-export const SPEECH_PREFERENCES_KEY = 'auto_elec_speech_preferences';
+export const SPEECH_PREFERENCES_KEY = 'auto_elec_speech_preferences_v2';
 
 export const DEFAULT_SPEECH_PREFERENCES: SpeechPreferences = {
-  autoRead: false, // Classroom noise control: default auto-read is OFF
+  autoRead: true, // Default auto-read voice narration enabled
   muted: false,
   volume: 1.0,
   rate: 1.0,
