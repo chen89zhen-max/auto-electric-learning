@@ -28,8 +28,18 @@ describe('Synology single-instance deployment configuration', () => {
     expect(compose).toContain('healthcheck:');
     expect(compose).toContain('max-size: "10m"');
     expect(compose).toContain('max-file: "5"');
-    expect(compose).not.toMatch(/password\s*:/i);
+    expect(compose).not.toMatch(/ADMIN_INITIAL_PASSWORD:\s+(?!\$\{)/);
     expect(compose).not.toMatch(/replicas:\s*[2-9]/);
+  });
+
+  it('requires the first production administrator password through local environment configuration', () => {
+    const compose = read('docker-compose.yml');
+    const exampleEnv = read('.env.production.example');
+
+    expect(compose).toContain('ADMIN_INITIAL_USERNAME: ${ADMIN_INITIAL_USERNAME:-admin}');
+    expect(compose).toContain('ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:?Set ADMIN_INITIAL_PASSWORD in .env}');
+    expect(exampleEnv).toContain('ADMIN_INITIAL_PASSWORD=');
+    expect(exampleEnv).not.toMatch(/ADMIN_INITIAL_PASSWORD=.+/);
   });
 
   it('ignores local databases, backups, secrets and repository metadata in the build context', () => {

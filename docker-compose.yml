@@ -12,6 +12,8 @@ services:
       HOST: 0.0.0.0
       PORT: 3000
       ENABLE_DEMO_SEED: "false"
+      ADMIN_INITIAL_USERNAME: ${ADMIN_INITIAL_USERNAME:-admin}
+      ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:?Set ADMIN_INITIAL_PASSWORD in .env}
       TZ: ${TZ:-Asia/Shanghai}
     ports:
       - "${BIND_ADDRESS:-127.0.0.1}:${APP_PORT:-3000}:3000"
