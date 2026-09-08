@@ -59,6 +59,8 @@ tests/                       账号权限、数据关联、关卡逻辑、电路
 - Sprint 1 文档：[IMPLEMENTATION_SPRINT1.md](./IMPLEMENTATION_SPRINT1.md) 与 [TESTING_SPRINT1.md](./TESTING_SPRINT1.md)
 - Sprint 2 文档：[IMPLEMENTATION_SPRINT2.md](./IMPLEMENTATION_SPRINT2.md) 与 [TESTING_SPRINT2.md](./TESTING_SPRINT2.md)
 - 已知问题与边界：[KNOWN_ISSUES.md](./KNOWN_ISSUES.md)
+- 群晖部署与更新：[群晖部署指南](docs/群晖部署指南.md)
+- 群晖备份与恢复：[SQLite 备份与恢复操作规程](docs/operations/SYNOLOGY_BACKUP_RESTORE.md)
 
 ## 本次完善（2026-09-05）
 

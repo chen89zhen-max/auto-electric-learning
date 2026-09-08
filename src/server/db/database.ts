@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { bootstrapDefaultDataIfNeeded } from './bootstrap';
+import { migrateLegacyJsonIfNeeded } from './migration';
 import { runPendingMigrations } from './migrationRunner';
 import { openProductionDatabase } from './productionDatabase';
 import { createTestDatabase } from './testDatabase';
@@ -73,6 +74,16 @@ export function getDatabase(): AppDatabase {
     dbInstance = createSqliteAdapter(dbPath);
   }
   if (dbPath !== ':memory:') {
+    if (process.env.NODE_ENV === 'production') {
+      try {
+        migrateLegacyJsonIfNeeded(dbInstance);
+      } catch (error) {
+        const failedDatabase = dbInstance;
+        dbInstance = null;
+        try { failedDatabase.close(); } catch {}
+        throw error;
+      }
+    }
     try {
       bootstrapDefaultDataIfNeeded(dbInstance);
     } catch (err) {

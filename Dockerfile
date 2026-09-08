@@ -22,10 +22,11 @@ COPY --chown=app:app scripts /app/scripts
 RUN mkdir -p /app/data /app/backups && chown -R app:app /app/data /app/backups
 ENV NODE_ENV=production \
     APP_DATA_DIR=/app/data \
+    BACKUP_DIR=/app/backups \
     DB_MIGRATIONS_DIR=/app/migrations \
     HOST=0.0.0.0 \
     PORT=3000
-USER app
+USER root
 EXPOSE 3000
 VOLUME ["/app/data", "/app/backups"]
 ENTRYPOINT ["node", "scripts/container-entrypoint.mjs"]

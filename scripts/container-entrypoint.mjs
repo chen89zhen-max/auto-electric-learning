@@ -4,20 +4,51 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { DatabaseSync } from 'node:sqlite';
 
+const APP_UID = 10001;
+const APP_GID = 10001;
 const dataDir = process.env.APP_DATA_DIR;
+const backupDir = process.env.BACKUP_DIR;
 const migrationDir = process.env.DB_MIGRATIONS_DIR;
 
 try {
   if (!dataDir || !path.isAbsolute(dataDir)) throw new Error('APP_DATA_DIR must be absolute');
+  if (!backupDir || !path.isAbsolute(backupDir)) throw new Error('BACKUP_DIR must be absolute');
   if (!migrationDir || !path.isAbsolute(migrationDir)) throw new Error('DB_MIGRATIONS_DIR must be absolute');
+
+  if (process.getuid?.() === 0) {
+    assertExpectedRootMount(dataDir, '/app/data');
+    assertExpectedRootMount(backupDir, '/app/backups');
+    preparePersistentDirectory(dataDir);
+    preparePersistentDirectory(backupDir);
+    console.log('[startup] persistent directories ready');
+
+    const child = spawn(process.execPath, ['scripts/container-entrypoint.mjs'], {
+      cwd: process.cwd(),
+      stdio: 'inherit',
+      uid: APP_UID,
+      gid: APP_GID,
+      env: process.env,
+    });
+    forwardSignals(child);
+    child.once('exit', (code) => process.exit(code ?? 1));
+  } else {
+    runApplication();
+  }
+} catch (error) {
+  console.error('[startup] preflight failed:', error instanceof Error ? error.message : 'unknown error');
+  process.exit(1);
+}
+
+function runApplication() {
   fs.mkdirSync(dataDir, { recursive: true });
   fs.accessSync(dataDir, fs.constants.R_OK | fs.constants.W_OK);
+  fs.accessSync(backupDir, fs.constants.R_OK | fs.constants.W_OK);
   fs.accessSync(migrationDir, fs.constants.R_OK);
 
   if (process.env.CONTAINER_LOCK_HELD !== '1') {
     const lockFile = path.join(dataDir, '.app.lock');
     const child = spawn('flock', [
-      '-n', '-E', '73', lockFile,
+      '-F', '-n', '-E', '73', lockFile,
       'node', 'scripts/container-entrypoint.mjs',
     ], {
       cwd: process.cwd(),
@@ -31,13 +62,38 @@ try {
     });
   } else {
     preflightDatabase(path.join(dataDir, 'app.db'), migrationDir);
+    console.log('[startup] database preflight passed');
     const server = spawn('node', ['server.js'], { cwd: process.cwd(), stdio: 'inherit', env: process.env });
     forwardSignals(server);
     server.once('exit', (code) => process.exit(code ?? 1));
   }
-} catch (error) {
-  console.error('[startup] preflight failed:', error instanceof Error ? error.message : 'unknown error');
-  process.exit(1);
+}
+
+function assertExpectedRootMount(actual, expected) {
+  if (path.resolve(actual) !== expected) {
+    throw new Error(`refusing root permission repair outside ${expected}: ${actual}`);
+  }
+}
+
+function preparePersistentDirectory(directory) {
+  fs.mkdirSync(directory, { recursive: true });
+  repairOwnershipAndMode(directory);
+}
+
+function repairOwnershipAndMode(target) {
+  const stats = fs.lstatSync(target);
+  if (stats.isSymbolicLink()) throw new Error(`persistent path must not contain symbolic links: ${target}`);
+  if (!stats.isDirectory() && !stats.isFile()) {
+    throw new Error(`persistent path contains an unsupported file type: ${target}`);
+  }
+
+  fs.chownSync(target, APP_UID, APP_GID);
+  fs.chmodSync(target, stats.isDirectory() ? 0o700 : 0o600);
+  if (stats.isDirectory()) {
+    for (const entry of fs.readdirSync(target)) {
+      repairOwnershipAndMode(path.join(target, entry));
+    }
+  }
 }
 
 function preflightDatabase(databasePath, migrationsPath) {
@@ -106,9 +162,25 @@ function preflightDatabase(databasePath, migrationsPath) {
     });
     const quickCheck = database.prepare('PRAGMA quick_check').get();
     if (quickCheck?.quick_check !== 'ok') throw new Error('SQLite quick_check failed');
+    const administrator = database.prepare("SELECT id FROM users WHERE role = 'admin' LIMIT 1").get();
+    const legacyAdministrator = legacyDatabaseHasAdministrator(path.join(dataDir, 'users.json'));
+    if (!administrator && !legacyAdministrator && !process.env.ADMIN_INITIAL_PASSWORD?.trim()) {
+      throw new Error('ADMIN_INITIAL_PASSWORD is required when the database has no administrator');
+    }
   } finally {
     database.close();
   }
+}
+
+function legacyDatabaseHasAdministrator(legacyPath) {
+  if (!fs.existsSync(legacyPath)) return false;
+  let legacy;
+  try {
+    legacy = JSON.parse(fs.readFileSync(legacyPath, 'utf8'));
+  } catch {
+    throw new Error('legacy users.json is not valid JSON');
+  }
+  return Object.values(legacy?.users ?? {}).some((user) => user?.role === 'admin');
 }
 
 function forwardSignals(child) {

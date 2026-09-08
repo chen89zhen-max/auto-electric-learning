@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { getDatabase, type AppDatabase } from './database';
+import type { AppDatabase } from './database';
 import { hashPassword } from '../auth/crypto';
 import { createBaseUserProgress } from '@/src/types/progress';
 
@@ -24,12 +24,12 @@ interface LegacyDatabase {
  * Migrates legacy data/users.json into SQLite database transactionally.
  * Creates an immutable backup file before performing any data transformation.
  */
-export function migrateLegacyJsonIfNeeded(db: AppDatabase = getDatabase()): {
+export function migrateLegacyJsonIfNeeded(db: AppDatabase): {
   migrated: boolean;
   usersCount: number;
   backupFile?: string;
 } {
-  const dataDir = path.join(process.cwd(), 'data');
+  const dataDir = process.env.APP_DATA_DIR || path.join(process.cwd(), 'data');
   const legacyFile = path.join(dataDir, 'users.json');
 
   if (!fs.existsSync(legacyFile)) {
@@ -127,7 +127,7 @@ export function migrateLegacyJsonIfNeeded(db: AppDatabase = getDatabase()): {
  * Ensures at least one admin account exists in the database.
  */
 export function bootstrapInitialAdminIfNeeded(
-  db: AppDatabase = getDatabase(),
+  db: AppDatabase,
   options: { initialPassword?: string; username?: string } = {}
 ): boolean {
   const checkAdmin = db.prepare<Record<string, unknown>>(

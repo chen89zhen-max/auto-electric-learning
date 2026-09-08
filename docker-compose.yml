@@ -8,16 +8,17 @@ services:
     environment:
       NODE_ENV: production
       APP_DATA_DIR: /app/data
+      BACKUP_DIR: /app/backups
       DB_MIGRATIONS_DIR: /app/migrations
       HOST: 0.0.0.0
       PORT: 3000
       ENABLE_DEMO_SEED: "false"
       ENABLE_TEST_PASS_ACCOUNT: ${ENABLE_TEST_PASS_ACCOUNT:-true}
       ADMIN_INITIAL_USERNAME: ${ADMIN_INITIAL_USERNAME:-admin}
-      ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:?Set ADMIN_INITIAL_PASSWORD in .env}
+      ADMIN_INITIAL_PASSWORD: "${ADMIN_INITIAL_PASSWORD:-}"
       TZ: ${TZ:-Asia/Shanghai}
     ports:
-      - "${BIND_ADDRESS:-127.0.0.1}:${APP_PORT:-3000}:3000"
+      - "${BIND_ADDRESS:-0.0.0.0}:${APP_PORT:-3001}:3000"
     volumes:
       - ./data:/app/data
       - ./backups:/app/backups
@@ -43,6 +44,7 @@ services:
   backup:
     profiles: ["maintenance"]
     image: auto-electric-learning:local
+    user: "10001:10001"
     entrypoint: ["node", "scripts/backup-sqlite.mjs"]
     environment:
       APP_DATA_DIR: /app/data

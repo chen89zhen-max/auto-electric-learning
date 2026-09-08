@@ -4,16 +4,16 @@
 
 ## 一、首次部署准备
 
-建议项目目录为 `/volume1/docker/auto-electric`，其中创建 `data`、`backups` 两个目录。镜像内应用用户 UID/GID 为 `10001:10001`，部署前由群晖管理员确认两个目录对该 UID/GID 可读写。真实 `.env`、管理员临时凭据和学生名单不得提交到 Git。
+建议项目目录为 `/volume1/docker/auto-electric-learning`。镜像入口会自动创建 `data`、`backups`，修复为 UID/GID `10001:10001` 可读写，然后以该非 root 身份运行应用；不再需要部署人员手工执行 `mkdir`、`chown` 或 `chmod`。真实 `.env`、管理员临时凭据和学生名单不得提交到 Git。
 
 ```sh
-cd /volume1/docker/auto-electric
+cd /volume1/docker/auto-electric-learning
 docker compose build app
 docker compose up -d app
 docker compose ps
 ```
 
-访问 `http://127.0.0.1:3000/api/health`，必须返回 `status=ok`、`database=ready` 和当前 schema 版本。外部访问应通过学校认可的 DSM 反向代理和 HTTPS。
+访问 `http://群晖局域网IP:3001/api/health`，必须返回 `status=ok`、`database=ready` 和当前 schema 版本。当前调试阶段可按部署指南使用公网端口转发；正式使用真实学生数据前应切换到学校认可的 HTTPS 反向代理或 VPN。
 
 ## 二、每日一致性备份
 
@@ -22,7 +22,7 @@ docker compose ps
 在群晖“控制面板 → 任务计划”中新建每日任务，建议凌晨执行：
 
 ```sh
-cd /volume1/docker/auto-electric
+cd /volume1/docker/auto-electric-learning
 docker compose run --rm backup
 ```
 
@@ -46,7 +46,7 @@ docker compose run --rm --entrypoint node backup \
 恢复会替换当前数据库，必须安排维护窗口并确认应用已停止。脚本要求 `APP_STOPPED=true`，且恢复源必须是 `/app/backups` 内的绝对路径；恢复前会把当前库保存为 `app-pre-restore-*.db`。
 
 ```sh
-cd /volume1/docker/auto-electric
+cd /volume1/docker/auto-electric-learning
 docker compose stop app
 docker compose run --rm \
   -e APP_STOPPED=true \

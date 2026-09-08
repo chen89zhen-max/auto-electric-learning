@@ -1,7 +1,10 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { NextRequest } from 'next/server';
 import { POST as authPost } from '@/app/api/auth/route';
-import { createSqliteAdapter, setDatabaseInstance, type AppDatabase } from '@/src/server/db/database';
+import { createSqliteAdapter, getDatabase, setDatabaseInstance, type AppDatabase } from '@/src/server/db/database';
 import { bootstrapDefaultDataIfNeeded } from '@/src/server/db/bootstrap';
 import { bootstrapInitialAdminIfNeeded } from '@/src/server/db/migration';
 
@@ -59,7 +62,7 @@ describe('生产初始化与公开注册边界', () => {
       environment: 'development',
       enableDemoSeed: false,
     });
-    let rows = testDb.prepare<{ username: string; role: string }>(
+    const rows = testDb.prepare<{ username: string; role: string }>(
       'SELECT username, role FROM users'
     ).all();
     // 演示种子关闭时仅保留全通关测试账号
@@ -104,6 +107,55 @@ describe('生产初始化与公开注册边界', () => {
     ).get();
     expect(created).toBe(false);
     expect(count?.count).toBe(0);
+  });
+
+  it('生产数据库在提供给接口前迁移旧 users.json 中的管理员', () => {
+    const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), 'legacy-production-db-'));
+    const migrations = path.join(process.cwd(), 'src/server/db/migrations');
+    const previous = {
+      NODE_ENV: process.env.NODE_ENV,
+      APP_DATA_DIR: process.env.APP_DATA_DIR,
+      DB_MIGRATIONS_DIR: process.env.DB_MIGRATIONS_DIR,
+      ADMIN_INITIAL_PASSWORD: process.env.ADMIN_INITIAL_PASSWORD,
+      ENABLE_TEST_PASS_ACCOUNT: process.env.ENABLE_TEST_PASS_ACCOUNT,
+    };
+    fs.writeFileSync(path.join(sandbox, 'users.json'), JSON.stringify({
+      version: 1,
+      users: {
+        legacy_admin: {
+          username: 'legacy_admin',
+          password: 'Legacy#2026',
+          realName: '旧管理员',
+          role: 'admin',
+        },
+      },
+      progress: {},
+    }));
+
+    try {
+      setDatabaseInstance(null);
+      Object.assign(process.env, {
+        NODE_ENV: 'production',
+        APP_DATA_DIR: sandbox,
+        DB_MIGRATIONS_DIR: migrations,
+        ADMIN_INITIAL_PASSWORD: '',
+        ENABLE_TEST_PASS_ACCOUNT: 'false',
+      });
+
+      const productionDb = getDatabase();
+      const admin = productionDb.prepare<{ username: string }>(
+        "SELECT username FROM users WHERE role = 'admin'"
+      ).get();
+      expect(admin?.username).toBe('legacy_admin');
+      expect(fs.existsSync(path.join(sandbox, 'users.json.migrated'))).toBe(true);
+    } finally {
+      setDatabaseInstance(null);
+      for (const [key, value] of Object.entries(previous)) {
+        if (value === undefined) delete process.env[key];
+        else process.env[key] = value;
+      }
+      fs.rmSync(sandbox, { recursive: true, force: true });
+    }
   });
 
   it('公开学生注册接口被禁用，客户端提交班级不会创建用户或归班关系', async () => {
