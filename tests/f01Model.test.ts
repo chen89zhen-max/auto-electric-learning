@@ -116,6 +116,45 @@ describe('F01 deterministic integrated model', () => {
       ],
     })).toEqual({ passed: true, missing: [] });
   });
+
+  it('spot-checks fault packages A, B, and C with deterministic expectations and transfer divider condition', () => {
+    // Package A
+    const a = createF01Model('F01-A');
+    expect(a.prePowerDefect).toBe('FLYBACK_DIODE_REVERSED');
+    expect(a.operationalFault).toBe('SUPPLY_CONNECTOR_HIGH_RESISTANCE');
+
+    // Package B
+    const b = createF01Model('F01-B');
+    expect(b.prePowerDefect).toBe('POWER_GROUND_SOLDER_BRIDGE');
+    expect(b.operationalFault).toBe('DIVIDER_UPPER_OPEN');
+
+    // Package C
+    const c = createF01Model('F01-C');
+    expect(c.prePowerDefect).toBe('RELAY_COIL_COLD_JOINT');
+    expect(c.operationalFault).toBe('GROUND_HIGH_RESISTANCE');
+
+    // Transfer divider condition on all seeds:
+    // With 2kΩ upper and 1kΩ lower, 5V * 1k / (2k + 1k) = 1.6667V < 2.0V threshold -> relay stays OFF
+    for (const seed of ['F01-A', 'F01-B', 'F01-C'] as const) {
+      let m = createF01Model(seed);
+      m = applyF01Action(m, { type: 'FIX_PREPOWER', defect: m.prePowerDefect }).state;
+      m = applyF01Action(m, { type: 'REPAIR_OPERATIONAL', fault: m.operationalFault }).state;
+      m = applyF01Action(m, { type: 'SET_POWER', on: true }).state;
+      m = applyF01Action(m, { type: 'SET_INPUTS', a: true, b: true }).state;
+      // Before transfer: normal divider 1k/1k -> 2.5V >= 2.0V -> relayOn is true
+      expect(getF01Outputs(m).relayOn).toBe(true);
+
+      // Apply transfer divider 2k/1k
+      const transferTransition = applyF01Action(m, { type: 'APPLY_TRANSFER_DIVIDER', upperOhms: 2000, lowerOhms: 1000 });
+      expect(transferTransition.allowed).toBe(true);
+      const transferred = transferTransition.state;
+      const outputs = getF01Outputs(transferred);
+      expect(outputs.dividerVoltage).toBeCloseTo(1.6667, 3);
+      expect(outputs.sensorInput).toBe(false);
+      expect(outputs.relayOn).toBe(false);
+      expect(outputs.lampOn).toBe(false);
+    }
+  });
 });
 
 function dcVoltage(target: F01MeterRequest['target']) {
