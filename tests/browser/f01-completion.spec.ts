@@ -115,7 +115,16 @@ test.describe.serial('F01 browser end-to-end delivery lifecycle', () => {
     await expect(page.getByRole('heading', { name: 'F01 实训中心交付挑战——智能检修灯控制总成终检' })).toBeVisible();
     await expect(page.getByText('阶段 1/5')).toBeVisible();
 
-    const seed1 = selectF01ScenarioSeed('student1', 1);
+    const ordinal1 = await page.evaluate(() => {
+      try {
+        const raw = localStorage.getItem('NEV_ELECTRICAL_GAME_USER_PROGRESS_V1');
+        const progress = raw ? JSON.parse(raw) : null;
+        return ((progress?.levels?.F01?.attemptCount as number) ?? 0) + 1;
+      } catch {
+        return 1;
+      }
+    });
+    const seed1 = selectF01ScenarioSeed('student1', ordinal1);
 
     const completePromise1 = page.waitForResponse(
       (res) => Boolean(res.url().endsWith('/api/learning/events') && res.request().method() === 'POST' && res.request().postData()?.includes('LEVEL_COMPLETE'))
@@ -129,7 +138,7 @@ test.describe.serial('F01 browser end-to-end delivery lifecycle', () => {
     const f01Progress1 = body1.projection.levels.F01;
     expect(f01Progress1.status).toBe('completed');
     expect(f01Progress1.score).toBe(100);
-    expect(f01Progress1.attemptCount).toBe(1);
+    expect(f01Progress1.attemptCount).toBe(ordinal1);
     expect(f01Progress1.recentRecord).toMatchObject({
       score: 100,
       timingSource: 'server',
@@ -158,8 +167,9 @@ test.describe.serial('F01 browser end-to-end delivery lifecycle', () => {
     await f01Card.click();
     await expect(page.getByRole('heading', { name: 'F01 实训中心交付挑战——智能检修灯控制总成终检' })).toBeVisible();
 
-    // Rotate seed to attempt 2
-    const seed2 = selectF01ScenarioSeed('student1', 2);
+    // Rotate seed to next attempt
+    const ordinal2 = ordinal1 + 1;
+    const seed2 = selectF01ScenarioSeed('student1', ordinal2);
     expect(seed2).not.toBe(seed1);
 
     const completePromise2 = page.waitForResponse(
@@ -173,7 +183,7 @@ test.describe.serial('F01 browser end-to-end delivery lifecycle', () => {
     expect(res2.ok()).toBe(true);
     const body2 = await res2.json();
     const f01Progress2 = body2.projection.levels.F01;
-    expect(f01Progress2.attemptCount).toBe(2);
+    expect(f01Progress2.attemptCount).toBe(ordinal2);
     expect(f01Progress2.score).toBeLessThan(100);
     expect(f01Progress2.recentRecord?.score).toBe(f01Progress2.score);
     expect(f01Progress2.firstRecord?.score).toBe(100);
