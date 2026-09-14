@@ -3,6 +3,8 @@ import { generateSecureToken } from '../auth/crypto';
 import { getDatabase, type AppDatabase } from '../db/database';
 import { createBaseUserProgress, type UserProgressData } from '@/src/types/progress';
 import { applyLearningEvent, isLevelId, LearningTransitionError } from './stateTransitions';
+import { normalizeLevelId, toLegacyLevelId } from '@/src/courses/registry';
+import { selectF01ScenarioSeed, validateF01CompletionMetrics } from '@/src/levels/f01/f01Model';
 
 export interface LearningEventInput {
   eventId: string;
@@ -16,6 +18,9 @@ export interface LearningEventResult {
   projection: UserProgressData;
   attemptId: string;
   idempotent: boolean;
+  startedAt: number;
+  completedAt?: number;
+  durationMs?: number;
 }
 
 export type LearningEventErrorCode =
@@ -26,6 +31,7 @@ export type LearningEventErrorCode =
   | 'EVENT_ID_CONFLICT'
   | 'LEVEL_LOCKED'
   | 'LEVEL_ALREADY_COMPLETED'
+  | 'MISSING_ATTEMPT_START'
   | 'INVALID_SCORE';
 
 export class LearningEventError extends Error {
@@ -39,6 +45,8 @@ interface StoredEventRow {
   payload: string;
   attempt_id: string;
   student_id: string;
+  started_at: number;
+  completed_at: number | null;
 }
 
 interface StoredEnvelope {
@@ -68,7 +76,11 @@ export function submitLearningEvent(
   rawInput: LearningEventInput,
   db: AppDatabase = getDatabase()
 ): LearningEventResult {
-  const input = validateInput(rawInput);
+  const receivedAt = Date.now();
+  const validatedInput = validateInput(rawInput, receivedAt);
+  const input = validatedInput.eventType === 'LEVEL_START' || validatedInput.eventType === 'LEVEL_COMPLETE'
+    ? { ...validatedInput, occurredAt: receivedAt }
+    : validatedInput;
   const existing = findStoredEvent(input.eventId, db);
   if (existing) return existingResult(existing, user.id, input.payload);
 
@@ -92,11 +104,14 @@ export function submitLearningEvent(
     if (!courseVersion) {
       throw new LearningEventError('MISSING_COURSE_VERSION', '当前课程版本不可用');
     }
+    const canonicalLevelId = normalizeLevelId(input.levelId);
+    const persistedLevelId = toLegacyLevelId(canonicalLevelId) || canonicalLevelId;
 
     const progressRow = db.prepare<{ progress_data: string }>(
       'SELECT progress_data FROM user_progress WHERE user_id=?'
     ).get(user.id);
     const current = parseProgress(progressRow?.progress_data, user.realName);
+
     let transition;
     try {
       transition = applyLearningEvent(current, user.realName, input);
@@ -107,29 +122,46 @@ export function submitLearningEvent(
       throw error;
     }
 
+    if (canonicalLevelId === 'F01' && input.eventType === 'LEVEL_COMPLETE') {
+      const levelProgress = current.levels[persistedLevelId];
+      const attemptOrdinal = (levelProgress?.attemptCount ?? 0) + 1;
+      const expectedSeed = selectF01ScenarioSeed(user.username, attemptOrdinal);
+      const rawMetrics = extractMetrics(input.payload);
+      const validation = validateF01CompletionMetrics(rawMetrics, expectedSeed);
+      if (!validation.valid) {
+        throw new LearningEventError('INVALID_SCORE', `F01 完成证据无效：${validation.reason}`);
+      }
+    }
+
     const attemptMode = transition.attemptRecord?.mode ?? extractMode(input.payload);
     const attemptSeed = extractSeed(input.payload);
     let attemptEvidence: string | null = null;
     if (transition.scoredAssessment) {
+      const f01Metrics = canonicalLevelId === 'F01' ? extractMetrics(input.payload) : undefined;
       attemptEvidence = JSON.stringify({
         evidence: transition.scoredAssessment.evidence,
         dimensions: transition.scoredAssessment.dimensions,
         counters: transition.scoredAssessment.counters,
         durationMs: transition.scoredAssessment.durationMs,
+        ...(f01Metrics ? { f01: f01Metrics } : {}),
       });
     } else {
       attemptEvidence = extractEvidenceString(input.payload);
     }
     const rubricVersion = transition.rubricVersion ?? 'v1';
 
-    let attempt = db.prepare<{ id: string }>(
-      `SELECT id FROM learning_attempts
+    let attempt = db.prepare<{ id: string; started_at: number }>(
+      `SELECT id,started_at FROM learning_attempts
        WHERE student_id=? AND class_id=? AND course_version_id=? AND level_id=? AND status='in_progress'
        ORDER BY started_at DESC LIMIT 1`
-    ).get(user.id, classRow.class_id, courseVersion.id, input.levelId);
+    ).get(user.id, classRow.class_id, courseVersion.id, persistedLevelId);
+
+    if (!attempt && input.eventType === 'LEVEL_COMPLETE') {
+      throw new LearningEventError('MISSING_ATTEMPT_START', '未找到本次实训的开始记录，请重新进入关卡后再提交');
+    }
 
     if (!attempt) {
-      attempt = { id: `try_${generateSecureToken(10)}` };
+      attempt = { id: `try_${generateSecureToken(10)}`, started_at: input.occurredAt };
       db.prepare(
         `INSERT INTO learning_attempts
           (id,student_id,class_id,course_version_id,level_id,started_at,completed_at,score,status,mode,seed,evidence_data,rubric_version)
@@ -139,7 +171,7 @@ export function submitLearningEvent(
         user.id,
         classRow.class_id,
         courseVersion.id,
-        input.levelId,
+        persistedLevelId,
         input.occurredAt,
         transition.completed ? input.occurredAt : null,
         transition.completed ? transition.score : null,
@@ -156,6 +188,26 @@ export function submitLearningEvent(
       ).run(input.occurredAt, transition.score, attemptSeed, attemptEvidence, rubricVersion, attempt.id);
     }
 
+    const startedAt = attempt.started_at;
+    const completedAt = transition.completed ? input.occurredAt : undefined;
+    const durationMs = completedAt === undefined ? undefined : Math.max(0, completedAt - startedAt);
+    if (
+      transition.completed &&
+      transition.attemptRecord &&
+      completedAt !== undefined &&
+      durationMs !== undefined
+    ) {
+      applyAuthoritativeAttemptTiming(
+        transition.projection,
+        input.levelId,
+        transition.attemptRecord.attemptId,
+        attempt.id,
+        startedAt,
+        completedAt,
+        durationMs,
+      );
+    }
+
     const envelope: StoredEnvelope = { eventPayload: input.payload, projection: transition.projection };
     db.prepare(
       'INSERT INTO learning_events (id,attempt_id,event_type,payload,occurred_at) VALUES (?,?,?,?,?)'
@@ -167,12 +219,17 @@ export function submitLearningEvent(
        ON CONFLICT(user_id) DO UPDATE SET progress_data=excluded.progress_data,version=excluded.version,last_updated=excluded.last_updated`
     ).run(user.id, JSON.stringify(transition.projection), transition.projection.lastUpdated);
 
-    return { projection: transition.projection, attemptId: attempt.id, idempotent: false };
+    return {
+      projection: transition.projection,
+      attemptId: attempt.id,
+      idempotent: false,
+      startedAt,
+      ...(completedAt === undefined ? {} : { completedAt, durationMs }),
+    };
   });
 }
 
-function validateInput(input: LearningEventInput): LearningEventInput {
-  const now = Date.now();
+function validateInput(input: LearningEventInput, now = Date.now()): LearningEventInput {
   let serializedPayload = '';
   try { serializedPayload = JSON.stringify(input.payload); } catch {}
   if (!input || typeof input.eventId !== 'string' || !/^[a-zA-Z0-9_-]{8,128}$/.test(input.eventId)
@@ -187,7 +244,7 @@ function validateInput(input: LearningEventInput): LearningEventInput {
 
 function findStoredEvent(eventId: string, db: AppDatabase): StoredEventRow | undefined {
   return db.prepare<StoredEventRow>(
-    `SELECT le.payload,le.attempt_id,la.student_id
+    `SELECT le.payload,le.attempt_id,la.student_id,la.started_at,la.completed_at
      FROM learning_events le JOIN learning_attempts la ON la.id=le.attempt_id WHERE le.id=?`
   ).get(eventId);
 }
@@ -207,11 +264,52 @@ function existingResult(row: StoredEventRow, userId: string, incomingPayload: un
       throw new LearningEventError('EVENT_ID_CONFLICT', '相同事件编号已存在但事件内容不一致');
     }
 
-    return { projection: envelope.projection, attemptId: row.attempt_id, idempotent: true };
+    return {
+      projection: envelope.projection,
+      attemptId: row.attempt_id,
+      idempotent: true,
+      startedAt: row.started_at,
+      ...(row.completed_at === null ? {} : {
+        completedAt: row.completed_at,
+        durationMs: Math.max(0, row.completed_at - row.started_at),
+      }),
+    };
   } catch (error) {
     if (error instanceof LearningEventError) throw error;
     throw new LearningEventError('EVENT_ID_CONFLICT', '历史事件内容无法用于幂等响应');
   }
+}
+
+function applyAuthoritativeAttemptTiming(
+  projection: UserProgressData,
+  submittedLevelId: string,
+  provisionalAttemptId: string,
+  persistedAttemptId: string,
+  startedAt: number,
+  completedAt: number,
+  durationMs: number,
+): void {
+  const canonical = normalizeLevelId(submittedLevelId);
+  const progressKey = toLegacyLevelId(canonical) || submittedLevelId;
+  const level = projection.levels[progressKey];
+  if (!level) return;
+
+  const enrich = (record: typeof level.recentRecord) => {
+    if (!record || record.attemptId !== provisionalAttemptId) return record;
+    return {
+      ...record,
+      attemptId: persistedAttemptId,
+      startedAt: new Date(startedAt).toISOString(),
+      completedAt: new Date(completedAt).toISOString(),
+      durationMs,
+      timingSource: 'server' as const,
+    };
+  };
+
+  level.firstRecord = enrich(level.firstRecord);
+  level.recentRecord = enrich(level.recentRecord);
+  level.bestRecord = enrich(level.bestRecord);
+  level.transferRecord = enrich(level.transferRecord);
 }
 
 function parseProgress(value: string | undefined, traineeName: string): UserProgressData {
@@ -233,11 +331,25 @@ function extractMode(payload: unknown): string {
 }
 
 function extractSeed(payload: unknown): string | null {
-  if (payload && typeof payload === 'object' && 'seed' in payload) {
-    const seed = (payload as { seed?: unknown }).seed;
-    if (typeof seed === 'string') return seed;
+  if (payload && typeof payload === 'object') {
+    const rawMetrics = (payload as { metrics?: unknown }).metrics;
+    if (rawMetrics && typeof rawMetrics === 'object' && 'seed' in rawMetrics) {
+      const seed = (rawMetrics as { seed?: unknown }).seed;
+      if (typeof seed === 'string') return seed;
+    }
+    if ('seed' in payload) {
+      const seed = (payload as { seed?: unknown }).seed;
+      if (typeof seed === 'string') return seed;
+    }
   }
   return null;
+}
+
+function extractMetrics(payload: unknown): unknown {
+  if (payload && typeof payload === 'object' && 'metrics' in payload) {
+    return (payload as { metrics?: unknown }).metrics;
+  }
+  return undefined;
 }
 
 function extractEvidenceString(payload: unknown): string | null {

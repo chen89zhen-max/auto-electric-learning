@@ -19,15 +19,16 @@ import {
 import { scoreAssessment } from '@/src/assessment/scoreAssessment';
 import type { LevelAssessmentResult, ScoredAssessment } from '@/src/assessment/assessmentTypes';
 
-export const P4_P5_P6_LEVELS = new Set([
+export const ASSESSMENT_REQUIRED_LEVELS = new Set([
   'C01', 'C02', 'C03',
   'D01', 'D02', 'D03', 'D04', 'D05',
   'E01', 'E02', 'E03', 'E04', 'E05', 'E06', 'E07',
+  'F01',
 ]);
 
 export function isAssessmentRequiredLevel(levelId: string): boolean {
   const norm = normalizeLevelId(levelId);
-  return P4_P5_P6_LEVELS.has(norm);
+  return ASSESSMENT_REQUIRED_LEVELS.has(norm);
 }
 
 export const LEVEL_IDS: LevelId[] = [
@@ -142,6 +143,13 @@ export function applyLearningEvent(
   const isP4P5P6 = isAssessmentRequiredLevel(canonical);
   const rawAssessment = payloadHasAssessment(input.payload);
 
+  if (rawAssessment && normalizeLevelId(rawAssessment.levelId) !== canonical) {
+    throw new LearningTransitionError(
+      'INVALID_SCORE',
+      `评测关卡 ${rawAssessment.levelId} 与提交关卡 ${canonical} 不一致`,
+    );
+  }
+
   let score: number;
   let mode: PracticeMode;
   let incomingEvidence: Partial<Record<EvidenceDimensionId, EvidenceStatus>> | undefined;
@@ -216,8 +224,8 @@ export function applyLearningEvent(
   levels[legacyId] = {
     ...existingLevel,
     status: 'completed',
-    score: existingLevel.score ?? score, // Preserve first score for legacy backward compatibility
-    completedAt: existingLevel.completedAt || attemptRecord.completedAt,
+    score,
+    completedAt: attemptRecord.completedAt,
     attemptCount: newCount,
     firstRecord,
     recentRecord,

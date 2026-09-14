@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  CANONICAL_27_LEVEL_IDS,
+  CANONICAL_28_LEVEL_IDS,
   getLevelLoader,
   getLevelComponent,
   hasLevelLoader,
@@ -9,21 +9,22 @@ import {
 } from '@/src/app/levelComponents';
 
 describe('Task 9: Level Component Registry and Code-Splitting', () => {
-  it('contains all 27 canonical levels across the published curriculum', () => {
-    expect(CANONICAL_27_LEVEL_IDS.length).toBe(27);
+  it('contains all 28 canonical levels across the published curriculum', () => {
+    expect(CANONICAL_28_LEVEL_IDS.length).toBe(28);
 
-    const expected27 = [
+    const expected28 = [
       'O00', 'O01',
       'A01', 'A02', 'A03', 'A04',
       'B01', 'B02', 'B03', 'B04', 'B05', 'B06',
       'C01', 'C02', 'C03',
       'D01', 'D02', 'D03', 'D04', 'D05',
       'E01', 'E02', 'E03', 'E04', 'E05', 'E06', 'E07',
+      'F01',
     ];
 
-    expect([...CANONICAL_27_LEVEL_IDS].sort()).toEqual([...expected27].sort());
+    expect([...CANONICAL_28_LEVEL_IDS].sort()).toEqual([...expected28].sort());
 
-    for (const levelId of CANONICAL_27_LEVEL_IDS) {
+    for (const levelId of CANONICAL_28_LEVEL_IDS) {
       expect(hasLevelLoader(levelId)).toBe(true);
       const loader = getLevelLoader(levelId);
       expect(loader).toBeDefined();
@@ -36,7 +37,7 @@ describe('Task 9: Level Component Registry and Code-Splitting', () => {
   it('asynchronously loads each level component module with a valid default export', async () => {
     // Verify each loader dynamically imports its target component
     await Promise.all(
-      CANONICAL_27_LEVEL_IDS.map(async (levelId) => {
+      CANONICAL_28_LEVEL_IDS.map(async (levelId) => {
         const loader = getLevelLoader(levelId);
         expect(loader).toBeDefined();
         const mod = await loader!();
@@ -95,10 +96,10 @@ describe('Task 9: Level Component Registry and Code-Splitting', () => {
     }
   });
 
-  it('ensures F01 has no executable component loader and indicates under-construction', () => {
-    expect(hasLevelLoader('F01')).toBe(false);
-    expect(getLevelLoader('F01')).toBeUndefined();
-    expect(getLevelComponent('F01')).toBeUndefined();
+  it('ensures F01 has an executable component loader', () => {
+    expect(hasLevelLoader('F01')).toBe(true);
+    expect(getLevelLoader('F01')).toBeDefined();
+    expect(getLevelComponent('F01')).toBeDefined();
   });
 
   it('provides lazy loaders for teacher and admin role workspaces', async () => {

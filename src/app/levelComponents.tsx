@@ -3,6 +3,7 @@
 import React, { lazy, Suspense, type ComponentType, type LazyExoticComponent } from 'react';
 import { Loader2 } from 'lucide-react';
 import { normalizeLevelId } from '@/src/courses/registry';
+import { LevelAttemptBoundary } from '@/src/components/LevelAttemptBoundary';
 
 export interface LevelComponentProps {
   onReturnLobby: () => void;
@@ -10,16 +11,17 @@ export interface LevelComponentProps {
 
 export type LevelLoader = () => Promise<{ default: ComponentType<LevelComponentProps> }>;
 
-export const CANONICAL_27_LEVEL_IDS = [
+export const CANONICAL_28_LEVEL_IDS = [
   'O00', 'O01',
   'A01', 'A02', 'A03', 'A04',
   'B01', 'B02', 'B03', 'B04', 'B05', 'B06',
   'C01', 'C02', 'C03',
   'D01', 'D02', 'D03', 'D04', 'D05',
   'E01', 'E02', 'E03', 'E04', 'E05', 'E06', 'E07',
+  'F01',
 ] as const;
 
-export type CanonicalLevelId = typeof CANONICAL_27_LEVEL_IDS[number];
+export type CanonicalLevelId = typeof CANONICAL_28_LEVEL_IDS[number];
 
 const LEVEL_ALIAS_MAP: Record<string, string> = {
   // Level 00
@@ -108,6 +110,7 @@ const LEVEL_ALIAS_MAP: Record<string, string> = {
   'E05': 'E05',
   'E06': 'E06',
   'E07': 'E07',
+  'F01': 'F01',
 };
 
 export function resolveLevelId(input: string): string {
@@ -151,6 +154,7 @@ export const LEVEL_LOADERS: Record<CanonicalLevelId, LevelLoader> = {
   E05: () => import('@/src/levels/e05/E05Experience').then((m) => ({ default: m.E05Experience })),
   E06: () => import('@/src/levels/e06/E06Experience').then((m) => ({ default: m.E06Experience })),
   E07: () => import('@/src/levels/e07/E07Experience').then((m) => ({ default: m.E07Experience })),
+  F01: () => import('@/src/levels/f01/F01Experience').then((m) => ({ default: m.F01Experience })),
 };
 
 export const LEVEL_COMPONENTS: Record<CanonicalLevelId, LazyExoticComponent<ComponentType<LevelComponentProps>>> = {
@@ -181,6 +185,7 @@ export const LEVEL_COMPONENTS: Record<CanonicalLevelId, LazyExoticComponent<Comp
   E05: lazy(LEVEL_LOADERS.E05),
   E06: lazy(LEVEL_LOADERS.E06),
   E07: lazy(LEVEL_LOADERS.E07),
+  F01: lazy(LEVEL_LOADERS.F01),
 };
 
 export function hasLevelLoader(levelId: string): boolean {
@@ -253,7 +258,9 @@ export function LazyLevelContainer({
 
   return (
     <Suspense fallback={<LevelLoadingSkeleton levelId={canonical} />}>
-      <Component onReturnLobby={onReturnLobby} />
+      <LevelAttemptBoundary levelId={canonical}>
+        <Component onReturnLobby={onReturnLobby} />
+      </LevelAttemptBoundary>
     </Suspense>
   );
 }

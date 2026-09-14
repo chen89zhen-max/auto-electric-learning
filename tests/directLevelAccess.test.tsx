@@ -46,16 +46,22 @@ describe('Task 7: Direct Route Student Prerequisite Enforcement', () => {
     expect(resolveRequestedLevel('?level=C03', studentContext)).toBe('C03');
   });
 
+  it('protects F01 for students and allows teacher preview', () => {
+    const required = getCourseLevel('F01')!.prerequisiteLevelIds;
+    expect(resolveRequestedLevelRoute('?level=F01', { isTeacherOrAdmin: false, completedLevelIds: [] })).toMatchObject({ kind: 'blocked', levelId: 'F01' });
+    expect(resolveRequestedLevelRoute('?level=F01', { isTeacherOrAdmin: false, completedLevelIds: required })).toEqual({ kind: 'level', levelId: 'F01' });
+    expect(resolveRequestedLevelRoute('?level=F01', { isTeacherOrAdmin: true, completedLevelIds: [] })).toEqual({ kind: 'level', levelId: 'F01' });
+  });
+
   it('gracefully handles missing, invalid, or unpublished level query parameters', () => {
     expect(resolveRequestedLevelRoute('')).toEqual({ kind: 'home' });
     expect(resolveRequestedLevelRoute('?foo=bar')).toEqual({ kind: 'home' });
     expect(resolveRequestedLevelRoute('?level=nonexistent')).toEqual({ kind: 'home' });
-    expect(resolveRequestedLevelRoute('?level=F01')).toEqual({ kind: 'home' });
   });
 
   it('maintains backwards compatibility for callers omitting context', () => {
     expect(resolveRequestedLevel('?level=C02')).toBe('C02');
     expect(resolveRequestedLevel('?level=B04')).toBe('B04');
-    expect(resolveRequestedLevel('?level=F01')).toBe('HOME');
+    expect(resolveRequestedLevel('?level=F01')).toBe('F01');
   });
 });

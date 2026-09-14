@@ -666,10 +666,10 @@ export const CANONICAL_COURSE_REGISTRY: CourseLevelDefinition[] = [
     prerequisiteLevelIds: ['C03', 'E03', 'E04', 'E05', 'E07'],
     prerequisiteCapabilities: ['T09-INDEPENDENT-DELIVERY'],
     requiredModels: ['integrated_workshop_vehicle'],
-    publicationStatus: 'UNDER_CONSTRUCTION',
-    contentVersion: '0.1.0',
-    rubricVersion: 'v1',
-    implemented: false,
+    publicationStatus: 'PUBLISHED',
+    contentVersion: '1.0.0',
+    rubricVersion: 'v2',
+    implemented: true,
   },
 ];
 

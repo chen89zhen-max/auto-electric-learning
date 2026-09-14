@@ -2,13 +2,15 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { CheckCircle2, CloudUpload, RotateCcw } from 'lucide-react';
-import { getUserProgress, submitLevelCompletion } from '@/src/stores/userProgressStore';
+import { getLevelProgress, getUserProgress, submitLevelCompletion } from '@/src/stores/userProgressStore';
 import type { AbilityReportData } from '@/src/abilities/AbilityTracker';
 import { scoreFromDimensions } from '@/src/abilities/reportScore';
 import type { EvidenceDimensionId, EvidenceStatus, PracticeMode } from '@/src/types/evidence';
 import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
 import { scoreAssessment } from '@/src/assessment/scoreAssessment';
 import { isAssessmentRequiredLevel } from '@/src/assessment/rubrics';
+import type { AttemptSummaryRecord } from '@/src/types/evidence';
+import { formatDurationMs } from '@/src/lib/formatDuration';
 
 export function CompletionStatus({
   levelId,
@@ -18,6 +20,8 @@ export function CompletionStatus({
   mode,
   nextTask,
   assessment,
+  score: reportedScore,
+  onSavedAttempt,
 }: {
   levelId: string;
   report?: AbilityReportData;
@@ -26,6 +30,8 @@ export function CompletionStatus({
   mode?: PracticeMode;
   nextTask?: string;
   assessment?: LevelAssessmentResult;
+  score?: number;
+  onSavedAttempt?: (attempt: AttemptSummaryRecord) => void;
 }) {
   const [status, setStatus] = useState<'saving' | 'saved' | 'error'>('saving');
   const [message, setMessage] = useState('');
@@ -35,9 +41,15 @@ export function CompletionStatus({
     evidence,
     mode,
     assessment,
-    replay: getUserProgress().levels[levelId]?.status === 'completed',
+    reportedScore,
+    replay: getLevelProgress(levelId, getUserProgress()).status === 'completed',
   });
+  const onSavedAttemptRef = useRef(onSavedAttempt);
   const alive = useRef(false);
+
+  useEffect(() => {
+    onSavedAttemptRef.current = onSavedAttempt;
+  }, [onSavedAttempt]);
 
   const save = useCallback(async () => {
     setStatus('saving');
@@ -48,12 +60,13 @@ export function CompletionStatus({
         evidence: suppliedEvidence,
         mode: practiceMode,
         assessment: rawAssessment,
+        reportedScore: initialReportedScore,
         replay,
       } = initial.current;
 
-      const isP4P5P6 = isAssessmentRequiredLevel(levelId);
+      const requiresAssessment = isAssessmentRequiredLevel(levelId);
 
-      if (isP4P5P6 && !rawAssessment) {
+      if (requiresAssessment && !rawAssessment) {
         throw new Error('未提供有效的过程评价数据 (assessment)，无法保存成绩');
       }
 
@@ -67,8 +80,8 @@ export function CompletionStatus({
         completionScore = scored.score;
         completionMode = scored.mode;
         completionEvidence = scored.evidence;
-      } else if (isP4P5P6) {
-        throw new Error('C01—E07 关卡不允许使用默认评分');
+      } else if (requiresAssessment) {
+        throw new Error(`关卡 ${levelId} 不允许使用默认评分`);
       } else {
         const defaultEvidence: Record<string, string> =
           levelId === 'LEVEL_00' || levelId === 'O00' ? { SAFETY_SPECIFICATION: 'GUIDED_COMPLETE', CIRCUIT_READING: 'GUIDED_COMPLETE' }
@@ -79,7 +92,9 @@ export function CompletionStatus({
           : { CIRCUIT_READING: 'INDEPENDENT_COMPLETE', SAFETY_SPECIFICATION: 'INDEPENDENT_COMPLETE', TOOL_MEASUREMENT: 'GUIDED_COMPLETE' };
 
         completionEvidence = suppliedEvidence ?? defaultEvidence;
-        completionScore = result ? scoreFromDimensions(result.dimensions) : 100;
+        completionScore = Number.isInteger(initialReportedScore) && (initialReportedScore as number) >= 0 && (initialReportedScore as number) <= 100
+          ? initialReportedScore as number
+          : result ? scoreFromDimensions(result.dimensions) : 100;
         completionMode = practiceMode;
       }
 
@@ -96,7 +111,16 @@ export function CompletionStatus({
       );
 
       if (!alive.current) return;
-      setMessage(replay ? `本次为重复练习，保留首次成绩 ${projection.levels[levelId].score ?? '—'} 分` : `学习结果已保存 · ${projection.levels[levelId].score ?? '—'} 分`);
+      const levelProgress = getLevelProgress(levelId, projection);
+      const latestAttempt = levelProgress.recentRecord;
+      const latestScore = latestAttempt?.score ?? levelProgress.score ?? '—';
+      const latestDuration = latestAttempt?.durationMs === undefined
+        ? ''
+        : ` · 用时 ${formatDurationMs(latestAttempt.durationMs)}`;
+      if (latestAttempt) onSavedAttemptRef.current?.(latestAttempt);
+      setMessage(replay
+        ? `本次重复练习已保存 · ${latestScore} 分${latestDuration}`
+        : `学习结果已保存 · ${latestScore} 分${latestDuration}`);
       setStatus('saved');
     } catch (error) {
       if (!alive.current) return;

@@ -13,10 +13,10 @@ describe('training-level URL routing', () => {
     expect(resolveRequestedLevel('?level=E01')).toBe('E01');
     expect(resolveRequestedLevel('?level=E02')).toBe('E02');
     expect(resolveRequestedLevel('?level=E07')).toBe('E07');
+    expect(resolveRequestedLevel('?level=F01')).toBe('F01');
   });
 
   it('keeps unpublished levels out of direct entry', () => {
-    expect(resolveRequestedLevel('?level=F01')).toBe('HOME');
     expect(resolveRequestedLevel('?level=not-a-level')).toBe('HOME');
   });
 });

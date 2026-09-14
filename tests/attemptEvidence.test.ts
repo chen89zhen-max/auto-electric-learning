@@ -6,6 +6,8 @@ import { createSession } from '@/src/server/auth/session';
 import { assignStudentToClass, createClass } from '@/src/server/db/classService';
 import { createSqliteAdapter, setDatabaseInstance, type AppDatabase } from '@/src/server/db/database';
 import type { UserProgressData } from '@/src/types/progress';
+import { selectF01ScenarioSeed } from '@/src/levels/f01/f01Model';
+import { makeValidF01Metrics } from './helpers/f01TestFixtures';
 
 let db: AppDatabase;
 let studentToken: string;
@@ -39,6 +41,18 @@ function makeEvent(
   };
 }
 
+async function submitCompletion(eventData: Record<string, unknown>) {
+  const startEvent = {
+    eventId: `start-${String(eventData.eventId)}`,
+    levelId: eventData.levelId,
+    eventType: 'LEVEL_START',
+    payload: {},
+    occurredAt: Date.now(),
+  };
+  await eventPost(request(studentToken, startEvent));
+  return eventPost(request(studentToken, eventData));
+}
+
 beforeEach(() => {
   db = createSqliteAdapter(':memory:');
   setDatabaseInstance(db);
@@ -60,7 +74,7 @@ describe('Attempt Tracking, Replay & Evidence Framework (P1)', () => {
   it('supports repeated practice (replay) on completed level without throwing errors', async () => {
     // 1. Initial completion of LEVEL_00
     const firstEvt = makeEvent('evt-att-001', 'LEVEL_00', 85, { mode: 'guided' });
-    const res1 = await eventPost(request(studentToken, firstEvt));
+    const res1 = await submitCompletion(firstEvt);
     expect(res1.status).toBe(200);
 
     const body1 = (await res1.json()) as { projection: UserProgressData };
@@ -72,15 +86,15 @@ describe('Attempt Tracking, Replay & Evidence Framework (P1)', () => {
 
     // 2. Replay with higher score and independent mode
     const secondEvt = makeEvent('evt-att-002', 'LEVEL_00', 98, { mode: 'independent' });
-    const res2 = await eventPost(request(studentToken, secondEvt));
+    const res2 = await submitCompletion(secondEvt);
     expect(res2.status).toBe(200);
 
     const body2 = (await res2.json()) as { projection: UserProgressData };
     const level00 = body2.projection.levels.LEVEL_00;
 
     expect(level00.status).toBe('completed');
-    // First score is preserved for legacy backward-compatibility
-    expect(level00.score).toBe(85);
+    // The summary fields follow the latest attempt; firstRecord preserves history.
+    expect(level00.score).toBe(98);
     expect(level00.attemptCount).toBe(2);
     expect(level00.firstRecord?.score).toBe(85);
     expect(level00.recentRecord?.score).toBe(98);
@@ -99,38 +113,76 @@ describe('Attempt Tracking, Replay & Evidence Framework (P1)', () => {
     expect(attempts[1].mode).toBe('independent');
   });
 
-  it('rejects event submission for under-construction levels (F01)', async () => {
-    // LEVEL_00 and LEVEL_01 completed first
-    await eventPost(request(studentToken, makeEvent('evt-lvl00', 'LEVEL_00', 90)));
-    await eventPost(request(studentToken, makeEvent('evt-lvl01', 'LEVEL_01', 90)));
-    await eventPost(request(studentToken, makeEvent('evt-lvl02', 'LEVEL_02', 90)));
+  it('rejects F01 without assessment/metrics and accepts with valid evidence', async () => {
+    // Complete prerequisites for F01
+    const prereqs = ['C03', 'E03', 'E04', 'E05', 'E07'];
+    const currentProgressRow = db.prepare<{ progress_data: string }>('SELECT progress_data FROM user_progress WHERE user_id=?').get('student');
+    const progressData = currentProgressRow
+      ? JSON.parse(currentProgressRow.progress_data)
+      : { traineeName: '张晓明', levels: {}, lastUpdated: Date.now() };
+    for (const prereq of prereqs) {
+      progressData.levels[prereq] = { status: 'completed', score: 95 };
+    }
+    db.prepare(
+      `INSERT INTO user_progress (user_id, progress_data, version, last_updated)
+       VALUES (?, ?, 1, ?)
+       ON CONFLICT(user_id) DO UPDATE SET progress_data=excluded.progress_data, last_updated=excluded.last_updated`
+    ).run('student', JSON.stringify(progressData), Date.now());
 
-    // Attempting to submit for unimplemented / under-construction F01
-    const responseUnderCons = await eventPost(request(studentToken, makeEvent('evt-under-cons-1', 'F01', 90)));
-    expect(responseUnderCons.status).toBe(422);
-    const body = (await responseUnderCons.json()) as { error: string };
-    expect(body.error).toContain('建设中');
+    // Attempting to submit F01 without assessment
+    const resNoAssessment = await submitCompletion(makeEvent('evt-f01-no-assess', 'F01', 90));
+    expect(resNoAssessment.status).toBe(422);
+    const bodyNoAssess = (await resNoAssessment.json()) as { error: string };
+    expect(bodyNoAssess.error).toContain('量规评测数据');
 
-    // Verify nothing persisted
-    expect(
-      db.prepare<{ count: number }>("SELECT COUNT(*) count FROM learning_events WHERE id LIKE 'evt-under-cons%'").get()?.count
-    ).toBe(0);
+    // Submit with valid assessment and metrics
+    const expectedSeed = selectF01ScenarioSeed('student', 1);
+    const validMetrics = makeValidF01Metrics(expectedSeed);
+    const resValid = await submitCompletion({
+      eventId: 'evt-f01-valid-1',
+      levelId: 'F01',
+      eventType: 'LEVEL_COMPLETE',
+      payload: {
+        assessment: {
+          schemaVersion: 1,
+          levelId: 'F01',
+          rubricVersion: 'v2',
+          startedAt: 1_700_000_000_000,
+          completedAt: 1_700_000_120_000,
+          stages: ['cognition', 'standard', 'calculation', 'blind_test', 'transfer'].map((st, i) => ({
+            stageId: st,
+            mode: 'transfer',
+            startedAt: 1_700_000_000_000 + i * 20_000,
+            completedAt: 1_700_000_000_000 + (i + 1) * 20_000,
+            wrongAttempts: 0,
+            hintRequests: 0,
+            meterGuardBlocks: 0,
+            unsafeActions: 0,
+            retries: 0,
+            completed: true,
+          })),
+        },
+        metrics: validMetrics,
+      },
+      occurredAt: Date.now(),
+    });
+    expect(resValid.status).toBe(200);
   });
 
   it('accepts published B01 and records its independent evidence separately', async () => {
-    await eventPost(request(studentToken, makeEvent('evt-b01-o00', 'LEVEL_00', 90)));
-    await eventPost(request(studentToken, makeEvent('evt-b01-o01', 'LEVEL_01', 90)));
-    await eventPost(request(studentToken, makeEvent('evt-b01-a01', 'LEVEL_02', 90)));
-    await eventPost(request(studentToken, makeEvent('evt-b01-a02', 'A02', 90)));
-    await eventPost(request(studentToken, makeEvent('evt-b01-a03', 'A03', 90)));
-    await eventPost(request(studentToken, makeEvent('evt-b01-a04', 'A04', 90)));
-    const response = await eventPost(request(studentToken, makeEvent('evt-b01-published', 'B01', 96, {
+    await submitCompletion(makeEvent('evt-b01-o00', 'LEVEL_00', 90));
+    await submitCompletion(makeEvent('evt-b01-o01', 'LEVEL_01', 90));
+    await submitCompletion(makeEvent('evt-b01-a01', 'LEVEL_02', 90));
+    await submitCompletion(makeEvent('evt-b01-a02', 'A02', 90));
+    await submitCompletion(makeEvent('evt-b01-a03', 'A03', 90));
+    await submitCompletion(makeEvent('evt-b01-a04', 'A04', 90));
+    const response = await submitCompletion(makeEvent('evt-b01-published', 'B01', 96, {
       mode: 'independent',
       evidence: {
         RULE_EXPLANATION: 'INDEPENDENT_COMPLETE',
         TOOL_MEASUREMENT: 'INDEPENDENT_COMPLETE',
       },
-    })));
+    }));
     expect(response.status).toBe(200);
     const body = (await response.json()) as { projection: UserProgressData };
     expect(body.projection.levels.B01.recentRecord?.mode).toBe('independent');
@@ -139,28 +191,29 @@ describe('Attempt Tracking, Replay & Evidence Framework (P1)', () => {
   });
 
   it('enforces the B01-B06 prerequisite chain and advances the next B-level', async () => {
-    await eventPost(request(studentToken, makeEvent('evt-chain-00', 'LEVEL_00', 90)));
-    await eventPost(request(studentToken, makeEvent('evt-chain-01', 'LEVEL_01', 90)));
-    await eventPost(request(studentToken, makeEvent('evt-chain-a01', 'LEVEL_02', 90)));
-    await eventPost(request(studentToken, makeEvent('evt-chain-a02', 'A02', 90)));
-    await eventPost(request(studentToken, makeEvent('evt-chain-a03', 'A03', 90)));
-    await eventPost(request(studentToken, makeEvent('evt-chain-a04', 'A04', 90)));
+    await submitCompletion(makeEvent('evt-chain-00', 'LEVEL_00', 90));
+    await submitCompletion(makeEvent('evt-chain-01', 'LEVEL_01', 90));
+    await submitCompletion(makeEvent('evt-chain-a01', 'LEVEL_02', 90));
+    await submitCompletion(makeEvent('evt-chain-a02', 'A02', 90));
+    await submitCompletion(makeEvent('evt-chain-a03', 'A03', 90));
+    await submitCompletion(makeEvent('evt-chain-a04', 'A04', 90));
 
-    const prematureB02 = await eventPost(request(studentToken, makeEvent('evt-chain-b02-early', 'B02', 90)));
+    const prematureB02 = await submitCompletion(makeEvent('evt-chain-b02-early', 'B02', 90));
     expect(prematureB02.status).toBe(422);
 
-    const b01 = await eventPost(request(studentToken, makeEvent('evt-chain-b01', 'B01', 90)));
+    const b01 = await submitCompletion(makeEvent('evt-chain-b01', 'B01', 90));
     expect(b01.status).toBe(200);
     const b01Body = (await b01.json()) as { projection: UserProgressData };
     expect(b01Body.projection.currentActiveLevel).toBe('B02');
     expect(b01Body.projection.levels.B02.status).toBe('unlocked');
 
-    const b02 = await eventPost(request(studentToken, makeEvent('evt-chain-b02', 'B02', 90)));
+    const b02 = await submitCompletion(makeEvent('evt-chain-b02', 'B02', 90));
     expect(b02.status).toBe(200);
   });
 
   it('maintains strict idempotency on identical payload resubmission', async () => {
     const input = makeEvent('evt-idemp-001', 'LEVEL_00', 92, { seed: 'seed-42' });
+    await eventPost(request(studentToken, { eventId: 'start-evt-idemp-001', levelId: 'LEVEL_00', eventType: 'LEVEL_START', payload: {}, occurredAt: Date.now() }));
     const first = await eventPost(request(studentToken, input));
     const firstBody = (await first.json()) as { projection: UserProgressData; attemptId: string };
 
@@ -184,7 +237,7 @@ describe('Attempt Tracking, Replay & Evidence Framework (P1)', () => {
 
   it('rejects event submission if same eventId is resubmitted with conflicting payload', async () => {
     const original = makeEvent('evt-conflict-001', 'LEVEL_00', 88);
-    const first = await eventPost(request(studentToken, original));
+    const first = await submitCompletion(original);
     expect(first.status).toBe(200);
 
     // Same eventId, but tampered/different score
@@ -206,7 +259,7 @@ describe('Attempt Tracking, Replay & Evidence Framework (P1)', () => {
         CIRCUIT_READING: 'GUIDED_COMPLETE',
       },
     });
-    const res1 = await eventPost(request(studentToken, evt1));
+    const res1 = await submitCompletion(evt1);
     const body1 = (await res1.json()) as { projection: UserProgressData };
     expect(body1.projection.levels.LEVEL_00.evidence?.SAFETY_SPECIFICATION).toBe('GUIDED_COMPLETE');
     expect(body1.projection.levels.LEVEL_00.evidence?.CIRCUIT_READING).toBe('GUIDED_COMPLETE');
@@ -220,7 +273,7 @@ describe('Attempt Tracking, Replay & Evidence Framework (P1)', () => {
         TOOL_MEASUREMENT: 'GUIDED_COMPLETE',
       },
     });
-    const res2 = await eventPost(request(studentToken, evt2));
+    const res2 = await submitCompletion(evt2);
     const body2 = (await res2.json()) as { projection: UserProgressData };
     // Safety upgraded to INDEPENDENT_COMPLETE
     expect(body2.projection.levels.LEVEL_00.evidence?.SAFETY_SPECIFICATION).toBe('INDEPENDENT_COMPLETE');
@@ -246,11 +299,11 @@ describe('Attempt Tracking, Replay & Evidence Framework (P1)', () => {
     // Complete prerequisites up to C01
     const chain = ['LEVEL_00', 'LEVEL_01', 'LEVEL_02', 'A02', 'A03', 'A04', 'B01', 'B02', 'B03', 'B04', 'B05', 'B06'];
     for (const lvl of chain) {
-      await eventPost(request(studentToken, makeEvent(`evt-p4pre-${lvl}`, lvl, 90)));
+      await submitCompletion(makeEvent(`evt-p4pre-${lvl}`, lvl, 90));
     }
 
     // Submit C01 without assessment
-    const res = await eventPost(request(studentToken, makeEvent('evt-c01-no-ast', 'C01', 100)));
+    const res = await submitCompletion(makeEvent('evt-c01-no-ast', 'C01', 100));
     expect(res.status).toBe(422);
     const body = (await res.json()) as { error: string };
     expect(body.error).toContain('必须提交包含真实过程的量规评测数据');
@@ -259,7 +312,7 @@ describe('Attempt Tracking, Replay & Evidence Framework (P1)', () => {
   it('enforces server-authoritative score and rubric_version v2 for C01, ignoring client score', async () => {
     const chain = ['LEVEL_00', 'LEVEL_01', 'LEVEL_02', 'A02', 'A03', 'A04', 'B01', 'B02', 'B03', 'B04', 'B05', 'B06'];
     for (const lvl of chain) {
-      await eventPost(request(studentToken, makeEvent(`evt-c01auth-${lvl}`, lvl, 90)));
+      await submitCompletion(makeEvent(`evt-c01auth-${lvl}`, lvl, 90));
     }
 
     const now = Date.now();
@@ -298,6 +351,7 @@ describe('Attempt Tracking, Replay & Evidence Framework (P1)', () => {
       occurredAt: now,
     };
 
+    await eventPost(request(studentToken, { eventId: 'start-evt-c01-authoritative', levelId: 'C01', eventType: 'LEVEL_START', payload: {}, occurredAt: now }));
     const res = await eventPost(request(studentToken, evt));
     expect(res.status).toBe(200);
     const body = (await res.json()) as { projection: UserProgressData };
@@ -318,4 +372,3 @@ describe('Attempt Tracking, Replay & Evidence Framework (P1)', () => {
     expect(attemptRow?.mode).toBe('guided');
   });
 });
-
