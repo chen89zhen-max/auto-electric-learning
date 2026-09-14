@@ -118,7 +118,7 @@ test.describe.serial('F01 browser end-to-end delivery lifecycle', () => {
     const seed1 = selectF01ScenarioSeed('student1', 1);
 
     const completePromise1 = page.waitForResponse(
-      (res) => res.url().endsWith('/api/learning/events') && res.request().method() === 'POST' && res.request().postData()?.includes('LEVEL_COMPLETE')
+      (res) => Boolean(res.url().endsWith('/api/learning/events') && res.request().method() === 'POST' && res.request().postData()?.includes('LEVEL_COMPLETE'))
     );
 
     await completeF01(page, seed1, false);
@@ -163,7 +163,7 @@ test.describe.serial('F01 browser end-to-end delivery lifecycle', () => {
     expect(seed2).not.toBe(seed1);
 
     const completePromise2 = page.waitForResponse(
-      (res) => res.url().endsWith('/api/learning/events') && res.request().method() === 'POST' && res.request().postData()?.includes('LEVEL_COMPLETE')
+      (res) => Boolean(res.url().endsWith('/api/learning/events') && res.request().method() === 'POST' && res.request().postData()?.includes('LEVEL_COMPLETE'))
     );
 
     // Intentionally request hint to lower score

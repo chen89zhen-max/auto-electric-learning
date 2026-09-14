@@ -236,7 +236,7 @@ export function F01Experience({ onReturnLobby }: F01ExperienceProps) {
         {!isCompleted && (
           <aside className="tutor-panel" aria-label="陈师傅实训指导">
             <div className="tutor-title">
-              <MasterChenAvatar emotion="focused" size={58} />
+              <MasterChenAvatar emotion="THINKING" size={58} />
               <div>
                 <strong className="text-base">陈师傅</strong>
                 <small className="block text-sm">综合交付考核指导</small>

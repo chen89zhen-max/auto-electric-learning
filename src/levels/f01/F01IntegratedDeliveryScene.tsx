@@ -9,7 +9,6 @@ import {
 import {
   REQUIRED_EVIDENCE_TARGETS,
   getF01Outputs,
-  validateF01CompletionMetrics,
   type F01Action,
   type F01FunctionalCase,
   type F01MeasurementRecord,
@@ -67,7 +66,7 @@ export function F01IntegratedDeliveryScene({
   stage,
   model,
   measurementLog,
-  functionalMatrix,
+  functionalMatrix: _functionalMatrix,
   feedback,
   onAction,
   onMeasure,
@@ -655,7 +654,6 @@ export function F01IntegratedDeliveryScene({
 
         <svg
           viewBox="0 0 980 520"
-          role="img"
           aria-labelledby="f01-circuit-title f01-circuit-desc"
           className="h-auto w-full min-w-0"
         >
