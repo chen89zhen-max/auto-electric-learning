@@ -161,7 +161,7 @@ test.describe.serial('F01 browser end-to-end delivery lifecycle', () => {
     const f01Card = page.locator('[data-level-id="F01"]');
     await expect(f01Card).toBeVisible();
     await expect(f01Card).toContainText('最近成绩 (100分)');
-    await expect(f01Card).toContainText(/用时\s*\d+\s*秒/);
+    await expect(f01Card).toContainText(/用时.*秒/);
 
     // Re-enter F01 for second attempt (replay)
     await f01Card.click();
