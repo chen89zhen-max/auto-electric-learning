@@ -1,5 +1,6 @@
 import { expect, test } from 'vitest';
 import { getDatabase } from '@/src/server/db/database';
+import type { UserProgressData } from '@/src/types/progress';
 
 test('initializes only the configured browser database through the existing bootstrap', () => {
   const database = getDatabase();
@@ -15,4 +16,13 @@ test('initializes only the configured browser database through the existing boot
   );
   insertE07Attempt.run('browser_e07_chrome', now - 120_000, now);
   insertE07Attempt.run('browser_e07_edge', now - 60_000, now);
+
+  const row = database.prepare<{ progress_data: string }>('SELECT progress_data FROM user_progress WHERE user_id=?').get('usr_student1');
+  expect(row).toBeDefined();
+  const progress = JSON.parse(row!.progress_data) as UserProgressData;
+  for (const id of ['C03', 'E03', 'E04', 'E05', 'E07']) {
+    progress.levels[id] = { status: 'completed', score: 90, attemptCount: 1, completedAt: new Date(now).toISOString() };
+  }
+  database.prepare('UPDATE user_progress SET progress_data=?,last_updated=? WHERE user_id=?')
+    .run(JSON.stringify(progress), now, 'usr_student1');
 });
