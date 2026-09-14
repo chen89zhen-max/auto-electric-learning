@@ -37,6 +37,15 @@ const E07_SPEC: RubricSpec = {
   EVIDENCE_EXPRESSION: ['transfer'],
 };
 
+const F01_SPEC: RubricSpec = {
+  SAFETY_SPECIFICATION: ['standard', 'blind_test'],
+  CIRCUIT_READING: ['cognition', 'calculation'],
+  TOOL_MEASUREMENT: ['standard', 'blind_test'],
+  RULE_EXPLANATION: ['calculation', 'transfer'],
+  DIAGNOSTIC_STRATEGY: ['blind_test', 'transfer'],
+  EVIDENCE_EXPRESSION: ['transfer'],
+};
+
 const DIMENSION_LABELS: Record<EvidenceDimensionId, string> = {
   SAFETY_SPECIFICATION: '安全规范',
   CIRCUIT_READING: '电路识读',
@@ -85,6 +94,8 @@ export const LEVEL_RUBRICS: Record<string, LevelRubricDefinition> = {
   E05: buildRubric('E05', D_E_STANDARD_SPEC),
   E06: buildRubric('E06', D_E_STANDARD_SPEC),
   E07: buildRubric('E07', E07_SPEC),
+
+  F01: buildRubric('F01', F01_SPEC),
 };
 
 export function getRubricForLevel(levelId: string): LevelRubricDefinition {

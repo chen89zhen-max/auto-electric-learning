@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { scoreAssessment } from '@/src/assessment/scoreAssessment';
 import type { LevelAssessmentResult, StageAssessment, TrainingStageId } from '@/src/assessment/assessmentTypes';
 import { getRubricForLevel } from '@/src/assessment/rubrics';
+import { assessmentReducer, createInitialAssessment } from '@/src/assessment/assessmentReducer';
 
 function makeFiveStageResult(
   levelId: string,
@@ -67,6 +68,23 @@ describe('Level Assessment & Server Rubric Scoring (Task 1)', () => {
     expect(hinted.mode).toBe('guided');
   });
 
+  it('allows severe mistakes to reduce a completed stage to zero quality', () => {
+    const result = scoreAssessment(makeFiveStageResult('C01', { unsafeActions: 99 }));
+    expect(result.score).toBe(0);
+    expect(result.dimensions.every((dimension) => dimension.score === 0)).toBe(true);
+  });
+
+  it('starts local process evidence when the level is created and counts one hint per stage', () => {
+    const now = 1_700_000_000_000;
+    const initial = createInitialAssessment('C01', now);
+    const firstHint = assessmentReducer(initial, { type: 'REQUEST_HINT', stageId: 'cognition' });
+    const duplicateHint = assessmentReducer(firstHint, { type: 'REQUEST_HINT', stageId: 'cognition' });
+
+    expect(initial.startedAt).toBe(now);
+    expect(initial.stages[0].startedAt).toBe(now);
+    expect(duplicateHint.stages[0].hintRequests).toBe(1);
+  });
+
   it('uses real elapsed time and never accepts negative duration', () => {
     expect(scoreAssessment(makeFiveStageResult('E01', { durationMs: 180_000 })).durationMs).toBe(180_000);
     expect(() => scoreAssessment(makeInvalidTimeResult())).toThrow();
@@ -106,5 +124,21 @@ describe('Level Assessment & Server Rubric Scoring (Task 1)', () => {
     // If transfer stage has high penalties (quality < 0.7)
     const degraded = scoreAssessment(makeFiveStageResult('C01', { wrongAttempts: 3, hintRequests: 1 }));
     expect(degraded.evidence.EVIDENCE_EXPRESSION).not.toBe('TRANSFER_COMPLETE');
+  });
+
+  it('scores F01 using rubric v2 with safety penalties on blind_test', () => {
+    const perfectF01 = makeFiveStageResult('F01');
+    expect(scoreAssessment(perfectF01).score).toBe(100);
+
+    const unsafeResult = makeFiveStageResult('F01');
+    const blindStage = unsafeResult.stages.find((s) => s.stageId === 'blind_test');
+    if (blindStage) {
+      blindStage.unsafeActions = 1;
+    }
+    const scoredUnsafe = scoreAssessment(unsafeResult);
+    expect(scoredUnsafe.score).toBeLessThan(100);
+    const safetyDim = scoredUnsafe.dimensions.find((d) => d.id === 'SAFETY_SPECIFICATION');
+    expect(safetyDim).toBeDefined();
+    expect(safetyDim!.score).toBeLessThan(100);
   });
 });
