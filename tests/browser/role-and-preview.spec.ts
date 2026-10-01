@@ -31,7 +31,7 @@ test('teacher direct preview opens every published level including F01', async (
 
     // 对代表性关卡验证实际工单弹窗标题
     if (['O00', 'D01', 'D05', 'F01'].includes(levelId)) {
-      const woBtn = page.getByRole('button', { name: '工单' });
+      const woBtn = page.getByRole('button', { name: '工单', exact: true });
       if (await woBtn.isVisible()) {
         await woBtn.click();
       }
