@@ -3,6 +3,11 @@ import {
   E05_STAGE_CONTENT,
   E05_SAMPLES,
   evaluateLogicGate,
+  GATE_REQUIRED_INPUTS,
+  gateReadingKey,
+  hasAllGateEvidence,
+  type GateReading,
+  type LogicGateType,
 } from '../src/levels/e05/e05Training';
 
 describe('E05 Logic Gates and Vehicle Interlock Suite', () => {
@@ -57,5 +62,76 @@ describe('E05 Logic Gates and Vehicle Interlock Suite', () => {
     expect(types).toContain('VCC_DISCONNECTED');
     expect(types).toContain('INPUT_FLOATING');
     expect(types).toContain('OUTPUT_SHORT_GND');
+  });
+
+  it('固定14组关键输入证据防伪：缺项、输出伪造或键不匹配时 hasAllGateEvidence 均为 false', () => {
+    // 1. 验证 GATE_REQUIRED_INPUTS 精确为 14 个输入
+    expect(GATE_REQUIRED_INPUTS).toEqual({
+      AND: ['01', '10', '11'],
+      OR: ['00', '01', '10'],
+      NOT: ['0', '1'],
+      NAND: ['01', '10', '11'],
+      NOR: ['00', '01', '10'],
+    });
+
+    const totalKeyCount = Object.values(GATE_REQUIRED_INPUTS).reduce(
+      (sum, arr) => sum + arr.length,
+      0
+    );
+    expect(totalKeyCount).toBe(14);
+
+    // 2. 构造完整真实记录
+    const validReadings: Record<string, GateReading> = {};
+    for (const [gate, inputs] of Object.entries(GATE_REQUIRED_INPUTS) as [LogicGateType, readonly string[]][]) {
+      for (const input of inputs) {
+        const a = input[0] === '1';
+        const b = input.length > 1 ? input[1] === '1' : false;
+        const output = evaluateLogicGate(gate, a, b);
+        const key = gateReadingKey(gate, a, b);
+        validReadings[key] = { gate, a, b, output };
+      }
+    }
+
+    // 验证每种门包含输出0和1的证据，并保留01与10输入
+    for (const [gate, inputs] of Object.entries(GATE_REQUIRED_INPUTS) as [LogicGateType, readonly string[]][]) {
+      const gateOutputs = inputs.map(input => {
+        const key = `${gate}:${input}`;
+        return validReadings[key].output;
+      });
+      expect(gateOutputs).toContain(true);
+      expect(gateOutputs).toContain(false);
+      if (gate !== 'NOT') {
+        expect(inputs).toContain('01');
+        expect(inputs).toContain('10');
+      }
+    }
+
+    // 完整真实记录为 true
+    expect(hasAllGateEvidence(validReadings)).toBe(true);
+
+    // 缺 1 项时为 false
+    const missingOne = { ...validReadings };
+    delete missingOne['NAND:11'];
+    expect(hasAllGateEvidence(missingOne)).toBe(false);
+
+    // 输出值伪造时为 false (例如 NAND 11 输出本应为 false，伪造为 true)
+    const forgedOutput = {
+      ...validReadings,
+      'NAND:11': { gate: 'NAND' as const, a: true, b: true, output: true },
+    };
+    expect(hasAllGateEvidence(forgedOutput)).toBe(false);
+
+    // 门类型不一致时为 false
+    const mismatchedGate = {
+      ...validReadings,
+      'NOR:00': { gate: 'OR' as const, a: false, b: false, output: true },
+    };
+    expect(hasAllGateEvidence(mismatchedGate)).toBe(false);
+
+    // 输入键不一致时为 false
+    const mismatchedKey = { ...validReadings };
+    delete mismatchedKey['AND:01'];
+    mismatchedKey['AND:00'] = { gate: 'AND' as const, a: false, b: false, output: false };
+    expect(hasAllGateEvidence(mismatchedKey)).toBe(false);
   });
 });

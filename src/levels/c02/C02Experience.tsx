@@ -1,4 +1,9 @@
 'use client';
+import { getLevelDisplayName } from '@/src/courses/curriculum';
+import { getNextLevelLabel } from '@/src/courses/curriculum';
+
+
+import { LevelHeading } from '@/src/components/LevelHeading';
 
 import React, { useState } from 'react';
 import {
@@ -76,10 +81,7 @@ export function C02Experience({ onReturnLobby }: C02ExperienceProps) {
           <span className="brand-mark safety-mark bg-rose-600 shadow-rose-600/20 text-white">
             <Zap size={22} />
           </span>
-          <div>
-            <p className="eyebrow">篇章三：凭证据找故障 · 综合排故基准</p>
-            <h1>C02 同样不亮，原因不同——电路断路与短路综合排查</h1>
-          </div>
+          <LevelHeading levelId="C02" />
         </div>
 
         <div className="trainee-badge">
@@ -117,13 +119,13 @@ export function C02Experience({ onReturnLobby }: C02ExperienceProps) {
                 title="电路断路、短路、虚接与短路到电源综合排查能力报告"
                 assessment={assessmentResult ?? undefined}
                 metrics={stepEvidences}
-                nextTask="学习任务9《C03 第一次独立交车——综合直流诊断与修复复检》"
+                nextTask={getNextLevelLabel('C02')}
                 onRestart={handleRestart}
                 onReturn={onReturnLobby}
               />
             </div>
             <div className="objective-strip">
-              <span>当前任务</span>
+              <span>当前操作</span>
               <strong>查看断路、短路与虚接综合排查能力报告</strong>
               <output className="feedback">实训评测已通过，断路/短路/高阻/短路到电源四类典型故障机理与防磨整改工艺已熟练掌握。</output>
             </div>
@@ -150,7 +152,7 @@ export function C02Experience({ onReturnLobby }: C02ExperienceProps) {
                 />
               </div>
               <div className="objective-strip">
-                <span>当前任务</span>
+                <span>当前操作</span>
                 <strong>{guidance.title}</strong>
                 <output className="feedback">{guidance.objective}</output>
               </div>
@@ -227,7 +229,7 @@ export function C02Experience({ onReturnLobby }: C02ExperienceProps) {
         </button>
         <span className="toolbar-spacer" />
         <span className="unlock-hint">
-          实训要点：试灯定性寻电 / 万用表定量测阻抗 / 断路跨接吃全压 / 短路严禁盲换大保险 · 学习任务9（9页）
+          实训要点：试灯定性寻电 / 万用表定量测阻抗 / 断路跨接吃全压 / 短路严禁盲换大保险 · 教材与考纲见页头
         </span>
         <button type="button" onClick={handleRestart} className="cursor-pointer">
           <RotateCcw size={18} /> 重新开始
@@ -243,9 +245,7 @@ export function C02Experience({ onReturnLobby }: C02ExperienceProps) {
         >
           <section className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
             <p className="eyebrow text-rose-700">工单编号 · WO-C02-FAULT-CLASSIFY</p>
-            <h2 className="mt-1 text-xl font-black text-slate-900">
-              同样不亮，原因不同——电路断路与短路综合排查
-            </h2>
+            <h2 className="mt-1 text-xl font-black text-slate-900">{getLevelDisplayName('C02')} · 实训工单</h2>
             <p className="mt-3 leading-7 text-slate-700">
               前照灯不亮存在三种截然不同的物理机制：回路断线断路、导线磨破对地短路烧毁保险、以及端子氧化接触高阻。运用汽车试灯与万用表配合建立完整排故证据链，严守断路跨接测全压与短路断电测对地阻抗规程，杜绝盲目换装大号保险丝的恶性违章，实施焊接热缩与波纹管防磨整改并闭环交付。
             </p>

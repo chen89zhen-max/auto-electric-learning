@@ -1,4 +1,9 @@
 'use client';
+import { getLevelDisplayName } from '@/src/courses/curriculum';
+import { getNextLevelLabel } from '@/src/courses/curriculum';
+
+
+import { LevelHeading } from '@/src/components/LevelHeading';
 
 import React, { useState } from 'react';
 import {
@@ -76,10 +81,7 @@ export function C01Experience({ onReturnLobby }: C01ExperienceProps) {
           <span className="brand-mark safety-mark bg-rose-600 shadow-rose-600/20 text-white">
             <Wrench size={22} />
           </span>
-          <div>
-            <p className="eyebrow">篇章三：凭证据找故障 · 中期诊断标杆</p>
-            <h1>C01 越来越暗的灯——电压降分析与虚接诊断</h1>
-          </div>
+          <LevelHeading levelId="C01" />
         </div>
 
         <div className="trainee-badge">
@@ -117,13 +119,13 @@ export function C01Experience({ onReturnLobby }: C01ExperienceProps) {
                 title="带载电压降排查与虚接诊断能力报告"
                 assessment={assessmentResult ?? undefined}
                 metrics={stepEvidences}
-                nextTask="学习任务9《C02 同样不亮，原因不同——电路断路与短路综合排查》"
+                nextTask={getNextLevelLabel('C01')}
                 onRestart={handleRestart}
                 onReturn={onReturnLobby}
               />
             </div>
             <div className="objective-strip">
-              <span>当前任务</span>
+              <span>当前操作</span>
               <strong>查看带载电压降排查与虚接诊断能力报告</strong>
               <output className="feedback">实训评测已通过，带载跨接压降诊断、空载反例辨析与除氧化紧固工艺已熟练掌握。</output>
             </div>
@@ -150,7 +152,7 @@ export function C01Experience({ onReturnLobby }: C01ExperienceProps) {
                 />
               </div>
               <div className="objective-strip">
-                <span>当前任务</span>
+                <span>当前操作</span>
                 <strong>{guidance.title}</strong>
                 <output className="feedback">{guidance.objective}</output>
               </div>
@@ -227,7 +229,7 @@ export function C01Experience({ onReturnLobby }: C01ExperienceProps) {
         </button>
         <span className="toolbar-spacer" />
         <span className="unlock-hint">
-          核心红线：带载跨接测量 / 供电侧压降 ≤ 0.2V / 空载 I=0 压降消失反例辨析 · 学习任务8（9页）
+          核心红线：带载跨接测量 / 供电侧压降 ≤ 0.2V / 空载 I=0 压降消失反例辨析 · 教材与考纲见页头
         </span>
         <button type="button" onClick={handleRestart} className="cursor-pointer">
           <RotateCcw size={18} /> 重新开始
@@ -243,9 +245,7 @@ export function C01Experience({ onReturnLobby }: C01ExperienceProps) {
         >
           <section className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
             <p className="eyebrow text-rose-700">工单编号 · WO-C01-VOLT-DROP</p>
-            <h2 className="mt-1 text-xl font-black text-slate-900">
-              越来越暗的灯——带载电压降排查与虚接诊断
-            </h2>
+            <h2 className="mt-1 text-xl font-black text-slate-900">{getLevelDisplayName('C01')} · 实训工单</h2>
             <p className="mt-3 leading-7 text-slate-700">
               已知 24W/6Ω 前照灯在试验台工作正常，但在实车线束上明显昏暗发黄。拔下插头测得开路 12V 假象。必须在带载通电状态下跨接测量供电侧与搭铁侧电压降，识别 0.91V 供电侧严重超标缺陷，破除空载测压误区，独立盲测未知接触故障，并实施插针打磨紧固与闭环交车验证。
             </p>

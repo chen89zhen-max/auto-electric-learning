@@ -10,6 +10,7 @@ import {
   updateSpeechPreferences,
   SPEECH_PREFERENCES_KEY,
 } from '@/src/components/visuals/SpeechPreferences';
+import { resetVoiceCache } from '@/src/components/visuals/SpeechTts';
 
 describe('Task 8: SpeechControls and Readability Integration', () => {
   const levelDirs = [
@@ -17,7 +18,7 @@ describe('Task 8: SpeechControls and Readability Integration', () => {
     'b01', 'b02', 'b03', 'b04',
     'c01', 'c02', 'c03',
     'd01', 'd02', 'd03', 'd04', 'd05',
-    'e01', 'e02', 'e03', 'e04', 'e05', 'e06', 'e07',
+    'e01', 'e02', 'e03', 'e04', 'e05', 'e06', 'e07', 'f01',
   ];
 
   afterEach(() => {
@@ -27,6 +28,7 @@ describe('Task 8: SpeechControls and Readability Integration', () => {
   beforeEach(() => {
     localStorage.clear();
     vi.restoreAllMocks();
+    resetVoiceCache();
 
     if (typeof SpeechSynthesisUtterance === 'undefined') {
       // @ts-expect-error Mocking SpeechSynthesisUtterance
@@ -52,11 +54,11 @@ describe('Task 8: SpeechControls and Readability Integration', () => {
       cancel: mockCancel,
       getVoices: () => [
         {
-          name: 'Microsoft Xiaoxiao',
+          name: 'Microsoft Kangkang',
           lang: 'zh-CN',
           default: true,
           localService: false,
-          voiceURI: 'Xiaoxiao',
+          voiceURI: 'Kangkang',
         } as SpeechSynthesisVoice,
       ],
       speaking: false,
@@ -71,7 +73,7 @@ describe('Task 8: SpeechControls and Readability Integration', () => {
     } as unknown as SpeechSynthesis;
   });
 
-  it('verifies all Experience components in a02-e07 actually mount SpeechControls and remove duplicate auto-read effects', () => {
+  it('verifies all Experience components in A02-F01 mount SpeechControls without duplicate auto-read effects', () => {
     const levelsRoot = path.resolve(process.cwd(), 'src/levels');
 
     for (const lvl of levelDirs) {
@@ -179,6 +181,45 @@ describe('Task 8: SpeechControls and Readability Integration', () => {
     expect(toast.textContent).toContain('当前浏览器不支持语音合成');
 
     window.speechSynthesis = originalSynthesis;
+  });
+
+  it('keeps written guidance and tells the learner when only a female voice is installed', () => {
+    const speakSpy = vi.fn();
+    window.speechSynthesis = {
+      speak: speakSpy,
+      cancel: vi.fn(),
+      getVoices: () => [{ name: 'Microsoft Xiaoxiao', lang: 'zh-CN', voiceURI: 'Xiaoxiao' } as SpeechSynthesisVoice],
+    } as unknown as SpeechSynthesis;
+
+    render(<SpeechControls currentText="断电后再测量" />);
+    fireEvent.click(screen.getByTestId('speech-play-btn'));
+
+    expect(speakSpy).not.toHaveBeenCalled();
+    expect(screen.getByTestId('unsupported-speech-toast').textContent).toContain('中文男声');
+  });
+
+  it('auto-reads with the male voice after the browser finishes loading voices', () => {
+    let voices: SpeechSynthesisVoice[] = [];
+    let voicesChanged: (() => void) | undefined;
+    const speakSpy = vi.fn();
+    window.speechSynthesis = {
+      speak: speakSpy,
+      cancel: vi.fn(),
+      getVoices: () => voices,
+      addEventListener: vi.fn((event: string, listener: EventListenerOrEventListenerObject) => {
+        if (event === 'voiceschanged' && typeof listener === 'function') voicesChanged = listener as () => void;
+      }),
+      removeEventListener: vi.fn(),
+    } as unknown as SpeechSynthesis;
+
+    render(<SpeechControls currentText="先确认断电" />);
+    expect(speakSpy).not.toHaveBeenCalled();
+
+    voices = [{ name: 'Microsoft Kangkang', lang: 'zh-CN', voiceURI: 'Kangkang' } as SpeechSynthesisVoice];
+    act(() => voicesChanged?.());
+
+    expect(speakSpy).toHaveBeenCalledTimes(1);
+    expect((speakSpy.mock.calls[0][0] as SpeechSynthesisUtterance).voice?.name).toBe('Microsoft Kangkang');
   });
 
   it('verifies primary operation buttons in P4-P6 do NOT have text-xs', () => {

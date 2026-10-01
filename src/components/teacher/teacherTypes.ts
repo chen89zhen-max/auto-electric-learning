@@ -29,7 +29,9 @@ export interface E07PhysicalRubricData {
 export interface TeacherStudentE07Attempt {
   attemptId: string;
   attemptScore: number | null;
+  startedAt: number;
   completedAt: number;
+  durationMs: number;
   hasPhysicalRubric: boolean;
   physicalEvaluation?: {
     id: string;

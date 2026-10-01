@@ -80,5 +80,5 @@ test('delayed level chunk shows the loading skeleton and then recovers', async (
   });
   await page.goto('/?level=D05');
   await expect(page.getByText('正在装载实训工位资源…')).toBeVisible();
-  await expect(page.getByText('D05 变压器实验室——变压器认知与测试')).toBeVisible();
+  await expect(page.getByText('变压器实验室 · 变压器与车载逆变升压实验台')).toBeVisible();
 });

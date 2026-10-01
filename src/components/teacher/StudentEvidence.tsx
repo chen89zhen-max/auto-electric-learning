@@ -1,22 +1,16 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import type { LevelId } from '@/src/types/progress';
 import { EVIDENCE_DIMENSIONS, type EvidenceDimensionId } from '@/src/types/evidence';
 import type { TeacherStudentItem, TeacherStudentE07Attempt, E07PhysicalRubricData } from './teacherTypes';
+import { CANONICAL_COURSE_REGISTRY } from '@/src/courses/registry';
+import { formatDateTimeSeconds, formatDurationMs } from '@/src/lib/formatDuration';
+import type { C7EvidenceLevelId } from '@/src/types/attemptEvidence';
+import { AttemptEvidencePanel } from '@/src/components/evidence/AttemptEvidencePanel';
 
-const LEVEL_NAMES: Record<LevelId, { num: string; name: string }> = {
-  LEVEL_00: { num: '00', name: '维修中心第一天' },
-  LEVEL_01: { num: '01', name: '安全作业与应急判断' },
-  LEVEL_02: { num: '02', name: '点亮检修灯' },
-  LEVEL_03: { num: '03', name: '元件身份核验 (建设中)' },
-  LEVEL_04: { num: '04', name: '电流到底走哪里 (建设中)' },
-  LEVEL_05: { num: '05', name: '小开关控制工作灯 (建设中)' },
-  LEVEL_06: { num: '06', name: '电路的条件判断 (建设中)' },
-  LEVEL_07: { num: '07', name: '小信号控制负载 (建设中)' },
-  LEVEL_08: { num: '08', name: '同样不亮，原因不同 (建设中)' },
-  LEVEL_09: { num: '09', name: '第一次独立交车 (建设中)' },
-};
+const PUBLISHED_LEVELS = CANONICAL_COURSE_REGISTRY.filter(
+  (level) => level.publicationStatus === 'PUBLISHED' && level.implemented,
+);
 
 const EVIDENCE_STATUS_LABEL: Record<string, { label: string; color: string }> = {
   NO_EVIDENCE: { label: '尚无证据', color: 'bg-slate-100 text-slate-500 border-slate-200' },
@@ -36,6 +30,7 @@ export function StudentEvidence({
   const [comment, setComment] = useState('');
   const [reason, setReason] = useState('');
 
+  const [selectedEvidenceLevel, setSelectedEvidenceLevel] = useState<C7EvidenceLevelId | null>(null);
   const [e07Attempts, setE07Attempts] = useState<TeacherStudentE07Attempt[]>([]);
   const [loadingE07, setLoadingE07] = useState(false);
   const [rubricScores, setRubricScores] = useState<Record<string, E07PhysicalRubricData>>({});
@@ -131,8 +126,10 @@ export function StudentEvidence({
     TRANSFER_COMPLETE: 3,
   };
 
-  for (const levelId of ['LEVEL_00', 'LEVEL_01', 'LEVEL_02'] as LevelId[]) {
-    const levelEv = student.progress.levels[levelId]?.evidence;
+  for (const definition of PUBLISHED_LEVELS) {
+    const levelProgress = student.progress.levels[definition.legacyId ?? definition.canonicalId]
+      ?? student.progress.levels[definition.canonicalId];
+    const levelEv = levelProgress?.evidence;
     if (levelEv) {
       for (const [dim, st] of Object.entries(levelEv)) {
         const d = dim as EvidenceDimensionId;
@@ -161,23 +158,23 @@ export function StudentEvidence({
           核心关卡完成与复练记录 (Attempt Records)
         </h3>
         <div className="grid gap-2 sm:grid-cols-3">
-          {(['LEVEL_00', 'LEVEL_01', 'LEVEL_02'] as LevelId[]).map((levelId) => {
-            const level = student.progress.levels[levelId];
-            const meta = LEVEL_NAMES[levelId];
+          {PUBLISHED_LEVELS.map((definition) => {
+            const levelId = definition.legacyId ?? definition.canonicalId;
+            const level = student.progress.levels[levelId] ?? student.progress.levels[definition.canonicalId];
             const isDone = level?.status === 'completed';
             const count = level?.attemptCount ?? (isDone ? 1 : 0);
 
             return (
-              <article key={levelId} className="rounded-lg bg-slate-50 p-3 border border-slate-100">
+              <article key={definition.canonicalId} className="rounded-lg bg-slate-50 p-3 border border-slate-100">
                 <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-                  <span className="font-mono font-bold">任务 {meta.num}</span>
+                  <span className="font-mono font-bold">关卡 {definition.canonicalId}</span>
                   {isDone && (
                     <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-1.5 py-0.5 rounded">
                       已完成
                     </span>
                   )}
                 </div>
-                <h4 className="font-bold text-sm text-slate-800 truncate">{meta.name}</h4>
+                <h4 className="font-bold text-sm text-slate-800 truncate">{definition.title}</h4>
                 <div className="mt-2 text-xs space-y-0.5 text-slate-600">
                   <p>
                     最近成绩：<strong>{level?.recentRecord?.score ?? level?.score ?? (isDone ? 100 : '—')}分</strong>
@@ -193,9 +190,17 @@ export function StudentEvidence({
                         )}
                       </p>
                       {level?.recentRecord && (
-                        <p className="text-[11px] text-slate-400">
-                          最近实训：{new Date(level.recentRecord.completedAt).toLocaleDateString('zh-CN')}
-                        </p>
+                        <>
+                          <p className="text-[11px] text-slate-400">
+                            最近开始：{level.recentRecord.startedAt ? formatDateTimeSeconds(level.recentRecord.startedAt) : '历史记录未提供'}
+                          </p>
+                          <p className="text-[11px] text-slate-400">
+                            最近完成：{formatDateTimeSeconds(level.recentRecord.completedAt)}
+                          </p>
+                          <p className="text-[11px] text-slate-500">
+                            最近用时：{level.recentRecord.durationMs === undefined ? '历史记录未提供' : formatDurationMs(level.recentRecord.durationMs)}
+                          </p>
+                        </>
                       )}
                     </>
                   )}
@@ -239,12 +244,54 @@ export function StudentEvidence({
         最后更新：{new Date(student.lastUpdated).toLocaleString('zh-CN', { hour12: false })}。这里展示服务端学习证据与尝试记录；教师评价不会改写学生游戏记录。
       </p>
 
+      {/* Four C7 Process Evidence Tracing */}
+      <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-4 space-y-3" aria-label="四关过程证据追溯">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+              <span>四关过程证据追溯</span>
+            </h3>
+            <p className="text-xs text-slate-500">
+              国家教仪考纲重点关卡（A03·D02·E03·E05）全量步骤、测点与真实逻辑判定历史归档
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {(['A03', 'D02', 'E03', 'E05'] as const).map((lvl) => {
+            const isSelected = selectedEvidenceLevel === lvl;
+            return (
+              <button
+                key={lvl}
+                type="button"
+                onClick={() => setSelectedEvidenceLevel(isSelected ? null : lvl)}
+                className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors ${
+                  isSelected
+                    ? 'bg-cyan-700 border-cyan-700 text-white shadow-sm'
+                    : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                {lvl} 过程证据 {isSelected ? '▲' : '▼'}
+              </button>
+            );
+          })}
+        </div>
+        {selectedEvidenceLevel && (
+          <div className="mt-3">
+            <AttemptEvidencePanel
+              levelId={selectedEvidenceLevel}
+              viewer={{ kind: 'teacher', studentId: student.id }}
+              initiallyOpen={true}
+            />
+          </div>
+        )}
+      </div>
+
       {/* E07 Physical Rubric Section */}
       <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-4 space-y-3" aria-label="E07实物焊接量规签署">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
-              <span>E07 任务实物焊接量规签署 (Physical Rubric)</span>
+              <span>E07 关卡实物焊接量规签署 (Physical Rubric)</span>
               {loadingE07 && <span className="text-xs text-slate-400">加载中...</span>}
             </h3>
             <p className="text-xs text-slate-500">
@@ -299,7 +346,7 @@ export function StudentEvidence({
                         ⏳ 待验收签署：E07 实物焊接工单
                       </span>
                       <span className="text-slate-500 ml-2 font-mono text-[11px]">
-                        (记录编号: {attempt.attemptId} · 完成于: {new Date(attempt.completedAt).toLocaleString('zh-CN')})
+                        (记录编号: {attempt.attemptId} · 开始于: {formatDateTimeSeconds(attempt.startedAt)} · 用时: {formatDurationMs(attempt.durationMs)} · 完成于: {formatDateTimeSeconds(attempt.completedAt)})
                       </span>
                     </div>
                     <span className="bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded text-[11px] border border-amber-300">

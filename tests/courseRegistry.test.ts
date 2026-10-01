@@ -156,6 +156,19 @@ describe('Canonical Course Registry (P1)', () => {
     expect(a01Check.allowed).toBe(true);
   });
 
+  it('layers B04-B06 hard prerequisites separately from recommended prior study', () => {
+    expect(getCourseLevel('B04')?.prerequisiteLevelIds).toEqual(['B02']);
+    expect(getCourseLevel('B04')?.recommendedPriorLevelIds).toEqual(['B03']);
+    expect(getCourseLevel('B05')?.prerequisiteLevelIds).toEqual(['B01']);
+    expect(getCourseLevel('B05')?.recommendedPriorLevelIds).toEqual(['B04']);
+    expect(getCourseLevel('B06')?.prerequisiteLevelIds).toEqual(['B01']);
+    expect(getCourseLevel('B06')?.recommendedPriorLevelIds).toEqual(['B05']);
+
+    expect(checkLevelPrerequisites('B04', ['B02']).allowed).toBe(true);
+    expect(checkLevelPrerequisites('B05', ['B01']).allowed).toBe(true);
+    expect(checkLevelPrerequisites('B06', ['B01']).allowed).toBe(true);
+  });
+
   it('groups levels by chapter properly', () => {
     const chapters = getLevelsByChapter();
     expect(chapters.length).toBe(7);

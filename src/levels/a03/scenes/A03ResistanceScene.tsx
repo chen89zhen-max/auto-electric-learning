@@ -16,13 +16,14 @@ import { Button } from '@/components/ui/button';
 import { Multimeter, MultimeterDialMode } from '@/src/game/instruments/Multimeter';
 import { sounds } from '@/src/components/visuals/SoundEffects';
 import { PracticeMode } from '@/src/types/evidence';
-import { A03Step, STANDARD_RESISTOR_POOL } from '../a03Training';
+import { A03Step, STANDARD_RESISTOR_POOL, SENSITIVE_RESISTORS, sensitiveResistance, hasSensitiveComparison, type SensitiveReading, type SensitiveResistorKind } from '../a03Training';
 
 interface A03ResistanceSceneProps {
   currentStep: A03Step;
   practiceMode?: PracticeMode;
   onStepComplete: (step: A03Step, evidence: Record<string, unknown>) => void;
   onAdvanceStep: () => void;
+  onProcessEvent?: (event: 'wrongAttempts' | 'meterGuardBlocks') => void;
 }
 
 export function A03ResistanceScene({
@@ -30,6 +31,7 @@ export function A03ResistanceScene({
   practiceMode = 'guided',
   onStepComplete,
   onAdvanceStep,
+  onProcessEvent,
 }: A03ResistanceSceneProps) {
   // Step 1: Resistor selection & inputs
   const [resistorIndex, setResistorIndex] = useState(0);
@@ -110,6 +112,19 @@ export function A03ResistanceScene({
   const [ntcSubmitted, setNtcSubmitted] = useState<boolean>(false);
   const [ntcFeedback, setNtcFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
+  const [sensitiveInputs, setSensitiveInputs] = useState({ LDR: 0, FSR: 0 });
+  const [sensitivePoints, setSensitivePoints] = useState<Record<SensitiveResistorKind, SensitiveReading[]>>({ NTC: [], LDR: [], FSR: [] });
+  const [sensitiveTrends, setSensitiveTrends] = useState({ LDR: '', FSR: '' });
+  const sensitiveReady = Object.values(sensitivePoints).every(hasSensitiveComparison) && sensitiveTrends.LDR === 'decrease' && sensitiveTrends.FSR === 'decrease';
+  const recordSensitive = (kind: SensitiveResistorKind, condition: number) => {
+    if (dial !== 'RESISTANCE') {
+      onProcessEvent?.('meterGuardBlocks');
+      setNtcFeedback({ type: 'error', message: '请先选择电阻挡，使用断电隔离的敏感电阻实验台记录测点。' });
+      return;
+    }
+    setSensitivePoints(prev => ({ ...prev, [kind]: [...prev[kind].filter(p => p.condition !== condition), { condition, resistance: sensitiveResistance(kind, condition) }] }));
+  };
+
   // DMM Solver evaluation
   const dmmResult = useMemo(() => {
     const dmm = new Multimeter();
@@ -168,6 +183,7 @@ export function A03ResistanceScene({
     const maxVal = parseFloat(maxBoundInput.trim());
 
     if (isNaN(nomVal) || isNaN(tolVal) || isNaN(minVal) || isNaN(maxVal)) {
+      onProcessEvent?.('wrongAttempts');
       setCalcFeedback({
         type: 'error',
         message: '请完整填写标称阻值、第4环允许误差选择以及允许上下限数值！',
@@ -176,6 +192,7 @@ export function A03ResistanceScene({
     }
 
     if (nomVal !== activeResistor.nominal) {
+      onProcessEvent?.('wrongAttempts');
       const b1 = activeResistor.bands[0];
       const b2 = activeResistor.bands[1];
       const b3 = activeResistor.bands[2];
@@ -187,6 +204,7 @@ export function A03ResistanceScene({
     }
 
     if (tolVal !== activeResistor.tolerance) {
+      onProcessEvent?.('wrongAttempts');
       const b4 = activeResistor.bands[3];
       setCalcFeedback({
         type: 'error',
@@ -196,6 +214,7 @@ export function A03ResistanceScene({
     }
 
     if (minVal >= maxVal) {
+      onProcessEvent?.('wrongAttempts');
       setCalcFeedback({
         type: 'error',
         message: '公差区间逻辑有误：允许下限必须严格小于允许上限！',
@@ -224,6 +243,7 @@ export function A03ResistanceScene({
         mode: practiceMode,
       });
     } else {
+      onProcessEvent?.('wrongAttempts');
       setCalcFeedback({
         type: 'error',
         message: `公差区间计算有误（当前输入 [${minVal}Ω, ${maxVal}Ω]）：标称值 ${activeResistor.nominal}Ω，第4环${activeResistor.bands[3].name}色公差为 ±${activeResistor.tolerance}%，公差幅度 = ${activeResistor.nominal} × ${activeResistor.tolerance}% = ${delta}Ω。请重新计算下限 (${activeResistor.nominal} - ${delta}) 与上限 (${activeResistor.nominal} + ${delta})！`,
@@ -236,6 +256,7 @@ export function A03ResistanceScene({
     const nextState = !isPowerAppliedToSample;
     setIsPowerAppliedToSample(nextState);
     if (nextState) {
+      onProcessEvent?.('meterGuardBlocks');
       setV05Triggered(true);
       sounds.warningBuzz();
     } else {
@@ -249,6 +270,7 @@ export function A03ResistanceScene({
 
     // Check if multimeter is turned on to RESISTANCE gear
     if (dial !== 'RESISTANCE') {
+      onProcessEvent?.('meterGuardBlocks');
       sounds.warningBuzz();
       setStep2Feedback({
         type: 'warning',
@@ -313,7 +335,7 @@ export function A03ResistanceScene({
       sounds.success();
       setIndependentFeedback({
         type: 'success',
-        message: '✓ 判定完全正确！标称 1kΩ = 1000Ω，±5% 允许公差范围为 950Ω ~ 1050Ω。万用表实测 985.0Ω 稳稳落在公差区间内，符合汽车进气压力传感器偏置技术规范，属于合格品！',
+        message: '✓ 判定完全正确！标称 1kΩ = 1000Ω，±5% 允许公差范围为 950Ω ~ 1050Ω。万用表实测 985.0Ω 稳稳落在公差区间内，符合本训练模型给定的电阻规格，属于合格品！',
       });
       onStepComplete('INDEPENDENT_EVAL', {
         choice: independentChoice,
@@ -322,6 +344,7 @@ export function A03ResistanceScene({
         mode: practiceMode,
       });
     } else {
+      onProcessEvent?.('wrongAttempts');
       sounds.warningBuzz();
       setIndependentFeedback({
         type: 'error',
@@ -333,6 +356,21 @@ export function A03ResistanceScene({
   // Step 5: Transfer NTC Submit
   const handleNtcSubmit = () => {
     sounds.click();
+    if (ntcSubmitted) return;
+    if (!Object.values(sensitivePoints).every(hasSensitiveComparison)) {
+      setNtcFeedback({ type: 'error', message: '请完成三类敏感电阻的两点测量（条件差至少40），再提交判断。' });
+      return;
+    }
+    if (!sensitiveTrends.LDR || !sensitiveTrends.FSR) {
+      setNtcFeedback({ type: 'error', message: '请先选择光敏、力敏电阻的阻值变化趋势。' });
+      return;
+    }
+    if (!sensitiveReady) {
+      onProcessEvent?.('wrongAttempts');
+      sounds.warningBuzz();
+      setNtcFeedback({ type: 'error', message: '趋势判断有误，请比较已记录的低、高条件测点，再判断光照、压力增大时的阻值变化。' });
+      return;
+    }
     if (!ntcChoice) {
       setNtcFeedback({
         type: 'error',
@@ -341,8 +379,8 @@ export function A03ResistanceScene({
       return;
     }
 
-    setNtcSubmitted(true);
     if (ntcChoice === 'NTC_NORMAL') {
+      setNtcSubmitted(true);
       sounds.success();
       setNtcFeedback({
         type: 'success',
@@ -352,9 +390,11 @@ export function A03ResistanceScene({
         choice: ntcChoice,
         passed: true,
         coolantTemp,
+        sensitiveResistors: { points: sensitivePoints, trends: { NTC: 'decrease', ...sensitiveTrends } },
         mode: practiceMode,
       });
     } else {
+      onProcessEvent?.('wrongAttempts');
       sounds.warningBuzz();
       setNtcFeedback({
         type: 'error',
@@ -372,7 +412,7 @@ export function A03ResistanceScene({
       sampleEvaluations.C === 'BROKEN') ||
     (currentStep === 'POTENTIOMETER_TEST' && potRecordedPoints.size >= 4) ||
     (currentStep === 'INDEPENDENT_EVAL' && independentSubmitted && independentChoice === '985_QUALIFIED') ||
-    (currentStep === 'TRANSFER_NTC' && ntcSubmitted && ntcChoice === 'NTC_NORMAL');
+    (currentStep === 'TRANSFER_NTC' && ntcSubmitted && sensitiveReady && ntcChoice === 'NTC_NORMAL');
 
   return (
     <div className="w-full flex-1 min-h-[580px] flex flex-col gap-4 text-slate-800">
@@ -1007,7 +1047,7 @@ export function A03ResistanceScene({
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-sm leading-relaxed text-slate-700">
               <p className="font-bold mb-1.5 text-slate-900">实车故障情境与规格要求：</p>
               <p>
-                汽车进气压力传感器电路常备标称 <strong>1kΩ ± 5%</strong> 规格的偏置电阻。仓库领出待检件，万用表实测为 <strong>0.985 kΩ (即 985.0 Ω)</strong>。
+                本训练模型给定的偏置电阻标称为 <strong>1kΩ ± 5%</strong> 规格的偏置电阻。仓库领出待检件，万用表实测为 <strong>0.985 kΩ (即 985.0 Ω)</strong>。
                 请结合允许公差范围，独立分析该电阻是否合格并提交判定：
               </p>
             </div>
@@ -1154,7 +1194,9 @@ export function A03ResistanceScene({
               <input
                 type="range"
                 min="20"
-                max="85"
+                max="80"
+                aria-label="NTC温度"
+                disabled={ntcSubmitted}
                 step="5"
                 value={coolantTemp}
                 onChange={(e) => setCoolantTemp(parseInt(e.target.value))}
@@ -1162,6 +1204,29 @@ export function A03ResistanceScene({
               />
             </div>
 
+            <section className="space-y-3 p-4 rounded-lg border border-slate-200">
+              <h3 className="font-bold">敏感电阻比较实验（断电隔离模型）</h3>
+              <p className="text-sm">分别记录低、高条件测点，条件差至少40。光敏与力敏数值为示意模型；力敏实验采用受压阻值减小的压阻式元件，不代表所有压力传感器。</p>
+              <Button onClick={() => setDial('RESISTANCE')}>敏感电阻实验：电阻挡</Button>
+              <Button disabled={ntcSubmitted} onClick={() => recordSensitive('NTC', coolantTemp)}>记录 NTC 测点</Button>
+              <p>NTC：{sensitivePoints.NTC.map(p => `${p.condition}℃ / ${p.resistance}Ω`).join('；') || '尚无测点'}</p>
+              {SENSITIVE_RESISTORS.map(({kind, name, condition}) => (
+                <div key={kind} className="space-y-2 border-t pt-3">
+                  <label>{name} · {condition}：{sensitiveInputs[kind]}
+                    <input aria-label={`${name}条件`} type="range" min="0" max="100" step="10" disabled={ntcSubmitted} value={sensitiveInputs[kind]} onChange={e => setSensitiveInputs(prev => ({...prev, [kind]: Number(e.target.value)}))} className="w-full" />
+                  </label>
+                  <p>阻值：{dial === 'RESISTANCE' ? `${sensitiveResistance(kind, sensitiveInputs[kind])} Ω` : '请先选择电阻挡'}</p>
+                  <Button disabled={ntcSubmitted} onClick={() => recordSensitive(kind, sensitiveInputs[kind])}>记录 {name} 测点</Button>
+                  <p>{sensitivePoints[kind].map(p => `${p.condition} / ${p.resistance}Ω`).join('；') || '尚无测点'}</p>
+                  <label>条件增大时，{name}阻值趋势
+                    <select aria-label={`${name}趋势`} disabled={ntcSubmitted} value={sensitiveTrends[kind]} onChange={e => setSensitiveTrends(prev => ({...prev, [kind]: e.target.value}))}>
+                      <option value="">请选择</option><option value="increase">增大</option><option value="decrease">减小</option><option value="constant">不变</option>
+                    </select>
+                  </label>
+                </div>
+              ))}
+              <Button disabled={ntcSubmitted} onClick={() => { setSensitivePoints({ NTC: [], LDR: [], FSR: [] }); setSensitiveTrends({ LDR: '', FSR: '' }); setNtcFeedback(null); }}>清空敏感电阻记录</Button>
+            </section>
             {/* Diagnostic Question (Zero Spoiler!) */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-3 text-sm">
               <span className="font-bold text-slate-800">
@@ -1191,6 +1256,7 @@ export function A03ResistanceScene({
                       <input
                         type="radio"
                         name="ntc_diag_opt"
+                        disabled={ntcSubmitted}
                         checked={isSelected}
                         onChange={() => {
                           setNtcChoice(opt.id);
@@ -1257,7 +1323,7 @@ export function A03ResistanceScene({
             </div>
 
             <div className="p-3.5 bg-slate-800/80 rounded-lg text-sm text-slate-300 leading-relaxed border border-slate-700">
-              <strong className="block text-amber-300 mb-1 font-bold">实车水温传感器技术基准：</strong>
+              <strong className="block text-amber-300 mb-1 font-bold">本训练模型参考值（实车以维修手册为准）：</strong>
               冷态 (20℃) 约 2~3kΩ，热车 (80~90℃) 降至 200~400Ω。若温度升高阻值不变或开路，将导致发动机冷启动困难、动力下降或电子风扇常转。
             </div>
           </div>

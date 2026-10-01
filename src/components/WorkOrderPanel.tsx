@@ -3,6 +3,7 @@
 import { ClipboardCheck, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useGameStore } from '@/src/stores/gameStore';
+import { getLevelDisplayName } from '@/src/courses/curriculum';
 
 export function WorkOrderPanel() {
   const { state, dispatch } = useGameStore();
@@ -14,7 +15,7 @@ export function WorkOrderPanel() {
         <button className="icon-button close-button" type="button" aria-label="关闭工单" onClick={() => dispatch({ type: 'CLOSE_WORK_ORDER' })}><X size={20} /></button>
         <div className="document-heading">
           <span><ClipboardCheck size={26} /></span>
-          <div><p>电子工单 · WO-0001</p><h2 id="work-order-title">见习技师入职训练</h2></div>
+          <div><p>电子工单 · WO-0001</p><h2 id="work-order-title">{getLevelDisplayName('O00')} · 实训工单</h2></div>
         </div>
         <p className="order-note">今天暂时不维修车辆。</p>
         <ol className="order-list">

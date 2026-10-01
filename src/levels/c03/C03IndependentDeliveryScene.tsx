@@ -33,6 +33,7 @@ export function C03IndependentDeliveryScene({
   hintRequested,
 }: C03IndependentDeliverySceneProps) {
   const assessment = useLevelAssessment('C03');
+  const requestAssessmentHint = assessment.requestHint;
 
   React.useEffect(() => {
     if (hintRequested) {
@@ -43,9 +44,9 @@ export function C03IndependentDeliveryScene({
         SOP_REPAIR_AND_REINSPECT: 'blind_test',
         OWNER_DEFENSE_DELIVERY: 'transfer',
       };
-      assessment.requestHint(stageMap[currentStep]);
+      requestAssessmentHint(stageMap[currentStep]);
     }
-  }, [hintRequested, currentStep, assessment]);
+  }, [hintRequested, currentStep, requestAssessmentHint]);
 
   // Multimeter knob: 'OFF' | 'DCV_20' | 'OHM'
   const [meterKnob, setMeterKnob] = useState<'OFF' | 'DCV_20' | 'OHM'>('OFF');

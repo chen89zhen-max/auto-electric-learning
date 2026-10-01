@@ -38,6 +38,7 @@ export function E02CapacitorScene({
   hintRequested = false,
 }: E02CapacitorSceneProps) {
   const assessment = useLevelAssessment('E02');
+  const requestAssessmentHint = assessment.requestHint;
   // Multimeter knob: 'OFF' | 'CAP_F' | 'OHM_20K' | 'DCV_20'
   const [meterKnob, setMeterKnob] = useState<'OFF' | 'CAP_F' | 'OHM_20K' | 'DCV_20'>('OFF');
   const [meterWarning, setMeterWarning] = useState<string | null>(null);
@@ -101,9 +102,9 @@ export function E02CapacitorScene({
         BLIND_CAPACITOR_FAULT_DIAGNOSIS: 'blind_test',
         ENGINEERING_REPAIR_AND_DELIVERY: 'transfer',
       };
-      assessment.requestHint(stageMap[currentStep]);
+      requestAssessmentHint(stageMap[currentStep]);
     }
-  }, [hintRequested, currentStep, assessment]);
+  }, [hintRequested, currentStep, requestAssessmentHint]);
 
   // Multimeter guard
   const requireMeterKnob = (required: ('CAP_F' | 'OHM_20K' | 'DCV_20') | ('CAP_F' | 'OHM_20K' | 'DCV_20')[]): boolean => {
@@ -135,18 +136,18 @@ export function E02CapacitorScene({
   const activeSample = E02_SAMPLES[s4SampleIndex];
 
   return (
-    <div className="flex flex-col gap-5 p-4 md:p-6 bg-slate-900/90 border border-slate-700/80 rounded-2xl text-slate-100 shadow-2xl backdrop-blur-md">
+    <div className="flex flex-col gap-5 p-4 md:p-6 bg-slate-50 border border-slate-200 rounded-2xl text-slate-800 shadow-sm">
       {/* 顶部数字万用表状态栏 */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-slate-800/80 rounded-xl border border-slate-700">
+      <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-white rounded-xl border border-slate-200 shadow-xs">
         <div className="flex items-center gap-3">
           <div className="p-2.5 bg-blue-500/20 text-blue-400 rounded-lg border border-blue-500/30">
             <Gauge className="w-6 h-6" />
           </div>
           <div>
-            <div className="text-sm font-semibold text-slate-400 tracking-wider uppercase">
+            <div className="text-sm font-semibold text-slate-700 tracking-wider uppercase">
               汽车数字万用表 (DMM-920 电容高精度型)
             </div>
-            <div className="text-sm font-bold text-slate-200">
+            <div className="text-sm font-bold text-slate-800">
               当前挡位:{' '}
               <span
                 className={
@@ -164,8 +165,8 @@ export function E02CapacitorScene({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-slate-300">旋钮挡位:</span>
+        <div className="flex flex-wrap items-center gap-2 min-w-0">
+          <span className="text-sm font-medium text-slate-700 shrink-0">旋钮挡位:</span>
           {(['OFF', 'CAP_F', 'OHM_20K', 'DCV_20'] as const).map((knob) => (
             <button
               key={knob}
@@ -206,8 +207,8 @@ export function E02CapacitorScene({
               </div>
 
               {/* 动态可视化电路 */}
-              <div className="relative w-full h-52 flex items-center justify-center my-4 bg-slate-900/60 rounded-xl border border-slate-800/80 overflow-hidden">
-                <svg className="w-full h-full max-w-lg" viewBox="0 0 500 200">
+              <div className="relative w-full h-72 flex items-center justify-start lg:justify-center my-4 bg-slate-900/60 rounded-xl border border-slate-800/80 overflow-x-auto">
+                <svg className="w-full min-w-0 max-lg:min-w-[700px] h-full max-w-3xl shrink-0" viewBox="0 0 500 200">
                   {/* 导线 */}
                   <path
                     d="M 50 100 L 140 100 M 200 100 L 320 100 M 320 100 L 320 160 M 320 100 L 420 100"
@@ -217,7 +218,7 @@ export function E02CapacitorScene({
                   />
                   {/* 电源 */}
                   <rect x="20" y="70" width="30" height="60" rx="4" fill="#334155" stroke="#94a3b8" strokeWidth="2" />
-                  <text x="26" y="105" fill="#f8fafc" fontSize="12" fontWeight="bold">12V</text>
+                  <text x="24" y="105" fill="#f8fafc" fontSize="14" fontWeight="bold">12V</text>
 
                   {/* 开关 */}
                   <g transform="translate(140, 90)">
@@ -231,7 +232,7 @@ export function E02CapacitorScene({
                       stroke={s1PowerState === 'CHARGING' ? '#10b981' : '#f43f5e'}
                       strokeWidth="4"
                     />
-                    <text x="15" y="-5" fill="#cbd5e1" fontSize="10">电源开关</text>
+                    <text x="10" y="-5" fill="#e2e8f0" fontSize="13" fontWeight="bold">电源开关</text>
                   </g>
 
                   {/* 电解电容 (并联在回路中) */}
@@ -240,8 +241,8 @@ export function E02CapacitorScene({
                     <line x1="20" y1="0" x2="20" y2="10" stroke="#38bdf8" strokeWidth="3" />
                     {/* 防爆阀纹 */}
                     <line x1="12" y1="20" x2="28" y2="20" stroke="#f43f5e" strokeWidth="2" />
-                    <text x="10" y="40" fill="#38bdf8" fontSize="9" fontWeight="bold">470μF</text>
-                    <text x="-15" y="35" fill="#94a3b8" fontSize="8">电解电容</text>
+                    <text x="5" y="40" fill="#38bdf8" fontSize="11" fontWeight="bold">470μF</text>
+                    <text x="-12" y="75" fill="#cbd5e1" fontSize="13" fontWeight="bold">电解电容</text>
                   </g>
 
                   {/* 迎宾指示灯 */}
@@ -255,12 +256,13 @@ export function E02CapacitorScene({
                       stroke={s1Voltage > 1.5 ? '#eab308' : '#64748b'}
                       strokeWidth="3"
                     />
-                    <text x="10" y="34" fill={s1Voltage > 1.5 ? '#0f172a' : '#94a3b8'} fontSize="10" fontWeight="bold">
+                    <text x="8" y="34" fill={s1Voltage > 1.5 ? '#0f172a' : '#cbd5e1'} fontSize="11" fontWeight="bold">
                       {s1Voltage > 1.5 ? '💡 发光' : '🌑 熄灭'}
                     </text>
                   </g>
                 </svg>
               </div>
+              <p className="text-sm text-slate-300 lg:hidden">左右滑动查看完整电路图。</p>
 
               {/* 控制按钮与电容电压 */}
               <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-800">
@@ -408,13 +410,13 @@ export function E02CapacitorScene({
             </div>
 
             {/* 右侧零剧透知识验证 */}
-            <div className="lg:col-span-4 p-5 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div className="lg:col-span-4 p-5 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
               <div>
-                <h4 className="text-sm font-bold text-slate-200 mb-2 flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   物理现象认知判定
                 </h4>
-                <p className="text-sm text-slate-300 mb-4">
+                <p className="text-sm text-slate-600 mb-4">
                   断开主电源后指示灯并没有立刻熄灭，根本物理原因是什么？
                 </p>
 
@@ -434,7 +436,7 @@ export function E02CapacitorScene({
                       className={`w-full text-left p-3 rounded-xl border text-sm transition-all cursor-pointer ${
                         s1Choice === opt.id
                           ? 'border-blue-500 bg-blue-500/10 text-white font-bold'
-                          : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700'
+                          : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-blue-300'
                       }`}
                     >
                       <span className="font-mono font-bold mr-2 text-blue-400">{opt.id}.</span>
@@ -444,7 +446,7 @@ export function E02CapacitorScene({
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-slate-800">
+              <div className="mt-4 pt-4 border-t border-slate-200">
                 {!s1Submitted ? (
                   <Button
                     disabled={!s1Choice}
@@ -575,13 +577,13 @@ export function E02CapacitorScene({
             </div>
 
             {/* 右侧零剧透判定 */}
-            <div className="lg:col-span-4 p-5 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div className="lg:col-span-4 p-5 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
               <div>
-                <h4 className="text-sm font-bold text-slate-200 mb-2 flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
                   <Zap className="w-4 h-4 text-cyan-400" />
                   测量规范与性能评判
                 </h4>
-                <p className="text-sm text-slate-300 mb-4">
+                <p className="text-sm text-slate-600 mb-4">
                   使用万用表电阻挡检验电容器好坏时，正常电容应呈现何种读数规律？
                 </p>
 
@@ -601,7 +603,7 @@ export function E02CapacitorScene({
                       className={`w-full text-left p-3 rounded-xl border text-sm transition-all cursor-pointer ${
                         s2Choice === opt.id
                           ? 'border-blue-500 bg-blue-500/10 text-white font-bold'
-                          : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700'
+                          : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-blue-300'
                       }`}
                     >
                       <span className="font-mono font-bold mr-2 text-blue-400">{opt.id}.</span>
@@ -611,7 +613,7 @@ export function E02CapacitorScene({
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-slate-800">
+              <div className="mt-4 pt-4 border-t border-slate-200">
                 {!s2Submitted ? (
                   <Button
                     disabled={!s2Choice}
@@ -731,10 +733,10 @@ export function E02CapacitorScene({
                     />
                     {/* 1τ 标注点 (63.2%) */}
                     <circle cx="140" cy="48" r="4" fill="#f59e0b" />
-                    <text x="150" y="52" fill="#f59e0b" fontSize="10" fontWeight="bold">1τ (63.2% ≈ 7.58V)</text>
+                    <text x="150" y="52" fill="#f59e0b" fontSize="12" fontWeight="bold">1τ (63.2% ≈ 7.58V)</text>
                     {/* 5τ 充饱点 */}
                     <circle cx="360" cy="21" r="4" fill="#38bdf8" />
-                    <text x="310" y="15" fill="#38bdf8" fontSize="10">5τ 充饱 (12V)</text>
+                    <text x="310" y="15" fill="#38bdf8" fontSize="12">5τ 充饱 (12V)</text>
                   </svg>
 
                   <div className="flex justify-between items-center text-sm font-mono pt-1">
@@ -761,13 +763,13 @@ export function E02CapacitorScene({
             </div>
 
             {/* 右侧定量计算题 */}
-            <div className="lg:col-span-4 p-5 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div className="lg:col-span-4 p-5 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
               <div>
-                <h4 className="text-sm font-bold text-slate-200 mb-2 flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   时间常数计算工单
                 </h4>
-                <p className="text-sm text-slate-300 mb-4">
+                <p className="text-sm text-slate-600 mb-4">
                   某汽车雨刮间歇延时控制器采用 R = 10kΩ (10000Ω) 和 C = 470μF (0.00047F)，其时间常数 τ 是多少秒？充到 63.2% 供电电压需要多长时间？
                 </p>
 
@@ -787,7 +789,7 @@ export function E02CapacitorScene({
                       className={`w-full text-left p-3 rounded-xl border text-sm transition-all cursor-pointer ${
                         s3Choice === opt.id
                           ? 'border-blue-500 bg-blue-500/10 text-white font-bold'
-                          : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700'
+                          : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-blue-300'
                       }`}
                     >
                       <span className="font-mono font-bold mr-2 text-blue-400">{opt.id}.</span>
@@ -797,7 +799,7 @@ export function E02CapacitorScene({
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-slate-800">
+              <div className="mt-4 pt-4 border-t border-slate-200">
                 {!s3Submitted ? (
                   <Button
                     disabled={!s3Choice}
@@ -894,13 +896,13 @@ export function E02CapacitorScene({
             </div>
 
             {/* 右侧诊断填报工单 */}
-            <div className="lg:col-span-5 p-5 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div className="lg:col-span-5 p-5 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
               <div>
-                <h4 className="text-sm font-bold text-slate-200 mb-2 flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   电容盲测质量分析卡
                 </h4>
-                <p className="text-sm text-slate-300 mb-3">判定 4 组未知样件的内部物理状态：</p>
+                <p className="text-sm text-slate-600 mb-3">判定 4 组未知样件的内部物理状态：</p>
 
                 <div className="space-y-3">
                   {E02_SAMPLES.map((smp) => (
@@ -923,7 +925,7 @@ export function E02CapacitorScene({
                             className={`p-2 rounded-lg border text-center text-sm font-medium transition-all cursor-pointer ${
                               s4Diagnoses[smp.id] === opt.val
                                 ? 'border-blue-500 bg-blue-500/20 text-white font-bold'
-                                : 'border-slate-800 bg-slate-950/50 text-slate-400 hover:border-slate-700'
+                                : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-blue-300'
                             }`}
                           >
                             {opt.label}
@@ -935,7 +937,7 @@ export function E02CapacitorScene({
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-slate-800">
+              <div className="mt-4 pt-4 border-t border-slate-200">
                 {!s4Submitted ? (
                   <Button
                     disabled={Object.keys(s4Diagnoses).length < 4}
@@ -1109,13 +1111,13 @@ export function E02CapacitorScene({
             </div>
 
             {/* 右侧交付签署 */}
-            <div className="lg:col-span-5 p-5 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div className="lg:col-span-5 p-5 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
               <div>
-                <h4 className="text-sm font-bold text-slate-200 mb-2 flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                   工程交付验收单
                 </h4>
-                <p className="text-sm text-slate-300 mb-3">核验本次板级电容维修项目：</p>
+                <p className="text-sm text-slate-600 mb-3">核验本次板级电容维修项目：</p>
 
                 <div className="space-y-2 text-sm">
                   <div className="p-2.5 bg-slate-900 rounded-lg border border-slate-800 flex justify-between">
@@ -1151,7 +1153,7 @@ export function E02CapacitorScene({
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-slate-800">
+              <div className="mt-4 pt-4 border-t border-slate-200">
                 {!s5Submitted ? (
                   <Button
                     disabled={!s5Signed || !s5Tested}

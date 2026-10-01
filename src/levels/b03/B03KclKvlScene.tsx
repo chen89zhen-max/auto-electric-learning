@@ -49,12 +49,14 @@ interface B03KclKvlSceneProps {
   currentStep: B03Step;
   onStepComplete: (step: B03Step, evidence: Record<string, unknown>) => void;
   onAdvanceStep: () => void;
+  onProcessEvent?: (type: 'wrong' | 'unsafe') => void;
 }
 
 export function B03KclKvlScene({
   currentStep,
   onStepComplete,
   onAdvanceStep,
+  onProcessEvent,
 }: B03KclKvlSceneProps) {
   // Step 1: KCL Node Current
   const [isKclSwitchClosed, setIsKclSwitchClosed] = useState(false);
@@ -124,6 +126,7 @@ export function B03KclKvlScene({
       });
     } else {
       sounds.warningBuzz();
+      onProcessEvent?.('wrong');
       setStep3Feedback('判定有误。参考点（搭铁）只是人为设定的 0V 零基准，就像选择海平面一样，改变零点会改变各点绝对电位，但用电设备两端的电压差 U_AB 永远保持不变！');
     }
   };
@@ -144,6 +147,7 @@ export function B03KclKvlScene({
       });
     } else {
       sounds.warningBuzz();
+      onProcessEvent?.('wrong');
       setStep4Feedback('计算有误。根据电荷守恒 KCL，流入节点的总电流必等于流出总电流：8.5 = 3.0 + 2.5 + I4，因此 I4 必为 3.0A 且方向流出！');
     }
   };
@@ -163,6 +167,7 @@ export function B03KclKvlScene({
       });
     } else {
       sounds.warningBuzz();
+      onProcessEvent?.('wrong');
       setStep5Feedback('方案不合规。该故障是典型的车身搭铁不良虚接引起的“借道浮地回流”，更换电脑或灯泡无法解决接触不良，必须清理打磨搭铁触点！');
     }
   };

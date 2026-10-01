@@ -22,7 +22,9 @@ export function createInitialAssessment(
   levelId: string,
   startedAt?: number
 ): LevelAssessmentResult {
-  const safeStart = Number.isInteger(startedAt) && (startedAt as number) >= 0 ? (startedAt as number) : 0;
+  const safeStart = Number.isInteger(startedAt) && (startedAt as number) >= 0
+    ? (startedAt as number)
+    : Date.now();
 
   const stages: StageAssessment[] = STAGE_IDS.map((stageId) => ({
     stageId,
@@ -108,11 +110,16 @@ export function assessmentReducer(
     }
 
     case 'REQUEST_HINT': {
+      const targetId = action.stageId ?? state.stages.find((stage) => !stage.completed)?.stageId
+        ?? state.stages[state.stages.length - 1]?.stageId;
+      if (state.stages.some((stage) => stage.stageId === targetId && stage.hintRequests >= 1)) {
+        return state;
+      }
       return {
         ...state,
         stages: updateStage(action.stageId, (stage) => ({
           ...stage,
-          hintRequests: stage.hintRequests + 1,
+          hintRequests: Math.min(1, stage.hintRequests + 1),
         })),
       };
     }

@@ -1,13 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { login, logout } from './helpers';
+import { CANONICAL_COURSE_REGISTRY } from '../../src/courses/registry';
 
-const publishedLevels = [
-  ['O00', '见习技师入职训练'], ['O01', '实训车间突发事故——安全用电'], ['A01', '学习任务2：点亮第一盏检修灯——电路的认知'], ['A02', '学习任务4：给电路做体检——电压分析与测量'], ['A03', '学习任务3：元件身份核验——电阻识别与测量'], ['A04', '学习任务4：电流到底走哪里——电流分析与测量'],
-  ['B01', '学习任务5：找出变化规律——欧姆定律应用'], ['B02', '学习任务6：灯组改装——负载的连接'], ['B03', '学习任务7：追踪节点与回路——基尔霍夫定律'], ['B04', '学习任务7：工位用电预算——电能与电功率分析'], ['B05', '电源为什么带不动——全电路欧姆定律与内阻'], ['B06', '传感器信号与分压——NTC、水温与带载失真'],
-  ['C01', 'C01 越来越暗的灯——电压降分析与虚接诊断'], ['C02', 'C02 同样不亮，原因不同——电路断路与短路综合排查'], ['C03', 'C03 第一次独立交车——综合直流诊断与修复复检'], ['D01', '汽车继电器原理、引脚辨识与驱动控制'], ['D02', 'D02 让电机转起来——直流电动机认知'], ['D03', 'D03 转动为什么能发电——电磁感应与交流发电机'], ['D04', 'D04 断开开关后的现象——自感与互感分析'], ['D05', 'D05 变压器实验室——变压器认知与测试'],
-  ['E01', 'E01 电流的单向通道——二极管及其应用'], ['E02', 'E02 断电后为何还有电——电容器及其特性'], ['E03', 'E03 从交流到直流——整流滤波电路'], ['E04', 'E04 小信号控制负载——三极管放大与开关'], ['E05', 'E05 电路的条件判断——逻辑门电路认知'], ['E06', 'E06 转速信号寻踪——转速传感器与信号调理'], ['E07', 'E07 装配一块训练板——PCB焊接工艺与检测'],
-  ['F01', 'F01 实训中心交付挑战——智能检修灯控制总成终检'],
-] as const;
+const publishedLevels = CANONICAL_COURSE_REGISTRY.map(level => [level.canonicalId, level.canonicalId + ' ' + level.title] as const);
 
 test('student login cannot reach teacher or administrator workspaces', async ({ page }) => {
   await login(page, 'student');
@@ -20,15 +15,38 @@ test('teacher direct preview opens every published level including F01', async (
   await login(page, 'teacher');
   await expect(page.getByRole('heading', { name: '任教班级学情与教学评价' })).toBeVisible();
 
+  // 1. 验证教师工作台只读课程预览 28 关及教材依据
+  await page.getByRole('button', { name: '课程预览' }).click();
+  await expect(page.getByRole('heading', { name: '汽车电工电子全套实训关卡' })).toBeVisible();
+  await expect(page.getByText('只读课程预览 · 标准关卡结构（共 28 关）')).toBeVisible();
+  await expect(page.getByText('依据：课程导入与工位规范，为后续实训作准备。')).toBeVisible();
+  await expect(page.getByText('依据：学习任务19 变压器的认知（扫描文件共13页，教材拓展/重庆2027备考必学，相关目标）')).toBeVisible();
+  await page.getByRole('button', { name: '返回学情' }).click();
+  await expect(page.getByRole('heading', { name: '任教班级学情与教学评价' })).toBeVisible();
+
+  // 2. 遍历全量 28 关直达预览，并抽样验证实训工单标题与关闭
   for (const [levelId, title] of publishedLevels) {
     await page.goto(`/?level=${levelId}`);
     await expect(page.getByText(title, { exact: false }).first()).toBeVisible();
+
+    // 对代表性关卡验证实际工单弹窗标题
+    if (['O00', 'D01', 'D05', 'F01'].includes(levelId)) {
+      const woBtn = page.getByRole('button', { name: '工单' });
+      if (await woBtn.isVisible()) {
+        await woBtn.click();
+      }
+      await expect(page.getByText(`${title} · 实训工单`).first()).toBeVisible();
+      const closeBtn = page.getByRole('button', { name: /返回实训工位|已查阅|开始训练|关闭工单/ }).first();
+      if (await closeBtn.isVisible()) {
+        await closeBtn.click();
+      }
+    }
   }
 
   await page.goto('/');
   await expect(page.getByRole('heading', { name: '任教班级学情与教学评价' })).toBeVisible();
   await logout(page);
-  await expect(page.getByRole('heading', { name: '汽车电工电子 · 课程地图与实训大厅' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '汽车电工电子闯关实训' })).toBeVisible();
   await login(page, 'student');
   await page.goto('/?level=C01');
   await expect(page.getByRole('heading', { name: '关卡未解锁：前置课程尚未完成' })).toBeVisible();

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { compareB02LampConnections } from '@/src/levels/b02/B02LoadConnectionScene';
 import { B02_STAGE_CONTENT, type B02Step } from '@/src/levels/b02/b02Training';
+import {
+  calculateCompoundCircuit,
+  calculateBypassCircuitA,
+  validateCompoundSubmission,
+} from '@/src/levels/b02/b02Compound';
 
 describe('B02 lamp-group connection model', () => {
   it('shows series dimming and parallel branch independence from electrical nodes', () => {
@@ -48,21 +53,225 @@ describe('B02 lamp-group connection model', () => {
     expect(iTotal).toBeCloseTo(10.0, 5);
   });
 
-  it('verifies power and wire current safety threshold for 400W offroad spotlight (Stage 5)', () => {
+  it('verifies 400W load working point current estimate and risk decision evidence schema (Stage 5)', () => {
     const power = 400; // 400W
     const voltage = 12; // 12V
-    const current = power / voltage; // 33.333A
-    const origFuseRating = 15; // 15A 原车保险丝
+    const currentEstimate = power / voltage; // 33.333A
+    const origFuseRating = 15; // 15A 原车标称熔断器
 
-    expect(current).toBeCloseTo(33.333, 2);
-    expect(current).toBeGreaterThan(origFuseRating); // 远超 15A 额定
+    expect(currentEstimate).toBeCloseTo(33.333, 2);
+    expect(currentEstimate).toBeGreaterThan(origFuseRating); // 超出 15A 标称额定电流
 
-    // 1.0mm² 细线承载极限约为 15A，若强制换 40A 保险丝，线束温升将严重超标引发自燃
-    const isWireSafeWith40AFuse = false;
-    expect(isWireSafeWith40AFuse).toBe(false);
+    // 教学规范证据结构核验：为风险决策，不伪称具体选型或完工已验收
+    const mockEvidence = {
+      spotlightCurrentCalculated: 33.3,
+      overloadRiskRecognized: true,
+      modificationDecision: 'OPT_A',
+      schemaVersion: 2,
+      evidenceKind: 'risk_decision',
+      currentSource: 'provided_working_point_estimate',
+      supplyVoltage: 12,
+      addedLoadInputPowerW: 400,
+      existingFuseRatedA: 15,
+      repairApproved: false,
+      specificSizingDetermined: false,
+      protectionTiming: 'not_determined',
+    };
 
-    // 合规整改要求独立 6.0mm² 专线 + 独立 40A 保险 + 大功率继电器
-    const recommendedWireGaugeMm2 = 6.0;
-    expect(recommendedWireGaugeMm2).toBeGreaterThanOrEqual(4.0);
+    expect(mockEvidence.spotlightCurrentCalculated).toBe(33.3);
+    expect(mockEvidence.overloadRiskRecognized).toBe(true);
+    expect(mockEvidence.modificationDecision).toBe('OPT_A');
+    expect(mockEvidence.schemaVersion).toBe(2);
+    expect(mockEvidence.evidenceKind).toBe('risk_decision');
+    expect(mockEvidence.currentSource).toBe('provided_working_point_estimate');
+    expect(mockEvidence.repairApproved).toBe(false);
+    expect(mockEvidence.specificSizingDetermined).toBe(false);
+    expect(mockEvidence.protectionTiming).toBe('not_determined');
   });
 });
+
+describe('B02 compound circuit calculation pure model', () => {
+  it('verifies Case A against Section 4 independent expected values', () => {
+    // Case A: U=12V, R1=6Ω, R2=12Ω, R3=2Ω
+    const res = calculateCompoundCircuit(12, 6, 12, 2);
+    expect(res).not.toBeNull();
+    if (!res) return;
+
+    expect(res.rp).toBeCloseTo(4, 5);
+    expect(res.req).toBeCloseTo(6, 5);
+    expect(res.itotal).toBeCloseTo(2, 5);
+    expect(res.uparallel).toBeCloseTo(8, 5);
+    expect(res.u3).toBeCloseTo(4, 5);
+    expect(res.i1).toBeCloseTo(4 / 3, 5);
+    expect(res.i2).toBeCloseTo(2 / 3, 5);
+    expect(res.p1).toBeCloseTo(32 / 3, 5);
+    expect(res.p2).toBeCloseTo(16 / 3, 5);
+    expect(res.p3).toBeCloseTo(8, 5);
+    expect(res.ptotal).toBeCloseTo(24, 5);
+    expect(res.powerRatio).toBeCloseTo(2, 5);
+
+    // KCL & KVL & Power balances
+    expect(res.i1 + res.i2).toBeCloseTo(res.itotal, 5);
+    expect(res.u3 + res.uparallel).toBeCloseTo(12, 5);
+    expect(res.p1 + res.p2 + res.p3).toBeCloseTo(res.ptotal, 5);
+  });
+
+  it('verifies Case B against Section 4 independent expected values', () => {
+    // Case B: U=12V, R1=12Ω, R2=6Ω, R3=4Ω
+    const res = calculateCompoundCircuit(12, 12, 6, 4);
+    expect(res).not.toBeNull();
+    if (!res) return;
+
+    expect(res.rp).toBeCloseTo(4, 5);
+    expect(res.req).toBeCloseTo(8, 5);
+    expect(res.itotal).toBeCloseTo(1.5, 5);
+    expect(res.uparallel).toBeCloseTo(6, 5);
+    expect(res.u3).toBeCloseTo(6, 5);
+    expect(res.i1).toBeCloseTo(0.5, 5);
+    expect(res.i2).toBeCloseTo(1.0, 5);
+    expect(res.p1).toBeCloseTo(3, 5);
+    expect(res.p2).toBeCloseTo(6, 5);
+    expect(res.p3).toBeCloseTo(9, 5);
+    expect(res.ptotal).toBeCloseTo(18, 5);
+    expect(res.powerRatio).toBeCloseTo(0.5, 5);
+
+    // KCL & KVL & Power balances
+    expect(res.i1 + res.i2).toBeCloseTo(res.itotal, 5);
+    expect(res.u3 + res.uparallel).toBeCloseTo(12, 5);
+    expect(res.p1 + res.p2 + res.p3).toBeCloseTo(res.ptotal, 5);
+  });
+
+  it('rejects invalid inputs (zero/negative resistance, non-finite, voltage <= 0)', () => {
+    expect(calculateCompoundCircuit(0, 6, 12, 2)).toBeNull();
+    expect(calculateCompoundCircuit(-12, 6, 12, 2)).toBeNull();
+    expect(calculateCompoundCircuit(12, 0, 12, 2)).toBeNull();
+    expect(calculateCompoundCircuit(12, 6, -12, 2)).toBeNull();
+    expect(calculateCompoundCircuit(12, 6, 12, 0)).toBeNull();
+    expect(calculateCompoundCircuit(NaN, 6, 12, 2)).toBeNull();
+    expect(calculateCompoundCircuit(12, Infinity, 12, 2)).toBeNull();
+  });
+
+  it('verifies Case A A-B bypass short simulation against 2Ω / 6A / 0V / 72W', () => {
+    const bypass = calculateBypassCircuitA();
+    expect(bypass.normal.req).toBeCloseTo(6, 5);
+    expect(bypass.normal.itotal).toBeCloseTo(2, 5);
+    expect(bypass.normal.uab).toBeCloseTo(8, 5);
+
+    expect(bypass.bypassed.req).toBe(2);
+    expect(bypass.bypassed.itotal).toBe(6);
+    expect(bypass.bypassed.uab).toBe(0);
+    expect(bypass.bypassed.p3).toBe(72);
+    expect(bypass.bypassed.i1).toBe(0);
+    expect(bypass.bypassed.i2).toBe(0);
+    expect(bypass.bypassed.p1).toBe(0);
+    expect(bypass.bypassed.p2).toBe(0);
+  });
+
+  it('validates student submissions with 0.02 tolerance and handles invalid formats', () => {
+    const expected = calculateCompoundCircuit(12, 6, 12, 2)!;
+
+    // Blank or unparseable input
+    const emptyCheck = validateCompoundSubmission(
+      {
+        req: '',
+        itotal: '2',
+        uparallel: '8',
+        p1: '10.67',
+        p2: '5.33',
+        p3: '8',
+        powerRatio: '2',
+      },
+      expected
+    );
+    expect(emptyCheck.allValidFormat).toBe(false);
+    expect(emptyCheck.invalidFields).toContain('req');
+
+    // Number('') being 0 must NOT be treated as valid
+    const zeroStrCheck = validateCompoundSubmission(
+      {
+        req: '0',
+        itotal: '2',
+        uparallel: '8',
+        p1: '10.67',
+        p2: '5.33',
+        p3: '8',
+        powerRatio: '2',
+      },
+      expected
+    );
+    expect(zeroStrCheck.allValidFormat).toBe(false);
+    expect(zeroStrCheck.invalidFields).toContain('req');
+
+    // Valid format with tolerance boundary (e.g. 10.67 and 5.33)
+    const validCheck = validateCompoundSubmission(
+      {
+        req: '6',
+        itotal: '2',
+        uparallel: '8',
+        p1: '10.67', // 32/3 = 10.6667, diff = 0.0033 <= 0.02
+        p2: '5.33',  // 16/3 = 5.3333, diff = 0.0033 <= 0.02
+        p3: '8',
+        powerRatio: '2',
+      },
+      expected
+    );
+    expect(validCheck.allValidFormat).toBe(true);
+    expect(validCheck.allCorrect).toBe(true);
+
+    // One wrong field out of tolerance
+    const wrongCheck = validateCompoundSubmission(
+      {
+        req: '6',
+        itotal: '2.5', // Expected 2, diff 0.5 > 0.02
+        uparallel: '8',
+        p1: '10.67',
+        p2: '5.33',
+        p3: '8',
+        powerRatio: '2',
+      },
+      expected
+    );
+    expect(wrongCheck.allValidFormat).toBe(true);
+    expect(wrongCheck.allCorrect).toBe(false);
+    expect(wrongCheck.fieldResults?.itotal.isCorrect).toBe(false);
+    expect(wrongCheck.fieldResults?.req.isCorrect).toBe(true);
+  });
+
+  it('strictly verifies exact ±0.02 tolerance boundary and rejects ±0.021 barely out-of-bounds', () => {
+    const expected = calculateCompoundCircuit(12, 6, 12, 2)!;
+    const baseAnswers = {
+      req: '6.00',
+      itotal: '2.00',
+      uparallel: '8.00',
+      p1: '10.6667',
+      p2: '5.3333',
+      p3: '8.00',
+      powerRatio: '2.00',
+    };
+
+    // Exactly +0.02 on req (6.02) -> should pass
+    const plusExact = validateCompoundSubmission({ ...baseAnswers, req: '6.02' }, expected);
+    expect(plusExact.allCorrect).toBe(true);
+    expect(plusExact.fieldResults?.req.isCorrect).toBe(true);
+    expect(plusExact.fieldResults?.req.diff).toBeCloseTo(0.02, 5);
+
+    // Exactly -0.02 on req (5.98) -> should pass
+    const minusExact = validateCompoundSubmission({ ...baseAnswers, req: '5.98' }, expected);
+    expect(minusExact.allCorrect).toBe(true);
+    expect(minusExact.fieldResults?.req.isCorrect).toBe(true);
+    expect(minusExact.fieldResults?.req.diff).toBeCloseTo(0.02, 5);
+
+    // Barely out of bounds: +0.021 on req (6.021) -> should fail
+    const plusBarelyOut = validateCompoundSubmission({ ...baseAnswers, req: '6.021' }, expected);
+    expect(plusBarelyOut.allCorrect).toBe(false);
+    expect(plusBarelyOut.fieldResults?.req.isCorrect).toBe(false);
+    expect(plusBarelyOut.fieldResults?.req.diff).toBeCloseTo(0.021, 5);
+
+    // Barely out of bounds: -0.021 on req (5.979) -> should fail
+    const minusBarelyOut = validateCompoundSubmission({ ...baseAnswers, req: '5.979' }, expected);
+    expect(minusBarelyOut.allCorrect).toBe(false);
+    expect(minusBarelyOut.fieldResults?.req.isCorrect).toBe(false);
+    expect(minusBarelyOut.fieldResults?.req.diff).toBeCloseTo(0.021, 5);
+  });
+});
+

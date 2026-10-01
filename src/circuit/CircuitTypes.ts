@@ -1,6 +1,6 @@
 /**
  * CircuitTopologyEngine Data Types & Interfaces
- * Sprint 2 Foundation for Task 2-9
+ * A01 Circuit Foundation for Task 2-9
  */
 
 export type ComponentType =

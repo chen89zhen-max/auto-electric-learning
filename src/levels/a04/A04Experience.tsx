@@ -1,4 +1,9 @@
 'use client';
+import { getLevelDisplayName } from '@/src/courses/curriculum';
+import { getNextLevelLabel } from '@/src/courses/curriculum';
+
+
+import { LevelHeading } from '@/src/components/LevelHeading';
 
 import React, { useState } from 'react';
 import {
@@ -17,9 +22,41 @@ import { getStudentDisplayName } from '@/src/stores/authStore';
 import { A04CurrentScene } from './scenes/A04CurrentScene';
 import { A04_STAGE_CONTENT, type A04Step } from './a04Training';
 import type { PracticeMode } from '@/src/types/evidence';
+import { formatDurationMs } from '@/src/lib/formatDuration';
 
 interface A04ExperienceProps {
   onReturnLobby: () => void;
+}
+
+type ProcessCounters = { wrongAttempts?: number; hintRequests?: number; meterGuardBlocks?: number; unsafeActions?: number; retries?: number; durationMs?: number };
+type ProcessEvent = Exclude<keyof ProcessCounters, 'durationMs'>;
+
+export function buildA04ProcessReport(counters: ProcessCounters) {
+  const wrongAttempts = counters.wrongAttempts ?? 0;
+  const hintRequests = counters.hintRequests ?? 0;
+  const meterGuardBlocks = counters.meterGuardBlocks ?? 0;
+  const unsafeActions = counters.unsafeActions ?? 0;
+  const retries = counters.retries ?? 0;
+  const score = Math.round(Math.max(0, Math.min(1, 1 - 0.12 * wrongAttempts - 0.15 * hintRequests - 0.20 * meterGuardBlocks - 0.30 * unsafeActions - 0.05 * retries)) * 100);
+  const stars = score >= 90 ? 5 : score >= 80 ? 4 : score >= 70 ? 3 : score >= 60 ? 2 : 1;
+  return {
+    score,
+    dimensions: [
+      { id: 'AMMETER_PORT', label: '电流表挡位与插孔规范', stars },
+      { id: 'SERIES_INSERT', label: '串联接入断点操作', stars },
+      { id: 'SHORT_INTERCEPT', label: '跨接短路危险拦截', stars },
+      { id: 'CLAMP_METER', label: '钳形表单导线检测', stars },
+      { id: 'BATTERY_RECYCLE', label: '蓄电池带载与环保归集', stars },
+    ],
+    summaryItems: [
+      { label: '过程答错记录', value: `${wrongAttempts} 次` },
+      { label: '教学提示使用', value: `${hintRequests} 次` },
+      { label: '仪表安全拦截', value: `${meterGuardBlocks} 次` },
+      { label: '安全违规操作', value: `${unsafeActions} 次` },
+      { label: '阶段重试次数', value: `${retries} 次` },
+      { label: '本关用时', value: formatDurationMs(counters.durationMs ?? 0) },
+    ],
+  };
 }
 
 export function A04Experience({ onReturnLobby }: A04ExperienceProps) {
@@ -30,6 +67,9 @@ export function A04Experience({ onReturnLobby }: A04ExperienceProps) {
   const [sceneRevision, setSceneRevision] = useState(0);
   const [showWorkOrder, setShowWorkOrder] = useState(false);
   const [hintRequested, setHintRequested] = useState(false);
+  const [startedAt, setStartedAt] = useState(() => Date.now());
+  const [completedAt, setCompletedAt] = useState<number | null>(null);
+  const [processCounters, setProcessCounters] = useState<Required<Omit<ProcessCounters, 'durationMs'>>>({ wrongAttempts: 0, hintRequests: 0, meterGuardBlocks: 0, unsafeActions: 0, retries: 0 });
 
   const guidance = A04_STAGE_CONTENT[currentStep];
 
@@ -54,8 +94,13 @@ export function A04Experience({ onReturnLobby }: A04ExperienceProps) {
       setCurrentStep('TRANSFER_PARALLEL_KCL');
       setHintRequested(false);
     } else if (currentStep === 'TRANSFER_PARALLEL_KCL') {
+      setCompletedAt(Date.now());
       setIsCompleted(true);
     }
+  };
+
+  const recordProcessEvent = (event: ProcessEvent) => {
+    setProcessCounters((current) => ({ ...current, [event]: current[event] + 1 }));
   };
 
   const handleRestart = () => {
@@ -63,9 +108,14 @@ export function A04Experience({ onReturnLobby }: A04ExperienceProps) {
     setCurrentStep('SERIES_MEASUREMENT');
     setStepEvidences({});
     setHintRequested(false);
+    setStartedAt(Date.now());
+    setCompletedAt(null);
+    setProcessCounters({ wrongAttempts: 0, hintRequests: 0, meterGuardBlocks: 0, unsafeActions: 0, retries: 0 });
     setShowWorkOrder(false);
     setSceneRevision((r) => r + 1);
   };
+
+  const report = buildA04ProcessReport({ ...processCounters, durationMs: completedAt === null ? 0 : Math.max(0, completedAt - startedAt) });
 
   return (
     <main className="app-shell level02-shell a04-shell">
@@ -75,12 +125,7 @@ export function A04Experience({ onReturnLobby }: A04ExperienceProps) {
           <span className="brand-mark safety-mark bg-red-600 shadow-red-600/20">
             <Zap size={22} />
           </span>
-          <div>
-            <p className="eyebrow text-red-700">篇章一：把电路看明白 · A04</p>
-            <h1 className="text-slate-800 font-bold">
-              学习任务4：电流到底走哪里——电流分析与测量
-            </h1>
-          </div>
+          <LevelHeading levelId="A04" />
         </div>
 
         {/* Trainee Profile & Controls */}
@@ -124,30 +169,18 @@ export function A04Experience({ onReturnLobby }: A04ExperienceProps) {
                 levelId="A04"
                 domainLabel="技能领域 · 电流分析与测量"
                 title="电流分析与测量能力报告"
-                dimensions={[
-                  { id: 'AMMETER_PORT', label: '电流表挡位与插孔规范', stars: 5 },
-                  { id: 'SERIES_INSERT', label: '串联接入断点操作', stars: 5 },
-                  { id: 'SHORT_INTERCEPT', label: '跨接短路危险拦截', stars: 5 },
-                  { id: 'CLAMP_METER', label: '钳形表单导线检测', stars: 5 },
-                  { id: 'BATTERY_RECYCLE', label: '蓄电池带载与环保归集', stars: 5 },
-                ]}
-                summaryItems={[
-                  { label: '电流表接入方式', value: '串联断路法' },
-                  { label: '并联跨接短路拦截', value: '0次短路(全阻断)' },
-                  { label: '钳形表单线卡入', value: '规范单导线' },
-                  { label: '双线磁通抵消认知', value: '理论验证通过' },
-                  { label: '危废蓄电池归集', value: '环保箱分类存放' },
-                  { label: '本关用时', value: '1 分钟' },
-                ]}
+                dimensions={report.dimensions}
+                score={report.score}
+                summaryItems={report.summaryItems}
                 metrics={stepEvidences}
                 mode={practiceMode}
-                nextTask="篇章一总结 · 进入篇章二《让电路按要求工作》"
+                nextTask={getNextLevelLabel('A04')}
                 onRestart={handleRestart}
                 onReturn={onReturnLobby}
               />
             </div>
             <div className="objective-strip">
-              <span>当前任务</span>
+              <span>当前操作</span>
               <strong>查看电流分析与测量能力报告</strong>
               <output className="feedback">实训评测已通过，电流测量与安全短路防护规范已牢固建立。</output>
             </div>
@@ -169,10 +202,11 @@ export function A04Experience({ onReturnLobby }: A04ExperienceProps) {
                   practiceMode={practiceMode}
                   onStepComplete={handleStepComplete}
                   onAdvanceStep={handleAdvanceStep}
+                  onProcessEvent={recordProcessEvent}
                 />
               </div>
               <div className="objective-strip">
-                <span>当前任务</span>
+                <span>当前操作</span>
                 <strong>{guidance.title}</strong>
                 <output className="feedback">{guidance.objective}</output>
               </div>
@@ -245,13 +279,16 @@ export function A04Experience({ onReturnLobby }: A04ExperienceProps) {
         <button
           type="button"
           className={hintRequested ? 'tool-active cursor-pointer' : 'cursor-pointer'}
-          onClick={() => setHintRequested(true)}
+          onClick={() => {
+            if (!hintRequested) recordProcessEvent('hintRequests');
+            setHintRequested(true);
+          }}
         >
           <HelpCircle size={19} /> 请师傅提示
         </button>
         <span className="toolbar-spacer" />
         <span className="unlock-hint">
-          测量要点：串联断口／防短路拦截／钳形表单线 · 学习任务4（18页）
+          测量要点：串联断口／防短路拦截／钳形表单线 · 教材与考纲见页头
         </span>
         <button type="button" onClick={handleRestart} className="cursor-pointer">
           <RotateCcw size={18} /> 重新开始
@@ -267,9 +304,7 @@ export function A04Experience({ onReturnLobby }: A04ExperienceProps) {
         >
           <section className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
             <p className="eyebrow text-red-700">工单编号 · WO-A04-CURRENT</p>
-            <h2 className="mt-1 text-xl font-black text-slate-900">
-              电流到底走哪里——电流分析与测量
-            </h2>
+            <h2 className="mt-1 text-xl font-black text-slate-900">{getLevelDisplayName('A04')} · 实训工单</h2>
             <p className="mt-3 leading-7 text-slate-700">
               在汽车回路电流分析台上完成万用表电流挡串联断路接入，严守防并联短路安全铁律，掌握非接触钳形电流表单导线检测规范与双导线磁通抵消原理，并完成实车休眠暗电流漏电排查。
             </p>

@@ -41,6 +41,18 @@ describe('客户端会话和成绩关联', () => {
     expect(getCurrentUser()?.username).toBe('乙');
   });
 
+  it('会话核验请求带有超时信号，避免页面永久停在核验状态', async () => {
+    const fetcher = vi.fn().mockResolvedValue(json({ success: false }));
+    vi.stubGlobal('fetch', fetcher);
+
+    await restoreSession(true);
+
+    expect(fetcher).toHaveBeenCalledWith('/api/auth/me', expect.objectContaining({
+      cache: 'no-store',
+      signal: expect.any(AbortSignal),
+    }));
+  });
+
   it('成绩写入过程中换账号，旧响应不能污染新账号的课程地图', async () => {
     setCurrentUser(student('甲'));
     let finish!: (value: Response) => void;
@@ -57,11 +69,14 @@ describe('客户端会话和成绩关联', () => {
     setCurrentUser(student('甲'));
     const projection = createBaseUserProgress('甲');
     projection.levels.LEVEL_00 = { status: 'completed', score: 72 };
-    const fetcher = vi.fn().mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce(json({ projection }));
+    const fetcher = vi.fn()
+      .mockResolvedValueOnce(json({ attemptId: 'try_retry', startedAt: 1_000 }))
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValueOnce(json({ projection }));
     vi.stubGlobal('fetch', fetcher);
     await expect(submitLevelCompletion('LEVEL_00', 72)).rejects.toThrow('offline');
     await submitLevelCompletion('LEVEL_00', 72);
-    expect(JSON.parse(fetcher.mock.calls[0][1].body).eventId).toBe(JSON.parse(fetcher.mock.calls[1][1].body).eventId);
+    expect(JSON.parse(fetcher.mock.calls[1][1].body).eventId).toBe(JSON.parse(fetcher.mock.calls[2][1].body).eventId);
     expect(getUserProgress().levels.LEVEL_00.score).toBe(72);
   });
 

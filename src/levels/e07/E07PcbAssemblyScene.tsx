@@ -47,6 +47,7 @@ export function E07PcbAssemblyScene({
   physicalEvaluation,
 }: E07PcbAssemblySceneProps) {
   const assessment = useLevelAssessment('E07');
+  const requestAssessmentHint = assessment.requestHint;
 
   React.useEffect(() => {
     if (hintRequested) {
@@ -57,9 +58,9 @@ export function E07PcbAssemblyScene({
         BLIND_PCB_DEFECT_INSPECTION: 'blind_test',
         ENGINEERING_REPAIR_AND_DELIVERY: 'transfer',
       };
-      assessment.requestHint(stageMap[currentStep]);
+      requestAssessmentHint(stageMap[currentStep]);
     }
-  }, [hintRequested, currentStep, assessment]);
+  }, [hintRequested, currentStep, requestAssessmentHint]);
 
   // Multimeter knob: 'OFF' | 'MAGNIFIER_10X' | 'BUZZER_OHM' | 'DCV_20'
   const [meterKnob, setMeterKnob] = useState<'OFF' | 'MAGNIFIER_10X' | 'BUZZER_OHM' | 'DCV_20'>('OFF');
@@ -141,9 +142,9 @@ export function E07PcbAssemblyScene({
   ];
 
   return (
-    <div className="flex flex-col gap-5 p-4 md:p-6 bg-slate-900/90 border border-slate-700/80 rounded-2xl text-slate-100 shadow-2xl backdrop-blur-md">
+    <div className="flex flex-col gap-5 p-4 md:p-6 bg-slate-50 border border-slate-200 rounded-2xl text-slate-800 shadow-sm">
       {/* 顶部检测与焊接工具栏 */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-slate-800/80 rounded-xl border border-slate-700">
+      <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-white rounded-xl border border-slate-200 shadow-xs">
         <div className="flex items-center gap-3">
           <div className="p-2.5 bg-blue-500/20 text-blue-400 rounded-lg border border-blue-500/30">
             <Gauge className="w-6 h-6" />
@@ -330,13 +331,13 @@ export function E07PcbAssemblyScene({
             </div>
 
             {/* 右侧零剧透知识验证 */}
-            <div className="lg:col-span-4 p-5 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div className="lg:col-span-4 p-5 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
               <div>
-                <h4 className="text-sm font-bold text-slate-200 mb-2 flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   工艺安全理论验证
                 </h4>
-                <p className="text-sm text-slate-300 mb-4">
+                <p className="text-sm text-slate-600 mb-4">
                   关于手工焊接五步法及施焊时间控制，下列哪项规范是正确的？
                 </p>
 
@@ -356,7 +357,7 @@ export function E07PcbAssemblyScene({
                       className={`w-full text-left p-3 rounded-xl border text-sm transition-all cursor-pointer ${
                         s1Choice === opt.id
                           ? 'border-blue-500 bg-blue-500/10 text-white font-bold'
-                          : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700'
+                          : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-blue-300'
                       }`}
                     >
                       <span className="font-mono font-bold mr-2 text-blue-400">{opt.id}.</span>
@@ -366,7 +367,7 @@ export function E07PcbAssemblyScene({
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-slate-800">
+              <div className="mt-4 pt-4 border-t border-slate-200">
                 {!s1Submitted ? (
                   <Button
                     disabled={!s1Choice}
@@ -517,13 +518,13 @@ export function E07PcbAssemblyScene({
             </div>
 
             {/* 右侧零剧透判定 */}
-            <div className="lg:col-span-4 p-5 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div className="lg:col-span-4 p-5 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
               <div>
-                <h4 className="text-sm font-bold text-slate-200 mb-2 flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
                   <Zap className="w-4 h-4 text-cyan-400" />
                   极性与插装质量准则
                 </h4>
-                <p className="text-sm text-slate-300 mb-4">
+                <p className="text-sm text-slate-600 mb-4">
                   插装铝电解电容器时，引脚极性与 PCB 丝印标记应如何严格对应？
                 </p>
 
@@ -543,7 +544,7 @@ export function E07PcbAssemblyScene({
                       className={`w-full text-left p-3 rounded-xl border text-sm transition-all cursor-pointer ${
                         s2Choice === opt.id
                           ? 'border-blue-500 bg-blue-500/10 text-white font-bold'
-                          : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700'
+                          : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-blue-300'
                       }`}
                     >
                       <span className="font-mono font-bold mr-2 text-blue-400">{opt.id}.</span>
@@ -553,7 +554,7 @@ export function E07PcbAssemblyScene({
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-slate-800">
+              <div className="mt-4 pt-4 border-t border-slate-200">
                 {!s2Submitted ? (
                   <Button
                     disabled={!s2Choice || !s2InsertedParts.trimmed}
@@ -685,13 +686,13 @@ export function E07PcbAssemblyScene({
             </div>
 
             {/* 右侧定量分析题 */}
-            <div className="lg:col-span-4 p-5 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div className="lg:col-span-4 p-5 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
               <div>
-                <h4 className="text-sm font-bold text-slate-200 mb-2 flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   焊点质量标准判定
                 </h4>
-                <p className="text-sm text-slate-300 mb-4">
+                <p className="text-sm text-slate-600 mb-4">
                   在汽车精密电路板制造与返修验收中，下列哪种焊点形态符合工业交付质量标准？
                 </p>
 
@@ -711,7 +712,7 @@ export function E07PcbAssemblyScene({
                       className={`w-full text-left p-3 rounded-xl border text-sm transition-all cursor-pointer ${
                         s3Choice === opt.id
                           ? 'border-blue-500 bg-blue-500/10 text-white font-bold'
-                          : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700'
+                          : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-blue-300'
                       }`}
                     >
                       <span className="font-mono font-bold mr-2 text-blue-400">{opt.id}.</span>
@@ -721,7 +722,7 @@ export function E07PcbAssemblyScene({
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-slate-800">
+              <div className="mt-4 pt-4 border-t border-slate-200">
                 {!s3Submitted ? (
                   <Button
                     disabled={!s3Choice}
@@ -833,13 +834,13 @@ export function E07PcbAssemblyScene({
             </div>
 
             {/* 右侧诊断报告 */}
-            <div className="lg:col-span-5 p-5 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div className="lg:col-span-5 p-5 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
               <div>
-                <h4 className="text-sm font-bold text-slate-200 mb-2 flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   PCB 质检报告卡
                 </h4>
-                <p className="text-sm text-slate-300 mb-3">为 4 处可疑位置判定缺陷类型：</p>
+                <p className="text-sm text-slate-600 mb-3">为 4 处可疑位置判定缺陷类型：</p>
 
                 <div className="space-y-3">
                   {E07_DEFECTS.map((def) => (
@@ -862,7 +863,7 @@ export function E07PcbAssemblyScene({
                             className={`p-2 rounded-lg border text-center text-sm font-medium transition-all cursor-pointer ${
                               s4Diagnoses[def.id] === opt.val
                                 ? 'border-blue-500 bg-blue-500/20 text-white font-bold'
-                                : 'border-slate-800 bg-slate-950/50 text-slate-400 hover:border-slate-700'
+                                : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-blue-300'
                             }`}
                           >
                             {opt.label}
@@ -874,7 +875,7 @@ export function E07PcbAssemblyScene({
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-slate-800">
+              <div className="mt-4 pt-4 border-t border-slate-200">
                 {!s4Submitted ? (
                   <Button
                     disabled={Object.keys(s4Diagnoses).length < 4}
@@ -1001,13 +1002,13 @@ export function E07PcbAssemblyScene({
             </div>
 
             {/* 右侧教师量规评定与交付 */}
-            <div className="lg:col-span-5 p-5 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div className="lg:col-span-5 p-5 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
               <div>
-                <h4 className="text-sm font-bold text-slate-200 mb-2 flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                   教师现场实物量规评定单 (E07-PHYSICAL-v1)
                 </h4>
-                <p className="text-sm text-slate-300 mb-3">依据国家职业标准及实操量规规范评定：</p>
+                <p className="text-sm text-slate-600 mb-3">依据国家职业标准及实操量规规范评定：</p>
 
                 {physicalEvaluation ? (
                   <div className="space-y-2 text-sm">
@@ -1081,7 +1082,7 @@ export function E07PcbAssemblyScene({
                 )}
               </div>
 
-              <div className="mt-4 pt-4 border-t border-slate-800">
+              <div className="mt-4 pt-4 border-t border-slate-200">
                 {!s5Submitted ? (
                   <Button
                     disabled={!s5PowerTested}

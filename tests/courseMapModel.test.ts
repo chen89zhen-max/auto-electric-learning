@@ -59,4 +59,27 @@ describe('course map view model', () => {
     expect(f01).toBeDefined();
     expect(f01?.missingPrerequisiteNames.length).toBeGreaterThan(1);
   });
+
+  it('keeps B04 available and exposes B03 as a non-blocking recommendation', () => {
+    const progress = createBaseUserProgress('测试学员');
+    progress.levels.B02 = { status: 'completed' };
+    const model = buildCourseMapViewModel(progress);
+    const b04 = model.chapters.find((chapter) => chapter.letter === 'B')?.levels.find((level) => level.id === 'B04');
+
+    expect(b04?.state).toBe('available');
+    expect(b04?.missingPrerequisiteNames).toEqual([]);
+    expect(b04?.recommendedPriorLevelNames).toEqual(['B03 追踪节点与回路']);
+  });
+
+  it('does not lock B05 or B06 when only recommended study is incomplete', () => {
+    const progress = createBaseUserProgress('测试学员');
+    progress.levels.B01 = { status: 'completed' };
+    const model = buildCourseMapViewModel(progress);
+    const levels = model.chapters.find((chapter) => chapter.letter === 'B')?.levels;
+
+    expect(levels?.find((level) => level.id === 'B05')?.state).toBe('available');
+    expect(levels?.find((level) => level.id === 'B05')?.recommendedPriorLevelNames).toEqual(['B04 核算用电与功率']);
+    expect(levels?.find((level) => level.id === 'B06')?.state).toBe('available');
+    expect(levels?.find((level) => level.id === 'B06')?.recommendedPriorLevelNames).toEqual(['B05 查清电源为何带不动']);
+  });
 });

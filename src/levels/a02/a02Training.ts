@@ -22,6 +22,7 @@ export type A02MeasurementKey =
   | 'batteryForward'
   | 'batteryReverse'
   | 'switchOpen'
+  | 'switchClosed'
   | 'lampClosed'
   | 'faultLamp'
   | 'supplyDrop'
@@ -83,16 +84,16 @@ export const A02_STAGE_CONTENT: Record<A02Step, A02StageContent> = {
   },
   SWITCH_AND_LOAD: {
     title: '实训步骤 2：比较断路与正常工作时的电压',
-    objective: '先测断开开关两端，再测闭合开关时检修灯两端。',
+    objective: '先后测量开关断开、闭合时的开关两端电压，再测闭合回路中的检修灯两端电压。',
     actions: [
       '断开开关，把红表笔接开关输入端、黑表笔接输出端并记录。',
-      '闭合开关，把红表笔接检修灯正极、黑表笔接负极并记录。',
-      '比较两次示数：断路点和正常负载两端都可能测到接近 12V。',
+      '保持表笔仍跨接开关输入端与输出端，闭合开关并记录。',
+      '保持开关闭合，把红表笔移到检修灯正极、黑表笔移到负极并记录。',
     ],
-    completion: '“断开的开关两端”和“工作中的检修灯两端”均已记录。',
+    completion: '已记录开关断开约 12V、开关闭合约 0V 和工作中的检修灯两端约 12V。',
     mentorPrompt:
-      '不要只看灯亮不亮。把两支表笔接在同一个元件两端，才是在测这个元件的电压。',
-    hint: '先断开开关测开关输入端到输出端；再闭合开关测检修灯正极到负极。',
+      '先别急着移动表笔。开关断开时承担电源电压，闭合后两端接近等电位，压降应接近零；随后再把表笔移到检修灯两端。',
+    hint: '先跨接开关两端分别记录断开与闭合读数；再保持开关闭合，把表笔移到检修灯正、负极。',
     mentorEmotion: 'THINKING',
   },
   CONTACT_RESISTANCE_DROP: {
@@ -129,6 +130,7 @@ export function createA02Progress(): A02Progress {
     batteryForward: false,
     batteryReverse: false,
     switchOpen: false,
+    switchClosed: false,
     lampClosed: false,
     faultLamp: false,
     supplyDrop: false,
@@ -138,7 +140,7 @@ export function createA02Progress(): A02Progress {
 
 const STEP_REQUIREMENTS: Record<A02Step, readonly A02MeasurementKey[]> = {
   BATTERY_PROBING: ['batteryForward', 'batteryReverse'],
-  SWITCH_AND_LOAD: ['switchOpen', 'lampClosed'],
+  SWITCH_AND_LOAD: ['switchOpen', 'switchClosed', 'lampClosed'],
   CONTACT_RESISTANCE_DROP: ['faultLamp', 'supplyDrop', 'groundDrop'],
   TRANSFER_DIAGNOSIS: [],
 };
@@ -194,6 +196,13 @@ export function identifyA02Measurement(
       return 'switchOpen';
     if (
       switchClosed &&
+      redProbe === 'SW_IN' &&
+      blackProbe === 'SW_OUT' &&
+      isNear(measuredValue, 0, 0.12)
+    )
+      return 'switchClosed';
+    if (
+      switchClosed &&
       redProbe === 'LAMP_POS' &&
       blackProbe === 'LAMP_NEG' &&
       isNear(measuredValue, 12, 0.2)
@@ -229,7 +238,14 @@ export function recordA02Measurement(
   progress: A02Progress,
   snapshot: A02MeasurementSnapshot,
 ): A02RecordResult {
-  const recordedKey = identifyA02Measurement(snapshot);
+  const identifiedKey = identifyA02Measurement(snapshot);
+  const recordedKey =
+    identifiedKey === 'switchClosed' && !progress.switchOpen
+      ? null
+      : identifiedKey === 'lampClosed' &&
+          (!progress.switchOpen || !progress.switchClosed)
+        ? null
+        : identifiedKey;
   const nextProgress = recordedKey
     ? { ...progress, [recordedKey]: true }
     : progress;

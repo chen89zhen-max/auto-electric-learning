@@ -64,10 +64,7 @@ export function getDatabase(): AppDatabase {
   if (dbInstance) return dbInstance;
   const dbPath = getDatabasePath();
   if (process.env.NODE_ENV === 'production') {
-    const dataDir = process.env.APP_DATA_DIR;
-    if (!dataDir) {
-      throw new Error('APP_DATA_DIR is required in production');
-    }
+    const dataDir = process.env.APP_DATA_DIR || path.join(process.cwd(), 'data');
     dbInstance = openProductionDatabase({ dataDir, filename: 'app.db', busyTimeoutMs: 5000 });
     applyMigrations(dbInstance);
   } else {

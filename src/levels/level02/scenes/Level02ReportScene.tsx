@@ -5,6 +5,9 @@ import { AbilityReport } from '@/src/components/AbilityReport';
 import { useLevel02Store } from '@/src/stores/level02Store';
 import { getStudentDisplayName } from '@/src/stores/authStore';
 import { Button } from '@/components/ui/button';
+import { formatDurationMs } from '@/src/lib/formatDuration';
+import { getNextLevelLabel } from '@/src/courses/curriculum';
+import type { Level02AbilityMetrics } from '@/src/abilities/AbilityTracker';
 import {
   ArrowRight,
   MessageSquare,
@@ -13,37 +16,44 @@ import {
   AlertCircle,
 } from 'lucide-react';
 
+export function calculateA01ProcessScore(metrics: Level02AbilityMetrics): number {
+  return Math.round(Math.max(0, Math.min(1,
+    1
+      - 0.12 * (metrics.invalidTerminalAttempts + metrics.openCircuitDiagnosisErrors + metrics.transferCheckErrors + metrics.reflectionErrors)
+      - 0.15 * metrics.helpRequests
+      - 0.20 * metrics.shortCircuitAttempts
+      - 0.30 * metrics.hotWiringAttempts,
+  )) * 100);
+}
+
 export function Level02ReportScene({ onReturnLobby }: { onReturnLobby: () => void }) {
   const { state, dispatch } = useLevel02Store();
   const isComplete = state.currentStage === 'COMPLETE';
   const studentName = getStudentDisplayName('同学');
+  const start = state.eventLog.find((event) => event.action === 'LEVEL_START');
+  const completed = [...state.eventLog].reverse().find((event) => event.action === 'LEVEL_COMPLETE') ?? state.eventLog.at(-1);
+  const durationMs = start && completed ? Math.max(0, Date.parse(completed.timestamp) - Date.parse(start.timestamp)) : 0;
+  const processScore = calculateA01ProcessScore(state.metrics);
 
   if (isComplete) {
     return (
       <AbilityReport
-        levelId="LEVEL_02"
+        levelId="A01"
         domainLabel="技能领域 · 基础回路搭建"
-        title="点亮第一盏检修灯能力报告"
-        dimensions={
-          state.abilityReport?.dimensions || [
-            { id: 'WIRING', label: '接线规范', stars: 5 },
-            { id: 'SAFETY', label: '安全意识', stars: 5 },
-            { id: 'TROUBLESHOOTING', label: '排故思维', stars: 5 },
-            { id: 'CHASSIS', label: '单线制理解', stars: 5 },
-            { id: 'TRANSFER', label: '迁移能力', stars: 5 },
-          ]
-        }
+        title="点亮检修灯能力报告"
+        dimensions={state.abilityReport?.dimensions ?? []}
+        score={processScore}
         summaryItems={[
           { label: '带电接线尝试', value: `${state.metrics.hotWiringAttempts} 次` },
           { label: '短路尝试拦截', value: `${state.metrics.shortCircuitAttempts} 次` },
           { label: '师傅提示请求', value: `${state.metrics.helpRequests} 次` },
           { label: '回路排序重试', value: `${state.metrics.reflectionErrors} 次` },
           { label: '单线制闭环验证', value: '已达成' },
-          { label: '本关用时', value: '1 分钟' },
+          { label: '本关用时', value: formatDurationMs(durationMs) },
         ]}
         report={state.abilityReport || undefined}
         metrics={state.metrics}
-        nextTask="学习任务4《给电路做体检——电压分析与测量》"
+        nextTask={getNextLevelLabel('A01')}
         onRestart={() => dispatch({ type: 'RESET_WIRING' })}
         onReturn={onReturnLobby}
       />

@@ -1,4 +1,9 @@
 'use client';
+import { getLevelDisplayName } from '@/src/courses/curriculum';
+import { getNextLevelLabel } from '@/src/courses/curriculum';
+
+
+import { LevelHeading } from '@/src/components/LevelHeading';
 
 import React, { useState } from 'react';
 import {
@@ -14,6 +19,7 @@ import { AbilityReport } from '@/src/components/AbilityReport';
 import { MasterChenAvatar } from '@/src/components/visuals/MasterChenAvatar';
 import { SpeechControls } from '@/src/components/visuals/SpeechControls';
 import { getStudentDisplayName } from '@/src/stores/authStore';
+import { buildChapterBProcessReport, type ChapterBProcessInput } from '@/src/levels/chapterB/ChapterBExperience';
 import { B02LoadConnectionScene } from './B02LoadConnectionScene';
 import { B02_STAGE_CONTENT, type B02Step } from './b02Training';
 
@@ -28,6 +34,7 @@ export function B02Experience({ onReturnLobby }: B02ExperienceProps) {
   const [sceneRevision, setSceneRevision] = useState(0);
   const [showWorkOrder, setShowWorkOrder] = useState(false);
   const [hintRequested, setHintRequested] = useState(false);
+  const [processStages, setProcessStages] = useState<NonNullable<ChapterBProcessInput['stages']>>([]);
 
   const guidance = B02_STAGE_CONTENT[currentStep];
 
@@ -56,14 +63,43 @@ export function B02Experience({ onReturnLobby }: B02ExperienceProps) {
     }
   };
 
+  const recordProcessEvent = (type: 'wrong' | 'unsafe' | 'meter_blocked') => {
+    const stageIndex = Object.keys(B02_STAGE_CONTENT).indexOf(currentStep);
+    setProcessStages((current) => {
+      const next = [...current];
+      const stage = next[stageIndex] ?? {};
+      next[stageIndex] = type === 'unsafe'
+        ? { ...stage, unsafeActions: (stage.unsafeActions ?? 0) + 1 }
+        : type === 'meter_blocked'
+          ? { ...stage, meterGuardBlocks: (stage.meterGuardBlocks ?? 0) + 1 }
+          : { ...stage, wrongAttempts: (stage.wrongAttempts ?? 0) + 1 };
+      return next;
+    });
+  };
+
+  const handleHintRequest = () => {
+    setHintRequested(true);
+    const stageIndex = Object.keys(B02_STAGE_CONTENT).indexOf(currentStep);
+    setProcessStages((current) => {
+      const next = [...current];
+      const stage = next[stageIndex] ?? {};
+      if ((stage.hintRequests ?? 0) >= 1) return current;
+      next[stageIndex] = { ...stage, hintRequests: 1 };
+      return next;
+    });
+  };
+
   const handleRestart = () => {
     setIsCompleted(false);
     setCurrentStep('SERIES_DIVIDER_TEST');
     setStepEvidences({});
     setHintRequested(false);
+    setProcessStages([]);
     setShowWorkOrder(false);
     setSceneRevision((r) => r + 1);
   };
+
+  const processReport = buildChapterBProcessReport('B02', { stages: processStages });
 
   return (
     <main className="app-shell level02-shell b02-shell">
@@ -73,12 +109,7 @@ export function B02Experience({ onReturnLobby }: B02ExperienceProps) {
           <span className="brand-mark safety-mark bg-amber-600 shadow-amber-600/20 text-white">
             <Lightbulb size={22} />
           </span>
-          <div>
-            <p className="eyebrow text-amber-700">篇章二：让电路按要求工作 · B02</p>
-            <h1 className="text-slate-800 font-bold">
-              学习任务6：灯组改装——负载的连接
-            </h1>
-          </div>
+          <LevelHeading levelId="B02" />
         </div>
 
         {/* Trainee Profile & Controls */}
@@ -122,30 +153,18 @@ export function B02Experience({ onReturnLobby }: B02ExperienceProps) {
                 levelId="B02"
                 domainLabel="技能领域 · 负载连接与灯组改装"
                 title="负载连接与车灯改装能力报告"
-                dimensions={[
-                  { id: 'SERIES_DIVIDE', label: '串联分压与制约特性', stars: 5 },
-                  { id: 'PARALLEL_INDEP', label: '并联独立与阻值骤降', stars: 5 },
-                  { id: 'NODE_THEORY', label: '混联拓扑与节点辨析', stars: 5 },
-                  { id: 'EQUIV_CALC', label: '并联等效与电流核算', stars: 5 },
-                  { id: 'AUTO_MOD_SAFETY', label: '实车改装安全与合规决策', stars: 5 },
-                ]}
-                summaryItems={[
-                  { label: '串联电路特性', value: '分压暗淡 & 一断全断' },
-                  { label: '并联电路特性', value: '独立供电 & 越并越小' },
-                  { label: '拓扑节点辨析', value: '由等电位节点决定' },
-                  { label: '雾灯定量推算', value: 'R总=1.2Ω / I总=10.0A' },
-                  { label: '400W改装决策', value: '规避火灾 & 专线继电器' },
-                  { label: '本关用时', value: '1 分钟' },
-                ]}
+                dimensions={processReport.dimensions}
+                score={processReport.score}
+                summaryItems={processReport.summaryItems}
                 metrics={stepEvidences}
                 mode="guided"
-                nextTask="学习任务7《追踪节点与回路——基尔霍夫定律》"
+                nextTask={getNextLevelLabel('B02')}
                 onRestart={handleRestart}
                 onReturn={onReturnLobby}
               />
             </div>
             <div className="objective-strip">
-              <span>当前任务</span>
+              <span>当前操作</span>
               <strong>查看负载连接与车灯改装能力报告</strong>
               <output className="feedback">实训评测已通过，串并联工程规律与汽车灯光改装安全规范已牢固掌握。</output>
             </div>
@@ -164,10 +183,11 @@ export function B02Experience({ onReturnLobby }: B02ExperienceProps) {
                   currentStep={currentStep}
                   onStepComplete={handleStepComplete}
                   onAdvanceStep={handleAdvanceStep}
+                  onProcessEvent={recordProcessEvent}
                 />
               </div>
               <div className="objective-strip">
-                <span>当前任务</span>
+                <span>当前操作</span>
                 <strong>{guidance.title}</strong>
                 <output className="feedback">{guidance.objective}</output>
               </div>
@@ -240,13 +260,13 @@ export function B02Experience({ onReturnLobby }: B02ExperienceProps) {
         <button
           type="button"
           className={hintRequested ? 'tool-active cursor-pointer' : 'cursor-pointer'}
-          onClick={() => setHintRequested(true)}
+          onClick={handleHintRequest}
         >
           <HelpCircle size={19} /> 请师傅提示
         </button>
         <span className="toolbar-spacer" />
         <span className="unlock-hint">
-          实训要点：串并联本质／节点辨析／等效电阻计算／越野改装安全规范 · 学习任务6（16页）
+          实训要点：串并联本质／节点辨析／等效电阻计算／越野改装安全规范 · 教材与考纲见页头
         </span>
         <button type="button" onClick={handleRestart} className="cursor-pointer">
           <RotateCcw size={18} /> 重新开始
@@ -262,9 +282,7 @@ export function B02Experience({ onReturnLobby }: B02ExperienceProps) {
         >
           <section className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
             <p className="eyebrow text-amber-700">工单编号 · WO-B02-LAMPS</p>
-            <h2 className="mt-1 text-xl font-black text-slate-900">
-              灯组改装——负载的连接
-            </h2>
+            <h2 className="mt-1 text-xl font-black text-slate-900">{getLevelDisplayName('B02')} · 实训工单</h2>
             <p className="mt-3 leading-7 text-slate-700">
               在汽车车灯负载连接与改装实验台上，对比串联回路与并联回路的电压、电流及相互制约规律，深刻辨析决定电路连接的电气节点本质，独立核算雾灯并联改装的总阻值与总电流，并对越野射灯私自增大保险丝的火灾自燃风险做出专业合规决策。
             </p>

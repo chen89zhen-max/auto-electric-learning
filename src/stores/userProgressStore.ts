@@ -66,128 +66,20 @@ export const CANONICAL_COURSE_MAP: CanonicalLevelMeta[] = CANONICAL_COURSE_REGIS
   implemented: level.implemented,
 }));
 
-export const COURSE_MAP: LevelMeta[] = [
-  {
-    id: 'LEVEL_00',
-    num: '00',
-    title: '维修车间第一天',
-    subtitle: '车间准入与安全规范',
-    description: '见习技师入职安全准入教育、工位操作规范与工单签署流程。',
-    category: '基础准入',
-    duration: '1 课时',
-    prerequisiteId: null,
-    prerequisiteName: null,
-    implemented: true,
-  },
-  {
-    id: 'LEVEL_01',
-    num: '01',
-    title: '实训车间突发事故',
-    subtitle: '安全用电与应急急救',
-    description: '识别触电隐患、电气火灾应急处置、断电隔离规范与心肺复苏模拟。',
-    category: '安全作业',
-    duration: '2 课时',
-    prerequisiteId: 'LEVEL_00',
-    prerequisiteName: '任务0 维修车间第一天',
-    implemented: true,
-  },
-  {
-    id: 'LEVEL_02',
-    num: '02',
-    title: '让第一盏灯亮起来',
-    subtitle: '电路的认知与车身搭铁',
-    description: '认识电源、负载、开关与熔断器，掌握双线闭合回路与汽车单线车身搭铁。',
-    category: '基本回路',
-    duration: '2 课时',
-    prerequisiteId: 'LEVEL_01',
-    prerequisiteName: '任务1 安全用电',
-    implemented: true,
-  },
-  {
-    id: 'LEVEL_03',
-    num: '03',
-    title: '会变魔术的电阻',
-    subtitle: '调光电路与传感器原理',
-    description: '探究汽车仪表调光电位器、热敏/光敏可变电阻及传感器信号分压。',
-    category: '元器件与传感器',
-    duration: '2 课时',
-    prerequisiteId: 'LEVEL_02',
-    prerequisiteName: '任务2 电路的认知',
-    implemented: false,
-  },
-  {
-    id: 'LEVEL_04',
-    num: '04',
-    title: '万用表的秘密',
-    subtitle: '电压电流测量与欧姆定律',
-    description: '规范使用数字万用表测量电压降、支路电流与回路电阻，验证欧姆定律。',
-    category: '测量仪表',
-    duration: '2 课时',
-    prerequisiteId: 'LEVEL_03',
-    prerequisiteName: '任务3 会变魔术的电阻',
-    implemented: false,
-  },
-  {
-    id: 'LEVEL_05',
-    num: '05',
-    title: '看不见的分身术',
-    subtitle: '汽车继电器与电磁控制',
-    description: '掌握汽车四脚/五脚继电器引脚定义，小电流弱电控制大电流强电回路。',
-    category: '控制与配电',
-    duration: '2 课时',
-    prerequisiteId: 'LEVEL_04',
-    prerequisiteName: '任务4 万用表的秘密',
-    implemented: false,
-  },
-  {
-    id: 'LEVEL_06',
-    num: '06',
-    title: '智能光影守护者',
-    subtitle: '光敏自动大灯控制系统',
-    description: '搭建车规级光照传感器与三极管开关驱动的自动前照灯模拟系统。',
-    category: '控制与配电',
-    duration: '2 课时',
-    prerequisiteId: 'LEVEL_05',
-    prerequisiteName: '任务5 看不见的分身术',
-    implemented: false,
-  },
-  {
-    id: 'LEVEL_07',
-    num: '07',
-    title: '电机驱动与逆变初探',
-    subtitle: '半导体元件与PWM调速',
-    description: '二极管单向导电保护、MOSFET 开关特性与散热风扇 PWM 脉宽调制调速。',
-    category: '系统分析',
-    duration: '2 课时',
-    prerequisiteId: 'LEVEL_06',
-    prerequisiteName: '任务6 智能光影守护者',
-    implemented: false,
-  },
-  {
-    id: 'LEVEL_08',
-    num: '08',
-    title: '车间故障探秘',
-    subtitle: '电路短路、断路综合排查',
-    description: '利用试灯与万用表电压降法排查虚接、搭铁不良、熔断器熔断故障点。',
-    category: '综合诊断',
-    duration: '3 课时',
-    prerequisiteId: 'LEVEL_07',
-    prerequisiteName: '任务7 电机驱动与逆变初探',
-    implemented: false,
-  },
-  {
-    id: 'LEVEL_09',
-    num: '09',
-    title: '整车灯光系统总联调',
-    subtitle: '远近光/转向灯故障交付',
-    description: '同一辆车整车灯光系统总成调试，完成终极工单与毕业技师能力答辩。',
-    category: '综合诊断',
-    duration: '3 课时',
-    prerequisiteId: 'LEVEL_08',
-    prerequisiteName: '任务8 车间故障探秘',
-    implemented: false,
-  },
-];
+// Compatibility view: legacy keys stay stable; display metadata comes from the registry.
+export const COURSE_MAP: LevelMeta[] = CANONICAL_COURSE_REGISTRY
+  .filter(level => level.legacyId)
+  .sort((a, b) => a.legacyId!.localeCompare(b.legacyId!))
+  .map(level => {
+    const prerequisite = level.prerequisiteLevelIds[0] ? getCourseLevel(level.prerequisiteLevelIds[0]) : undefined;
+    return {
+      id: level.legacyId!, num: level.canonicalId, title: level.title, subtitle: level.subtitle,
+      description: level.description, category: level.category, duration: level.duration,
+      prerequisiteId: prerequisite?.legacyId ?? null,
+      prerequisiteName: prerequisite ? prerequisite.canonicalId + ' ' + prerequisite.title : null,
+      implemented: level.implemented,
+    };
+  });
 
 const STORAGE_KEY = 'NEV_ELECTRICAL_GAME_USER_PROGRESS_V1';
 const CHANGE_EVENT = 'NEV_USER_PROGRESS_CHANGED';
@@ -229,11 +121,13 @@ let cachedProgress: UserProgressData | null = null;
 let identityRevision = 0;
 let progressOwner = '';
 const pendingCompletions = new Map<string, { body: string; promise?: Promise<UserProgressData> }>();
+const pendingStarts = new Map<string, Promise<{ attemptId: string; startedAt: number } | null>>();
 
 export function resetProgressIdentity(name = '见习学员', username = ''): void {
   identityRevision += 1;
   progressOwner = username;
   pendingCompletions.clear();
+  pendingStarts.clear();
   saveUserProgress(createBaseUserProgress(name), { sync: false });
 }
 
@@ -311,6 +205,8 @@ export async function submitLevelCompletion(
     return current;
   }
 
+  await startLevelAttempt(levelId);
+
   const revision = identityRevision;
   let pending = pendingCompletions.get(levelId);
   if (!pending) {
@@ -342,9 +238,38 @@ export async function submitLevelCompletion(
     if (!response.ok || !body.projection) throw new Error(body.error || '学习结果保存失败');
     saveUserProgress(body.projection, { sync: false });
     pendingCompletions.delete(levelId);
+    pendingStarts.delete(levelId);
     return body.projection;
   })().finally(() => { submission.promise = undefined; });
   return submission.promise;
+}
+
+export function startLevelAttempt(levelId: string): Promise<{ attemptId: string; startedAt: number } | null> {
+  const current = getUserProgress();
+  if (current.teacherMode) return Promise.resolve(null);
+
+  const existing = pendingStarts.get(levelId);
+  if (existing) return existing;
+
+  const revision = identityRevision;
+  const request = (async () => {
+    const eventId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID() : `evt_start_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const response = await fetch('/api/learning/events', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-nev-expected-user': encodeURIComponent(progressOwner) },
+      body: JSON.stringify({ eventId, levelId, eventType: 'LEVEL_START', payload: {}, occurredAt: Date.now() }),
+    });
+    const body = await response.json() as { attemptId?: string; startedAt?: number; error?: string };
+    if (revision !== identityRevision) throw new Error('账号已切换，请在当前账号重新进入实训');
+    if (!response.ok || !body.attemptId || !Number.isInteger(body.startedAt)) {
+      throw new Error(body.error || '实训计时启动失败');
+    }
+    return { attemptId: body.attemptId, startedAt: body.startedAt as number };
+  })();
+  pendingStarts.set(levelId, request);
+  request.catch(() => pendingStarts.delete(levelId));
+  return request;
 }
 
 const NEXT_LEVEL_MAP: Record<LevelId, LevelId | null> = {
@@ -380,18 +305,17 @@ export function markLevelComplete(levelId: string, score = 100): UserProgressDat
 
   const nextLevel = NEXT_LEVEL_MAP[levelId as LevelId];
   const nextMeta = nextLevel ? COURSE_MAP.find((c) => c.id === nextLevel) : null;
-  const canUnlockNext = nextMeta && nextMeta.implemented;
+  // Legacy order skips A02; publication alone must never bypass canonical prerequisites.
+  const canUnlockNext = nextMeta && nextMeta.implemented && checkLevelPrerequisites(nextMeta.id, [
+    ...Object.entries(current.levels).filter(([, value]) => value.status === 'completed').map(([id]) => id),
+    levelId,
+  ]).allowed;
 
   const existingLevel = current.levels[levelId] || { status: 'locked' };
   const isReplay = existingLevel.status === 'completed';
   const newCount = (existingLevel.attemptCount ?? (isReplay ? 1 : 0)) + 1;
   const now = new Date();
-  const completedAtText = now.toLocaleDateString('zh-CN', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const completedAtText = now.toISOString();
 
   const attemptRecord: AttemptSummaryRecord = {
     attemptId: `local_${Date.now()}`,
@@ -404,8 +328,8 @@ export function markLevelComplete(levelId: string, score = 100): UserProgressDat
   updatedLevels[levelId] = {
     ...existingLevel,
     status: 'completed',
-    completedAt: existingLevel.completedAt || completedAtText,
-    score: existingLevel.score ?? score, // Preserve first score
+    completedAt: completedAtText,
+    score,
     attemptCount: newCount,
     firstRecord: existingLevel.firstRecord ?? attemptRecord,
     recentRecord: attemptRecord,

@@ -49,12 +49,14 @@ interface B01OhmLawSceneProps {
   currentStep: B01Step;
   onStepComplete: (step: B01Step, evidence: Record<string, unknown>) => void;
   onAdvanceStep: () => void;
+  onProcessEvent?: (type: 'wrong' | 'unsafe') => void;
 }
 
 export function B01OhmLawScene({
   currentStep,
   onStepComplete,
   onAdvanceStep,
+  onProcessEvent,
 }: B01OhmLawSceneProps) {
   // Step 1: Fixed R=6Ω, adjust Voltage (3V, 6V, 9V, 12V)
   const [step1Voltage, setStep1Voltage] = useState<number>(3);
@@ -148,6 +150,7 @@ export function B01OhmLawScene({
       });
     } else {
       sounds.warningBuzz();
+      onProcessEvent?.('wrong');
       setStep3Feedback(
         '分析有误：公式 R = U / I 属于物理量测量关系式，并非决定式。电阻作为导体自身物理属性，不受外加电压和电流大小的影响。请重新梳理物理本质！'
       );
@@ -170,6 +173,7 @@ export function B01OhmLawScene({
       });
     } else {
       sounds.warningBuzz();
+      onProcessEvent?.('wrong');
       setStep4Feedback('计算有误：请严格按照 R = U / I 列式计算，注意不要误用乘法或颠倒被除数。');
     }
   };
@@ -191,6 +195,7 @@ export function B01OhmLawScene({
       });
     } else {
       sounds.warningBuzz();
+      onProcessEvent?.('unsafe');
       setStep5Feedback(
         '决策不合规：盲目加大保险丝无法保护线束，只会导致细导线在持续大电流下起火燃烧！直接替换存在严重车辆自燃安全隐患，请重新评估工程风险！'
       );

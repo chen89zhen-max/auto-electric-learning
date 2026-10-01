@@ -140,7 +140,7 @@ export function applyLearningEvent(
     };
   }
 
-  const isP4P5P6 = isAssessmentRequiredLevel(canonical);
+  const requiresRubricAssessment = isAssessmentRequiredLevel(canonical);
   const rawAssessment = payloadHasAssessment(input.payload);
 
   if (rawAssessment && normalizeLevelId(rawAssessment.levelId) !== canonical) {
@@ -156,7 +156,7 @@ export function applyLearningEvent(
   let scoredAssessment: ScoredAssessment | undefined;
   let rubricVersion: 'v1' | 'v2' = 'v1';
 
-  if (isP4P5P6) {
+  if (requiresRubricAssessment) {
     if (!rawAssessment) {
       throw new LearningTransitionError('INVALID_SCORE', `关卡 ${canonical} 必须提交包含真实过程的量规评测数据 (assessment)`);
     }

@@ -32,6 +32,7 @@ interface AuthResponse {
 
 const AUTH_STORAGE_KEY = 'NEV_AUTH_CURRENT_USER_V1';
 const AUTH_CHANGE_EVENT = 'NEV_AUTH_STATE_CHANGED';
+const SESSION_RESTORE_TIMEOUT_MS = 5_000;
 
 let cachedUser: UserProfile | null = null;
 let authStatus: 'loading' | 'authenticated' | 'anonymous' = 'loading';
@@ -186,7 +187,10 @@ export async function restoreSession(force = false): Promise<UserProfile | null>
 
   restorePromise = (async () => {
     try {
-      const response = await fetch('/api/auth/me', { cache: 'no-store' });
+      const response = await fetch('/api/auth/me', {
+        cache: 'no-store',
+        signal: AbortSignal.timeout(SESSION_RESTORE_TIMEOUT_MS),
+      });
       if (revision !== sessionRevision) return cachedUser;
       if (!response.ok) {
         setCurrentUser(null);

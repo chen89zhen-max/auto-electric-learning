@@ -1,4 +1,9 @@
 'use client';
+import { getLevelDisplayName } from '@/src/courses/curriculum';
+import { getNextLevelLabel } from '@/src/courses/curriculum';
+
+
+import { LevelHeading } from '@/src/components/LevelHeading';
 
 import React, { useState } from 'react';
 import {
@@ -76,10 +81,7 @@ export function C03Experience({ onReturnLobby }: C03ExperienceProps) {
           <span className="brand-mark safety-mark bg-emerald-600 shadow-emerald-600/20 text-white">
             <UserCheck size={22} />
           </span>
-          <div>
-            <p className="eyebrow">篇章三：凭证据找故障 · 首次独立交车</p>
-            <h1>C03 第一次独立交车——综合直流诊断与修复复检</h1>
-          </div>
+          <LevelHeading levelId="C03" />
         </div>
 
         <div className="trainee-badge">
@@ -117,13 +119,13 @@ export function C03Experience({ onReturnLobby }: C03ExperienceProps) {
                 title="综合直流诊断与独立交车答辩能力报告"
                 assessment={assessmentResult ?? undefined}
                 metrics={stepEvidences}
-                nextTask="篇章四《D01 小开关控制工作灯——继电器与电磁控制》"
+                nextTask={getNextLevelLabel('C03')}
                 onRestart={handleRestart}
                 onReturn={onReturnLobby}
               />
             </div>
             <div className="objective-strip">
-              <span>当前任务</span>
+              <span>当前操作</span>
               <strong>查看首次独立交车答辩能力报告</strong>
               <output className="feedback">实训评测已通过，恭喜完成篇章三全部关卡，具备独立承接直流故障排查与答辩交车能力！</output>
             </div>
@@ -150,7 +152,7 @@ export function C03Experience({ onReturnLobby }: C03ExperienceProps) {
                 />
               </div>
               <div className="objective-strip">
-                <span>当前任务</span>
+                <span>当前操作</span>
                 <strong>{guidance.title}</strong>
                 <output className="feedback">{guidance.objective}</output>
               </div>
@@ -227,7 +229,7 @@ export function C03Experience({ onReturnLobby }: C03ExperienceProps) {
         </button>
         <span className="toolbar-spacer" />
         <span className="unlock-hint">
-          实训考核要点：客户问诊记录 / 非破坏性晃动测试 / 端子挑舌修复+TPA锁片 / 依据答辩交车 · 学习任务9（9页）
+          实训考核要点：客户问诊记录 / 非破坏性晃动测试 / 端子挑舌修复+TPA锁片 / 依据答辩交车 · 教材与考纲见页头
         </span>
         <button type="button" onClick={handleRestart} className="cursor-pointer">
           <RotateCcw size={18} /> 重新开始
@@ -243,9 +245,7 @@ export function C03Experience({ onReturnLobby }: C03ExperienceProps) {
         >
           <section className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
             <p className="eyebrow text-emerald-700">工单编号 · WO-C03-INDEPENDENT-DELIVERY</p>
-            <h2 className="mt-1 text-xl font-black text-slate-900">
-              第一次独立交车——综合直流诊断与修复复检
-            </h2>
+            <h2 className="mt-1 text-xl font-black text-slate-900">{getLevelDisplayName('C03')} · 实训工单</h2>
             <p className="mt-3 leading-7 text-slate-700">
               学员作为主修技师独立接车问诊，面对颠簸路况偶发大灯熄灭的疑难案例，制定非破坏性动态摇晃测试方案，捕捉插头插针退针脱落的关键证据，执行端子挑舌修复与二次锁止片加装，开展全负荷闭环抗震复验，并向车主出示排故证据链做出专业答辩，签署竣工检验单完成闭环交付。
             </p>

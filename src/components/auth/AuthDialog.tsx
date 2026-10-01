@@ -114,7 +114,12 @@ export function AuthDialog({ isOpen, onClose, onSuccess }: AuthDialogProps) {
         aria-label="关闭登录弹窗"
       />
 
-      <div className="relative z-10 w-full max-w-lg bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+      <dialog
+        open
+        aria-modal="true"
+        aria-label="账号登录"
+        className="relative z-10 w-full max-w-lg bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 p-0 m-auto text-slate-800"
+      >
         {/* Modal Header */}
         <div className="bg-gradient-to-r from-slate-900 via-sky-950 to-slate-900 p-6 text-white relative">
           <button
@@ -135,7 +140,7 @@ export function AuthDialog({ isOpen, onClose, onSuccess }: AuthDialogProps) {
                 NEV ELECTRICAL TRAINING SYSTEM
               </span>
               <h2 className="text-xl font-black m-0 tracking-tight">
-                {user ? '切换账号' : '实训系统身份登录'}
+                {user ? '切换账号' : '账号登录 · 实训系统身份验证'}
               </h2>
             </div>
           </div>
@@ -416,7 +421,7 @@ export function AuthDialog({ isOpen, onClose, onSuccess }: AuthDialogProps) {
             </form>
           )}
         </div>
-      </div>
+      </dialog>
     </div>
   );
 }

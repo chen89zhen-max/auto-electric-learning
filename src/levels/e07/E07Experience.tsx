@@ -1,4 +1,9 @@
 'use client';
+import { getLevelDisplayName } from '@/src/courses/curriculum';
+import { getNextLevelLabel } from '@/src/courses/curriculum';
+
+
+import { LevelHeading } from '@/src/components/LevelHeading';
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -20,6 +25,7 @@ import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
 import { scoreAssessment } from '@/src/assessment/scoreAssessment';
 import { E07PcbAssemblyScene, type PhysicalEvaluationData } from './E07PcbAssemblyScene';
 import { E07_STAGE_CONTENT, type E07Step } from './e07Training';
+import { formatDurationMs } from '@/src/lib/formatDuration';
 
 interface E07ExperienceProps {
   onReturnLobby: () => void;
@@ -104,10 +110,7 @@ export function E07Experience({ onReturnLobby }: E07ExperienceProps) {
           <span className="brand-mark safety-mark bg-blue-600 shadow-blue-600/20 text-white">
             <Zap size={22} />
           </span>
-          <div>
-            <p className="eyebrow">篇章五：让电路感知、判断和执行 · 焊接工艺基石</p>
-            <h1>E07 装配一块训练板——PCB焊接工艺与检测</h1>
-          </div>
+          <LevelHeading levelId="E07" />
         </div>
 
         <div className="trainee-badge">
@@ -115,107 +118,24 @@ export function E07Experience({ onReturnLobby }: E07ExperienceProps) {
           <span>见习电工 · {getStudentDisplayName('见习学员')} ({isCompleted ? '已通过验收' : '实训推进中'})</span>
         </div>
 
-        <div className="topbar-actions">
+        <div className="flex items-center gap-2 ml-auto">
           <FullscreenButton />
-          <button
-            type="button"
-            className="action-btn icon-only"
-            onClick={() => setShowWorkOrder((v) => !v)}
-            title="查看实训工单与步骤指南"
-          >
-            <ClipboardList size={18} />
-          </button>
-          <button
-            type="button"
-            className="action-btn icon-only"
-            onClick={() => setHintRequested((v) => !v)}
-            title="请求陈师傅提示"
-          >
-            <HelpCircle size={18} />
-          </button>
-          <button
-            type="button"
-            className="action-btn icon-only"
-            onClick={handleRestart}
-            title="重新开始本次实训"
-          >
-            <RotateCcw size={18} />
-          </button>
-          <button
-            type="button"
-            className="action-btn primary exit-btn"
-            onClick={onReturnLobby}
-          >
-            <LogOut size={16} />
-            <span>返回大厅</span>
+          <button type="button" onClick={onReturnLobby} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg transition-colors cursor-pointer shadow-xs" title="退出当前实训并返回课程地图">
+            <LogOut size={15} /><span>返回课程大厅</span>
           </button>
         </div>
       </header>
 
-      {/* 5-Stage Stepper */}
-      <nav className="training-stage-stepper px-6 py-2.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between text-sm overflow-x-auto">
-        {(
-          [
-            { id: 'SOLDERING_SAFETY_AND_FIVE_STEPS', num: '1', name: '安全规程与五步法' },
-            { id: 'VIRTUAL_PCB_INSERTION_AND_WELD', num: '2', name: '插装极性与施焊' },
-            { id: 'SOLDER_JOINT_QUALITY_STANDARD', num: '3', name: '焊点质量形态标准' },
-            { id: 'BLIND_PCB_DEFECT_INSPECTION', num: '4', name: '工艺缺陷盲测' },
-            { id: 'ENGINEERING_REPAIR_AND_DELIVERY', num: '5', name: '实车修复与量规验收' },
-          ] as const
-        ).map((step) => {
-          const isActive = currentStep === step.id;
-          const isPast = Object.keys(stepEvidences).includes(step.id);
-          return (
-            <div
-              key={step.id}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all ${
-                isActive
-                  ? 'border-blue-500 bg-blue-500/20 text-blue-300 font-bold shadow-sm'
-                  : isPast
-                  ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400'
-                  : 'border-slate-800 bg-slate-900 text-slate-500'
-              }`}
-            >
-              <span
-                className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${
-                  isActive
-                    ? 'bg-blue-600 text-white'
-                    : isPast
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-slate-800 text-slate-400'
-                }`}
-              >
-                {step.num}
-              </span>
-              <span>{step.name}</span>
-            </div>
-          );
-        })}
-      </nav>
-
-      {/* Master Chen Voice Prompt */}
-      <section className="bg-slate-800/80 border-b border-slate-700/80 px-6 py-3 flex items-center gap-4">
-        <MasterChenAvatar emotion={guidance.mentorEmotion} size={48} />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 text-sm font-bold text-amber-400">
-            <span>实训导师 · 陈师傅</span>
-            <span className="text-slate-500">|</span>
-            <span className="text-slate-300 font-normal">{guidance.title}</span>
-          </div>
-          <p className="text-sm text-slate-200 mt-0.5 leading-relaxed truncate md:whitespace-normal">
-            {hintRequested ? `【提示】${guidance.hint}` : guidance.mentorPrompt}
-          </p>
-        </div>
-        <SpeechControls currentText={hintRequested ? guidance.hint : guidance.mentorPrompt} />
-      </section>
-
       {/* Main Workspace Area */}
-      <div className="workspace-main flex-1 p-4 md:p-6 overflow-y-auto">
+      <section className={isCompleted ? 'workspace single' : 'workspace'} aria-label="E07 实训工作区">
+        <div className="scene-panel">
+          <div className="scene-heading"><span className={isCompleted ? 'status-dot bg-emerald-500 shadow-emerald-500/20' : 'status-dot bg-blue-500 shadow-blue-500/20'} /><span>电子工艺实训中心 · E07 PCB 焊接工艺与检测</span><span className="scene-meta">{isCompleted ? '等待/完成教师验收' : '5 阶段渐进实训'}</span></div>
+          <div className="scene-content" key={sceneRevision}>
         {isCompleted ? (
           <div className="space-y-4 max-w-4xl mx-auto">
             {/* 真实实物量规验收卡片 */}
             {physicalEvaluation ? (
-              <div className="p-4 bg-emerald-950/40 border border-emerald-500/40 rounded-2xl text-emerald-200 text-sm space-y-2.5">
+              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-950 text-sm space-y-2.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-5 h-5 text-emerald-400" />
@@ -227,31 +147,31 @@ export function E07Experience({ onReturnLobby }: E07ExperienceProps) {
                     实物总分: {physicalEvaluation.totalScore} / 100 分
                   </span>
                 </div>
-                <div className="text-sm text-slate-300 flex flex-wrap gap-4">
-                  <span>验收教师：<strong className="text-white">{physicalEvaluation.teacherName}</strong></span>
+                <div className="text-sm text-slate-700 flex flex-wrap gap-4">
+                  <span>验收教师：<strong className="text-slate-900">{physicalEvaluation.teacherName}</strong></span>
                   <span>签署时间：{new Date(physicalEvaluation.signedAt).toLocaleString('zh-CN')}</span>
                   {physicalEvaluation.comment && <span>教师评语：{physicalEvaluation.comment}</span>}
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-2 border-t border-emerald-500/30 text-sm text-slate-300">
-                  <div className="bg-slate-900/60 p-2 rounded border border-emerald-500/20">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-2 border-t border-emerald-200 text-sm text-slate-700">
+                  <div className="bg-white p-2 rounded border border-emerald-200">
                     供电前外观: <strong className="text-emerald-400">{physicalEvaluation.rubricData?.pre_power_check ?? 0}/20</strong>
                   </div>
-                  <div className="bg-slate-900/60 p-2 rounded border border-emerald-500/20">
+                  <div className="bg-white p-2 rounded border border-emerald-200">
                     元器件方向: <strong className="text-emerald-400">{physicalEvaluation.rubricData?.component_orientation ?? 0}/20</strong>
                   </div>
-                  <div className="bg-slate-900/60 p-2 rounded border border-emerald-500/20">
+                  <div className="bg-white p-2 rounded border border-emerald-200">
                     焊点润湿质量: <strong className="text-emerald-400">{physicalEvaluation.rubricData?.solder_quality ?? 0}/30</strong>
                   </div>
-                  <div className="bg-slate-900/60 p-2 rounded border border-emerald-500/20">
+                  <div className="bg-white p-2 rounded border border-emerald-200">
                     安全操作自检: <strong className="text-emerald-400">{physicalEvaluation.rubricData?.safety_process ?? 0}/20</strong>
                   </div>
-                  <div className="bg-slate-900/60 p-2 rounded border border-emerald-500/20">
+                  <div className="bg-white p-2 rounded border border-emerald-200">
                     原理缺陷解释: <strong className="text-emerald-400">{physicalEvaluation.rubricData?.evidence_explanation ?? 0}/10</strong>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="p-4 bg-amber-500/10 border border-amber-500/40 rounded-2xl text-amber-200 text-sm space-y-2">
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-amber-950 text-sm space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 font-bold text-sm text-amber-300">
                     <AlertTriangle className="w-5 h-5 text-amber-400" />
@@ -261,7 +181,7 @@ export function E07Experience({ onReturnLobby }: E07ExperienceProps) {
                     待教师现场量规评定
                   </span>
                 </div>
-                <p className="text-slate-300 text-sm leading-relaxed">
+                <p className="text-slate-700 text-sm leading-relaxed">
                   请携带手工焊接完成的 PCB 训练板前往实训工位，由任课教师在教师工作台录入实物量规评语与各维度得分。
                 </p>
               </div>
@@ -284,7 +204,7 @@ export function E07Experience({ onReturnLobby }: E07ExperienceProps) {
                         { label: '阶段重试次数', value: `${scored.counters.retries} 次` },
                         {
                           label: '实际实训耗时',
-                          value: `${Math.max(1, Math.round(scored.durationMs / 60_000))} 分钟`,
+                          value: formatDurationMs(scored.durationMs),
                         },
                         {
                           label: '实物焊接量规',
@@ -297,7 +217,7 @@ export function E07Experience({ onReturnLobby }: E07ExperienceProps) {
                   : undefined
               }
               metrics={stepEvidences}
-              nextTask="P6 全阶段实训结业！已具备进入 P7 综合交付挑战全部资质！"
+              nextTask={getNextLevelLabel('E07')}
               onRestart={handleRestart}
               onReturn={onReturnLobby}
             />
@@ -316,43 +236,59 @@ export function E07Experience({ onReturnLobby }: E07ExperienceProps) {
             }}
           />
         )}
-      </div>
+          </div>
+          <div className="objective-strip"><span>当前操作</span><strong>{isCompleted ? '查看焊接能力报告与教师量规验收状态' : guidance.title}</strong><output className="feedback">{isCompleted ? '虚拟训练已完成；实物焊接量规由任课教师现场签署。' : guidance.objective}</output></div>
+        </div>
+        {!isCompleted && (
+          <aside className="tutor-panel" aria-label="陈师傅实训指导">
+            <div className="tutor-title flex items-center gap-3.5 pb-3 border-b border-slate-200"><MasterChenAvatar emotion={guidance.mentorEmotion} size={58} /><div><div className="flex items-center gap-1.5"><strong className="text-base font-bold text-slate-800">陈师傅</strong><span className="text-sm bg-blue-100 text-blue-800 font-semibold px-1.5 py-0.5 rounded">带教技师</span></div><small className="text-sm text-slate-500 font-medium">电子焊接工艺指导</small></div></div>
+            <div className="message-card relative my-4 p-4 rounded-xl border-l-4 border-blue-500 bg-blue-50/90 text-slate-800 shadow-xs" aria-live="polite"><div className="flex flex-col gap-2"><div className="flex items-center justify-end"><SpeechControls currentText={hintRequested ? guidance.hint : guidance.mentorPrompt} /></div><p className="text-sm font-semibold leading-relaxed m-0">{hintRequested ? guidance.hint : ('“' + guidance.mentorPrompt + '”')}</p></div></div>
+            <div className="mt-5 rounded-xl border border-blue-100 bg-blue-50/60 p-3 text-sm text-blue-950"><strong className="block text-sm tracking-wide text-blue-700">本步目标</strong><span className="mt-1 block leading-6">{guidance.objective}</span></div>
+            <div className="tutor-context"><span>当前实训环节</span><strong>E07 · PCB 焊接工艺 · {guidance.title.split('：')[0]}</strong></div>
+          </aside>
+        )}
+      </section>
+
+      <nav className="bottom-bar" aria-label="E07 实训功能栏">
+        <button type="button" className={showWorkOrder ? 'tool-active cursor-pointer' : 'cursor-pointer'} onClick={() => setShowWorkOrder((open) => !open)}><ClipboardList size={19} /> 工单</button>
+        <button type="button" className={hintRequested ? 'tool-active cursor-pointer' : 'cursor-pointer'} onClick={() => setHintRequested(true)}><HelpCircle size={19} /> 请师傅提示</button>
+        <span className="toolbar-spacer" /><span className="unlock-hint">实训要点：安全五步法、元件极性、焊点质量与实物量规验收 · 当前第 {Object.keys(stepEvidences).length + 1} / 5 阶段</span>
+        <button type="button" onClick={handleRestart} className="cursor-pointer"><RotateCcw size={18} /> 重新开始</button>
+      </nav>
 
       {/* Floating Work Order Modal */}
       {showWorkOrder && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="font-bold text-slate-100 flex items-center gap-2">
-                <ClipboardList className="w-5 h-5 text-blue-400" />
-                实训任务书 · E07 PCB焊接工艺与检测
+        <div className="fixed inset-0 z-50 bg-slate-950/35 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                <ClipboardList className="w-5 h-5 text-blue-600" />
+                {getLevelDisplayName('E07')} · 实训工单
               </h3>
-              <button
-                onClick={() => setShowWorkOrder(false)}
-                className="text-slate-400 hover:text-white text-sm"
+              <button aria-label="关闭工单" onClick={() => setShowWorkOrder(false)}
+                className="text-slate-600 hover:text-white text-sm"
               >
                 ✕
               </button>
             </div>
-            <div className="space-y-3 text-sm text-slate-300">
-              <div className="p-3 bg-slate-800/60 rounded-xl">
-                <span className="font-bold text-blue-400">教材目标:</span> 学习任务 18 印制电路板的焊接 (10页)
+            <div className="space-y-3 text-sm text-slate-700">
+              <div className="p-3 bg-blue-50 rounded-xl">
+                <span className="font-bold text-blue-700">学习依据：</span>查看页头“教材与考纲”
               </div>
               <div className="space-y-1">
-                <span className="font-bold text-slate-200">当前实训指引:</span>
-                <p className="text-slate-400">{guidance.objective}</p>
+                <span className="font-bold text-slate-800">当前实训指引:</span>
+                <p className="text-slate-600">{guidance.objective}</p>
               </div>
               <div className="space-y-1">
-                <span className="font-bold text-slate-200">规范操作动作:</span>
-                <ul className="list-disc list-inside space-y-1 text-slate-400">
+                <span className="font-bold text-slate-800">规范操作动作:</span>
+                <ul className="list-disc list-inside space-y-1 text-slate-600">
                   {guidance.actions.map((act, i) => (
                     <li key={i}>{act}</li>
                   ))}
                 </ul>
               </div>
             </div>
-            <button
-              onClick={() => setShowWorkOrder(false)}
+            <button aria-label="关闭工单" onClick={() => setShowWorkOrder(false)}
               className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold"
             >
               已查阅，继续实训

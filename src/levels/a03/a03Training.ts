@@ -214,7 +214,7 @@ export const A03_STAGE_CONTENT: Record<A03Step, A03StageContent> = {
     title: '实训阶段 4：进气压力传感器偏置电阻盲检与公差判定',
     objective: '万用表实测 1kΩ 规格件得到 985Ω，结合 ±5% 允许公差范围独立做出合格性判定',
     actions: [
-      '阅读汽车进气压力传感器电路工单（标称 1kΩ ±5%）。',
+      '阅读本训练模型给定的偏置电阻工单（标称 1kΩ ±5%，并非所有压力传感器的通用规格）。',
       '观察万用表实测读数（0.985 kΩ = 985.0 Ω）。',
       '根据公差上下限独立分析，选择专业判定结论并提交工单。',
     ],
@@ -225,17 +225,32 @@ export const A03_STAGE_CONTENT: Record<A03Step, A03StageContent> = {
     mentorEmotion: 'THINKING',
   },
   TRANSFER_NTC: {
-    title: '实训阶段 5：迁移实战——实车发动机水温传感器 (NTC) 特性排查',
-    objective: '调节工况温度并实测 NTC 热敏电阻阻值曲线，根据负温度系数特性出具维修决策',
+    title: '实训阶段 5：迁移实战——热敏、光敏与力敏电阻特性比较',
+    objective: '分别改变温度、光照和压力，记录至少两个间隔足够大的测点，判断三类敏感电阻趋势',
     actions: [
-      '查阅实车维修手册：发动机水温传感器 (ECT) 为负温度系数 (NTC) 热敏电阻。',
-      '调节发动机冷却液模拟温度（20℃ ~ 85℃），观察万用表测得阻值由 2.5kΩ 连续降至 300Ω。',
-      '分析温度与电阻的对应关系，判断传感器是否正常工作并提交维修报告。',
+      '查阅本训练模型：发动机水温传感器 (ECT) 为负温度系数 (NTC) 热敏电阻。',
+      '调节发动机冷却液模拟温度（20℃ ~ 80℃），观察万用表测得阻值由 2.5kΩ 连续降至 300Ω。',
+      '完成光敏、力敏电阻的两点测量与趋势判断，再提交 NTC 维修报告。',
     ],
-    completion: '实车 NTC 水温传感器阻值特性排查完成，维修决策正确。',
+    completion: '三类敏感电阻测点与趋势判断均完成，NTC 维修决策正确。',
     mentorPrompt:
       '这是实车排故核心本领！发动机水温传感器是典型的负温度系数 NTC，热态阻值必须明显下降。你来实测看看这个传感器工作正常吗！',
     hint: '发动机水温传感器为负温度系数(NTC)：冷态 20℃ 阻值较高（约 2.5kΩ），热态 80℃ 阻值显著下降（约 300Ω），说明特性良好。',
     mentorEmotion: 'PRAISE',
   },
 };
+
+// Illustrative isolated-resistor models; values are not vehicle service specifications.
+export type SensitiveResistorKind = 'NTC' | 'LDR' | 'FSR';
+export const SENSITIVE_RESISTORS = [
+  { kind: 'LDR' as const, name: '光敏电阻', condition: '光照强度（相对值）' },
+  { kind: 'FSR' as const, name: '力敏电阻', condition: '压力（相对值）' },
+];
+export function sensitiveResistance(kind: SensitiveResistorKind, condition: number): number {
+  if (kind === 'NTC') return Math.round(2500 * Math.exp(-0.035 * (condition - 20)));
+  return Math.round((kind === 'LDR' ? 10000 : 20000) / (1 + condition / 10));
+}
+export interface SensitiveReading { condition: number; resistance: number }
+export function hasSensitiveComparison(points: SensitiveReading[]): boolean {
+  return points.length >= 2 && Math.max(...points.map(p => p.condition)) - Math.min(...points.map(p => p.condition)) >= 40;
+}

@@ -35,6 +35,7 @@ function SessionGameShell() {
   const [activeLevel, setActiveLevel] = useState<string>(() =>
     typeof window === 'undefined' ? 'HOME' : resolveRequestedLevel(window.location.search)
   );
+  const [driveFromLevelId, setDriveFromLevelId] = useState<string | null>(null);
   const isTeacherPreview = user?.role === 'teacher' && activeLevel !== 'HOME' && hasLevelLoader(activeLevel);
 
   useEffect(() => {
@@ -119,7 +120,9 @@ function SessionGameShell() {
   // Default: Full Interactive Course Map
   return (
     <CourseMapLobby
-      onSelectLevel={(levelId) => {
+      driveFromLevelId={driveFromLevelId}
+      onSelectLevel={(levelId, mapActiveLevelId) => {
+        setDriveFromLevelId(mapActiveLevelId);
         setActiveLevel(levelId);
         if (typeof window !== 'undefined') {
           window.history.pushState(null, '', `${window.location.pathname}?level=${encodeURIComponent(levelId)}`);

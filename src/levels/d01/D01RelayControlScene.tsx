@@ -80,6 +80,7 @@ export function D01RelayControlScene({
   hintRequested,
 }: D01RelayControlSceneProps) {
   const assessment = useLevelAssessment('D01');
+  const requestAssessmentHint = assessment.requestHint;
 
   React.useEffect(() => {
     if (hintRequested) {
@@ -90,9 +91,9 @@ export function D01RelayControlScene({
         BLIND_RELAY_FAULT_DIAGNOSIS: 'blind_test',
         ENGINEERING_REPAIR_AND_DELIVERY: 'transfer',
       };
-      assessment.requestHint(stageMap[currentStep]);
+      requestAssessmentHint(stageMap[currentStep]);
     }
-  }, [hintRequested, currentStep, assessment]);
+  }, [hintRequested, currentStep, requestAssessmentHint]);
 
   // Multimeter knob: 'OFF' | 'DCV_20' | 'OHM_200'
   const [meterKnob, setMeterKnob] = useState<'OFF' | 'DCV_20' | 'OHM_200'>('OFF');
@@ -154,7 +155,7 @@ export function D01RelayControlScene({
   };
 
   return (
-    <div className="flex flex-col flex-1 min-h-[580px] w-full bg-slate-900 text-white rounded-xl p-4 lg:p-6 shadow-2xl border border-slate-800 space-y-6">
+    <div className="d01-training-scene flex flex-col flex-1 min-h-[580px] w-full bg-slate-50 text-slate-800 rounded-xl p-4 lg:p-6 shadow-sm border border-slate-200 space-y-6">
       {/* Warning toast */}
       {meterWarning && (
         <div className="p-3 bg-amber-500/20 border border-amber-500/50 rounded-lg text-amber-200 text-sm flex items-center justify-between">
@@ -652,11 +653,11 @@ export function D01RelayControlScene({
           </div>
 
           {/* Form & Assessment Panel (Zero-spoiler!) */}
-          <div className="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
+          <div className="d01-assessment flex-1 bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col justify-between">
             {/* Step 1 Question */}
             {currentStep === 'COIL_CONTACT_ISOLATION' && (
               <div className="space-y-3">
-                <div className="text-sm font-semibold text-amber-300">
+                <div className="text-sm font-semibold text-amber-700">
                   【步骤1工单思考】为什么汽车不能用方向盘上的轻触开关直接接通工作大灯？
                 </div>
                 <div className="space-y-2">
@@ -667,7 +668,7 @@ export function D01RelayControlScene({
                   ].map((opt) => {
                     const isSelected = s1Choice === opt.id;
                     const isCorrect = opt.id === 'A';
-                    let borderClass = 'border-slate-800 bg-slate-900/60 hover:border-slate-700';
+                    let borderClass = 'border-slate-200 bg-slate-50 text-slate-700 hover:border-amber-300';
                     if (s1Submitted) {
                       if (isSelected && isCorrect) borderClass = 'border-emerald-500 bg-emerald-950/40 text-emerald-200';
                       else if (isSelected && !isCorrect) borderClass = 'border-rose-500 bg-rose-950/40 text-rose-200';
@@ -737,7 +738,7 @@ export function D01RelayControlScene({
             {/* Step 2 Question */}
             {currentStep === 'MULTIMETER_PIN_IDENTIFICATION' && (
               <div className="space-y-3">
-                <div className="text-sm font-semibold text-amber-300">
+                <div className="text-sm font-semibold text-amber-700">
                   【步骤2工单测量】打到电阻挡测得 85-86 为 80.2Ω，30-87 为 OL，你的物理结论是？
                 </div>
                 <div className="space-y-2">
@@ -748,7 +749,7 @@ export function D01RelayControlScene({
                   ].map((opt) => {
                     const isSelected = s2Answer === opt.id;
                     const isCorrect = opt.id === 'A';
-                    let borderClass = 'border-slate-800 bg-slate-900/60 hover:border-slate-700';
+                    let borderClass = 'border-slate-200 bg-slate-50 text-slate-700 hover:border-amber-300';
                     if (s2Submitted) {
                       if (isSelected && isCorrect) borderClass = 'border-emerald-500 bg-emerald-950/40 text-emerald-200';
                       else if (isSelected && !isCorrect) borderClass = 'border-rose-500 bg-rose-950/40 text-rose-200';
@@ -819,7 +820,7 @@ export function D01RelayControlScene({
             {/* Step 3 Question */}
             {currentStep === 'RELAY_ENERGIZATION_AND_SWITCH' && (
               <div className="space-y-3">
-                <div className="text-sm font-semibold text-amber-300">
+                <div className="text-sm font-semibold text-amber-700">
                   【步骤3规律总结】闭合控制开关后，继电器内部发生的最本质物理过程是？
                 </div>
                 <div className="space-y-2">
@@ -830,7 +831,7 @@ export function D01RelayControlScene({
                   ].map((opt) => {
                     const isSelected = s3Choice === opt.id;
                     const isCorrect = opt.id === 'A';
-                    let borderClass = 'border-slate-800 bg-slate-900/60 hover:border-slate-700';
+                    let borderClass = 'border-slate-200 bg-slate-50 text-slate-700 hover:border-amber-300';
                     if (s3Submitted) {
                       if (isSelected && isCorrect) borderClass = 'border-emerald-500 bg-emerald-950/40 text-emerald-200';
                       else if (isSelected && !isCorrect) borderClass = 'border-rose-500 bg-rose-950/40 text-rose-200';
@@ -904,7 +905,7 @@ export function D01RelayControlScene({
                   <div className="font-bold text-sky-300">{activeBlind.vehicleName}</div>
                   <div className="text-slate-400">{activeBlind.symptom}</div>
                 </div>
-                <div className="text-sm font-semibold text-amber-300">
+                <div className="text-sm font-semibold text-amber-700">
                   结合万用表测量数据，判定该车辆继电器的故障真因为：
                 </div>
                 <div className="space-y-2">
@@ -915,7 +916,7 @@ export function D01RelayControlScene({
                   ].map((opt) => {
                     const isSelected = s4Choice === opt.id;
                     const isCorrect = opt.id === activeBlind.faultType;
-                    let borderClass = 'border-slate-800 bg-slate-900/60 hover:border-slate-700';
+                    let borderClass = 'border-slate-200 bg-slate-50 text-slate-700 hover:border-amber-300';
                     if (s4Submitted) {
                       if (isSelected && isCorrect) borderClass = 'border-emerald-500 bg-emerald-950/40 text-emerald-200';
                       else if (isSelected && !isCorrect) borderClass = 'border-rose-500 bg-rose-950/40 text-rose-200';
@@ -992,7 +993,7 @@ export function D01RelayControlScene({
             {/* Step 5 Question */}
             {currentStep === 'ENGINEERING_REPAIR_AND_DELIVERY' && (
               <div className="space-y-3">
-                <div className="text-sm font-semibold text-amber-300">
+                <div className="text-sm font-semibold text-amber-700">
                   【步骤5交付验收】装上原厂合格继电器后，闭合开关通电复测，核验交车标准：
                 </div>
                 <div className="p-3 bg-slate-900 border border-slate-800 rounded-lg space-y-2 text-sm">

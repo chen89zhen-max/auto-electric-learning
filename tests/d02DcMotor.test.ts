@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { D02_STAGE_CONTENT } from '@/src/levels/d02/d02Training';
+import { D02_STAGE_CONTENT, calculateInductionMotor } from '@/src/levels/d02/d02Training';
 
 describe('D02: 让电机转起来 (直流电动机认知与 H 桥控制)', () => {
   it('应当严密定义完整的五阶段实训标准流程与导师提示', () => {
@@ -82,5 +82,33 @@ describe('D02: 让电机转起来 (直流电动机认知与 H 桥控制)', () =>
     // 故障 3: 导轨异物卡死堵转 (电流飙升)
     const stallCurrent = 16.8;
     expect(stallCurrent).toBeGreaterThan(15.0);
+  });
+
+  it('应当准确计算三相异步电机转差率、转子频率，并在非法参数下严格抛出 RangeError', () => {
+    // 50Hz、4极、1440r/min 得到同步转速 1500r/min、转差率 4%、转子频率 2Hz
+    const result1440 = calculateInductionMotor(50, 4, 1440);
+    expect(result1440).toEqual({
+      synchronousRpm: 1500,
+      slipPercent: 4,
+      rotorFrequencyHz: 2,
+    });
+
+    // 1500r/min 对照点转差率与转子频率为 0；说明理想同步点无相对切割、无感应转矩维持电动运行
+    const result1500 = calculateInductionMotor(50, 4, 1500);
+    expect(result1500).toEqual({
+      synchronousRpm: 1500,
+      slipPercent: 0,
+      rotorFrequencyHz: 0,
+    });
+
+    // 0或负频率、奇数极数、少于2极、非整数极数及非有限输入必须抛出既有 RangeError
+    expect(() => calculateInductionMotor(0, 4, 1440)).toThrow(RangeError);
+    expect(() => calculateInductionMotor(-50, 4, 1440)).toThrow(RangeError);
+    expect(() => calculateInductionMotor(50, 3, 1440)).toThrow(RangeError);
+    expect(() => calculateInductionMotor(50, 0, 1440)).toThrow(RangeError);
+    expect(() => calculateInductionMotor(50, -2, 1440)).toThrow(RangeError);
+    expect(() => calculateInductionMotor(50, 4.5, 1440)).toThrow(RangeError);
+    expect(() => calculateInductionMotor(Number.NaN, 4, 1440)).toThrow(RangeError);
+    expect(() => calculateInductionMotor(50, 4, Number.POSITIVE_INFINITY)).toThrow(RangeError);
   });
 });

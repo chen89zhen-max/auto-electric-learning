@@ -17,7 +17,7 @@ describe('F01 experience shell', () => {
   it('renders the common shell, stage count, mentor controls and game-only wording', () => {
     const { container } = render(<F01Experience onReturnLobby={vi.fn()} />);
     expect(container.querySelector('main.app-shell.f01-shell')).toBeTruthy();
-    expect(screen.getByRole('heading', { name: /F01 实训中心交付挑战/ })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: /F01 完成综合检修工单/ })).toBeTruthy();
     expect(screen.getByText(/阶段 1\/5/)).toBeTruthy();
     expect(screen.getByLabelText('陈师傅实训指导')).toBeTruthy();
     expect(screen.queryByText(/教师签字|现场验收|线下实操/)).toBeNull();

@@ -14,6 +14,7 @@ import {
   type D02Step,
   STARTER_MOTOR_COMPONENTS,
   MAGNETIC_FIELD_COMPARISON,
+  calculateInductionMotor,
 } from './d02Training';
 import { useLevelAssessment } from '@/src/assessment/useLevelAssessment';
 import type { LevelAssessmentResult, TrainingStageId } from '@/src/assessment/assessmentTypes';
@@ -83,6 +84,15 @@ export function D02DcMotorScene({
   hintRequested,
 }: D02DcMotorSceneProps) {
   const assessment = useLevelAssessment('D02');
+  const requestAssessmentHint = assessment.requestHint;
+  const [motorParts, setMotorParts] = useState<string[]>([]);
+  const [rotorRpm, setRotorRpm] = useState(1200);
+  const [observedSpeeds, setObservedSpeeds] = useState<number[]>([]);
+  const [slipAnswer, setSlipAnswer] = useState('');
+  const [inductionAnswer, setInductionAnswer] = useState('');
+  const [inductionVerified, setInductionVerified] = useState(false);
+  const [inductionFeedback, setInductionFeedback] = useState('');
+  const inductionOutput = calculateInductionMotor(50, 4, rotorRpm);
 
   React.useEffect(() => {
     if (hintRequested) {
@@ -93,9 +103,9 @@ export function D02DcMotorScene({
         BLIND_DC_MOTOR_FAULT_ISOLATION: 'blind_test',
         ENGINEERING_REPAIR_AND_COMMISSIONING: 'transfer',
       };
-      assessment.requestHint(stageMap[currentStep]);
+      requestAssessmentHint(stageMap[currentStep]);
     }
-  }, [hintRequested, currentStep, assessment]);
+  }, [hintRequested, currentStep, requestAssessmentHint]);
 
   // Multimeter Knob: 'OFF' | 'DCV_20' | 'OHM_200' | 'DCA_20'
   const [meterKnob, setMeterKnob] = useState<'OFF' | 'DCV_20' | 'OHM_200' | 'DCA_20'>('OFF');
@@ -159,7 +169,7 @@ export function D02DcMotorScene({
   };
 
   return (
-    <div className="flex flex-col flex-1 min-h-[580px] w-full bg-slate-900 text-white rounded-xl p-4 lg:p-6 shadow-2xl border border-slate-800 space-y-6">
+    <div className="d02-training-scene flex flex-col flex-1 min-h-[580px] w-full bg-slate-50 text-slate-800 rounded-xl p-4 lg:p-6 shadow-sm border border-slate-200 space-y-6">
       {/* Warning toast */}
       {meterWarning && (
         <div className="p-3 bg-amber-500/20 border border-amber-500/50 rounded-lg text-amber-200 text-sm flex items-center justify-between">
@@ -778,11 +788,11 @@ export function D02DcMotorScene({
           </div>
 
           {/* Form & Assessment Panel (Zero-spoiler!) */}
-          <div className="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
+          <div className="d02-assessment flex-1 bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col justify-between">
             {/* Step 1 Question */}
             {currentStep === 'LORENTZ_FORCE_AND_LEFT_HAND_RULE' && (
               <div className="space-y-3">
-                <div className="text-sm font-semibold text-sky-300">
+                <div className="text-sm font-semibold text-sky-700">
                   【步骤1定则判定】在当前上 N 下 S、电流由内向外 (⊙) 的状态下，左手定则得出的安培力方向是？
                 </div>
                 <div className="space-y-2">
@@ -793,7 +803,7 @@ export function D02DcMotorScene({
                   ].map((opt) => {
                     const isSelected = s1Choice === opt.id;
                     const isCorrect = opt.id === 'RIGHT';
-                    let borderClass = 'border-slate-800 bg-slate-900/60 hover:border-slate-700';
+                    let borderClass = 'border-slate-200 bg-slate-50 text-slate-700 hover:border-sky-300';
                     if (s1Submitted) {
                       if (isSelected && isCorrect) borderClass = 'border-emerald-500 bg-emerald-950/40 text-emerald-200';
                       else if (isSelected && !isCorrect) borderClass = 'border-rose-500 bg-rose-950/40 text-rose-200';
@@ -863,8 +873,38 @@ export function D02DcMotorScene({
             {/* Step 2 Question */}
             {currentStep === 'COMMUTATOR_AND_CONTINUOUS_ROTATION' && (
               <div className="space-y-3">
-                <div className="text-sm font-semibold text-sky-300">
-                  【步骤2换向器作用】为什么直流电动机必须装配半圆铜环换向器和电刷？
+                <section className="p-3 border rounded-xl space-y-2" aria-label="三相异步机实验">
+                  <h3 className="font-bold">三相异步电动机：结构、感应与转差</h3>
+                  <p>这里比较的是鼠笼式异步机。定子三相绕组产生旋转磁场；转子导条和端环构成闭合回路，经感应产生电流和转矩。单相感应机可用辅助绕组、电容分相等方式起动，不能把直流电机换向器当作其起动装置。</p>
+                  {['定子', '鼠笼转子'].map(part => <Button key={part} disabled={s2Submitted} onClick={() => setMotorParts(previous => [...new Set([...previous, part])])}>观察{part}</Button>)}
+                  {motorParts.includes('定子') && <p>定子：铁芯与空间对称布置的三相绕组，三相电流形成旋转磁场。</p>}
+                  {motorParts.includes('鼠笼转子') && <p>鼠笼转子：转子铁芯、导条、两端短路环；没有直流电机的机械换向器。</p>}
+                  <label className="block">转子转速
+                    <select className="border rounded p-2 m-2" aria-label="转子转速" value={rotorRpm} disabled={s2Submitted} onChange={event => { const speed = Number(event.target.value); setRotorRpm(speed); setObservedSpeeds(previous => [...new Set([...previous, speed])]); }}>
+                      <option value="1200">1200 r/min（电动运行）</option><option value="1500">1500 r/min（同步对照）</option><option value="0">0 r/min（静止）</option>
+                    </select>
+                  </label>
+                  <p>本例50Hz、4极：同步转速 nₛ=120f/P={inductionOutput.synchronousRpm}r/min；s=(nₛ−n)/nₛ={inductionOutput.slipPercent}%；转子电流频率 {inductionOutput.rotorFrequencyHz}Hz。同步时没有相对切割，理想模型感应电流及转矩为零，不能维持带载电动运行。</p>
+                  <p>请观察两种转速再独立判断；该模型不模拟完整转矩曲线。</p>
+                  <label className="block">独立判断：50Hz、4极、转速1440r/min的转差率
+                    <select className="border rounded p-2" aria-label="独立判断：50Hz、4极、转速1440r/min的转差率" value={slipAnswer} disabled={s2Submitted} onChange={event => { setSlipAnswer(event.target.value); setInductionVerified(false); }}>
+                      <option value="">请选择</option><option value="0">0%</option><option value="4">4%</option><option value="96">96%</option>
+                    </select>
+                  </label>
+                  <label className="block">异步机转矩来源
+                    <select className="border rounded p-2" aria-label="异步机转矩来源" value={inductionAnswer} disabled={s2Submitted} onChange={event => { setInductionAnswer(event.target.value); setInductionVerified(false); }}>
+                      <option value="">请选择</option><option value="COMMUTATOR">机械换向器切换转子电流</option><option value="INDUCTION">旋转磁场与转子存在转差，感应电流产生转矩</option><option value="SYNCHRONOUS">转子必须等于同步转速才能产生感应转矩</option>
+                    </select>
+                  </label>
+                  <Button disabled={s2Submitted || motorParts.length < 2 || observedSpeeds.length < 2 || !slipAnswer || !inductionAnswer} onClick={() => {
+                    const correct = slipAnswer === '4' && inductionAnswer === 'INDUCTION'; setInductionVerified(correct);
+                    setInductionFeedback(correct ? '异步电机独立验证通过。' : '尚未通过：用同步转速计算转差，并区分感应和机械换向。');
+                    if (!correct) assessment.recordWrong('standard');
+                  }}>验证异步电机</Button>
+                  <output className="block">{inductionFeedback}</output>
+                </section>
+                <div className="text-sm font-semibold text-sky-700">
+                  【步骤2换向器作用】本实验的有刷直流电机为什么需要换向器和电刷？
                 </div>
                 <div className="space-y-2">
                   {[
@@ -874,7 +914,7 @@ export function D02DcMotorScene({
                   ].map((opt) => {
                     const isSelected = s2Choice === opt.id;
                     const isCorrect = opt.id === 'A';
-                    let borderClass = 'border-slate-800 bg-slate-900/60 hover:border-slate-700';
+                    let borderClass = 'border-slate-200 bg-slate-50 text-slate-700 hover:border-sky-300';
                     if (s2Submitted) {
                       if (isSelected && isCorrect) borderClass = 'border-emerald-500 bg-emerald-950/40 text-emerald-200';
                       else if (isSelected && !isCorrect) borderClass = 'border-rose-500 bg-rose-950/40 text-rose-200';
@@ -899,12 +939,12 @@ export function D02DcMotorScene({
                 </div>
                 {!s2Submitted ? (
                   <Button
-                    disabled={!s2Choice}
+                    disabled={!s2Choice || !inductionVerified}
                     onClick={() => {
                       if (s2Choice === 'A') {
                         sounds.success();
                         setS2Submitted(true);
-                        onStepComplete('COMMUTATOR_AND_CONTINUOUS_ROTATION', { choice: s2Choice });
+                        onStepComplete('COMMUTATOR_AND_CONTINUOUS_ROTATION', { choice: s2Choice, inductionMotor: { parts: motorParts, observedSpeeds, slipPercent: Number(slipAnswer), mechanism: inductionAnswer, verified: inductionVerified } });
                       } else {
                         sounds.warningBuzz();
                         assessment.recordWrong('standard');
@@ -944,7 +984,7 @@ export function D02DcMotorScene({
             {/* Step 3 Question */}
             {currentStep === 'H_BRIDGE_RELAY_DUAL_DIRECTION_CONTROL' && (
               <div className="space-y-3">
-                <div className="text-sm font-semibold text-sky-300">
+                <div className="text-sm font-semibold text-sky-700">
                   【步骤3车窗控制】双继电器 H 桥实现升窗与降窗的电路本质是？
                 </div>
                 <div className="space-y-2">
@@ -955,7 +995,7 @@ export function D02DcMotorScene({
                   ].map((opt) => {
                     const isSelected = s3Choice === opt.id;
                     const isCorrect = opt.id === 'A';
-                    let borderClass = 'border-slate-800 bg-slate-900/60 hover:border-slate-700';
+                    let borderClass = 'border-slate-200 bg-slate-50 text-slate-700 hover:border-sky-300';
                     if (s3Submitted) {
                       if (isSelected && isCorrect) borderClass = 'border-emerald-500 bg-emerald-950/40 text-emerald-200';
                       else if (isSelected && !isCorrect) borderClass = 'border-rose-500 bg-rose-950/40 text-rose-200';
@@ -1029,7 +1069,7 @@ export function D02DcMotorScene({
                   <div className="font-bold text-sky-300">{activeBlind.vehicleName}</div>
                   <div className="text-slate-300 mt-0.5">{activeBlind.symptom}</div>
                 </div>
-                <div className="text-sm font-semibold text-sky-300">
+                <div className="text-sm font-semibold text-sky-700">
                   结合打表测得的数据，判定故障真因：
                 </div>
                 <div className="space-y-2">
@@ -1040,7 +1080,7 @@ export function D02DcMotorScene({
                   ].map((opt) => {
                     const isSelected = s4Choice === opt.id;
                     const isCorrect = opt.id === activeBlind.faultType;
-                    let borderClass = 'border-slate-800 bg-slate-900/60 hover:border-slate-700';
+                    let borderClass = 'border-slate-200 bg-slate-50 text-slate-700 hover:border-sky-300';
                     if (s4Submitted) {
                       if (isSelected && isCorrect) borderClass = 'border-emerald-500 bg-emerald-950/40 text-emerald-200';
                       else if (isSelected && !isCorrect) borderClass = 'border-rose-500 bg-rose-950/40 text-rose-200';
@@ -1120,13 +1160,13 @@ export function D02DcMotorScene({
             {/* Step 5 Question */}
             {currentStep === 'ENGINEERING_REPAIR_AND_COMMISSIONING' && (
               <div className="space-y-3">
-                <div className="text-sm font-semibold text-sky-300">
+                <div className="text-sm font-semibold text-sky-700">
                   【步骤5交付验收】修复后通电试车，核验各项标准：
                 </div>
                 <div className="p-3 bg-slate-900 border border-slate-800 rounded-lg space-y-2 text-sm">
                   <div className="flex items-center justify-between text-slate-300">
                     <span>1. 电机升窗带载工作电流:</span>
-                    <span className="font-mono text-emerald-400 font-bold">3.20 A (标准 2.5A~4.0A 合格)</span>
+                    <span className="font-mono text-emerald-400 font-bold">3.20 A (本训练样车参考 2.5A~4.0A)</span>
                   </div>
                   <div className="flex items-center justify-between text-slate-300">
                     <span>2. 电机静态线圈绕组电阻:</span>

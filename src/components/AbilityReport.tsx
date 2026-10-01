@@ -1,4 +1,6 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import { Award, RotateCcw, Star } from 'lucide-react';
 import { CompletionStatus } from './CompletionStatus';
 import { Button } from '@/components/ui/button';
@@ -7,6 +9,10 @@ import type { Level01Metrics } from '@/src/levels/level01/level01Types';
 import type { EvidenceDimensionId, EvidenceStatus, PracticeMode } from '@/src/types/evidence';
 import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
 import { scoreAssessment } from '@/src/assessment/scoreAssessment';
+import type { AttemptSummaryRecord } from '@/src/types/evidence';
+import { formatDateTimeSeconds, formatDurationMs } from '@/src/lib/formatDuration';
+import { getCourseLevel } from '@/src/courses/registry';
+import { getNextLevelLabel } from '@/src/courses/curriculum';
 
 export interface AbilityDimensionItem {
   id: string;
@@ -31,6 +37,7 @@ export interface AbilityReportProps {
   mode?: PracticeMode;
   nextTask?: string;
   assessment?: LevelAssessmentResult;
+  score?: number;
   onRestart?: () => void;
   onReturn: () => void;
 }
@@ -47,15 +54,19 @@ export function AbilityReport({
   mode,
   nextTask,
   assessment,
+  score,
   onRestart,
   onReturn,
 }: AbilityReportProps) {
+  const [savedAttempt, setSavedAttempt] = useState<AttemptSummaryRecord | null>(null);
   const isDefaultLevel01 = levelId === 'LEVEL_01' || levelId === 'O01';
+  const courseLevel = getCourseLevel(levelId);
 
   const resolvedDomain =
     domainLabel || (isDefaultLevel01 ? '技能解锁 · 安全作业Ⅰ' : '技能领域 · 核心专业能力');
   const resolvedTitle =
-    title || (isDefaultLevel01 ? '安全作业能力报告' : `${levelId} 能力报告`);
+    courseLevel ? `${courseLevel.canonicalId} ${courseLevel.title} · 能力报告`
+      : title || `${levelId} 能力报告`;
 
   const scored = assessment ? scoreAssessment(assessment) : null;
 
@@ -92,14 +103,12 @@ export function AbilityReport({
       },
       {
         label: '实际实训耗时',
-        value: `${Math.max(1, Math.round(scored.durationMs / 60_000))} 分钟`,
+        value: formatDurationMs(scored.durationMs),
       },
     ];
   } else if (report && report.summary) {
     const m = metrics as Level01Metrics | undefined;
-    const duration = m?.levelDuration
-      ? `${Math.max(1, Math.round(m.levelDuration / 60_000))} 分钟`
-      : '1 分钟';
+    const duration = formatDurationMs(m?.levelDuration ?? 0);
     resolvedSummary = [
       {
         label: '危险操作尝试',
@@ -133,6 +142,24 @@ export function AbilityReport({
     ];
   }
 
+  if (savedAttempt?.durationMs !== undefined) {
+    const authoritativeDuration = formatDurationMs(savedAttempt.durationMs);
+    const durationIndex = resolvedSummary.findIndex((item) => /用时|耗时/.test(item.label));
+    resolvedSummary = durationIndex >= 0
+      ? resolvedSummary.map((item, index) => index === durationIndex ? { ...item, value: authoritativeDuration } : item)
+      : [...resolvedSummary, { label: '本关用时', value: authoritativeDuration }];
+  }
+  if (savedAttempt) {
+    const withoutOldAttemptTimes = resolvedSummary.filter(
+      (item) => item.label !== '本次开始' && item.label !== '本次完成',
+    );
+    resolvedSummary = [
+      ...withoutOldAttemptTimes,
+      ...(savedAttempt.startedAt ? [{ label: '本次开始', value: formatDateTimeSeconds(savedAttempt.startedAt) }] : []),
+      { label: '本次完成', value: formatDateTimeSeconds(savedAttempt.completedAt) },
+    ];
+  }
+
   const reportForCompletion = report || (resolvedDimensions.length > 0 ? {
     dimensions: resolvedDimensions.map((d) => ({
       id: d.id,
@@ -144,8 +171,7 @@ export function AbilityReport({
   } : undefined);
 
   const resolvedNextTask =
-    nextTask ||
-    (isDefaultLevel01 ? '学习任务2《点亮第一盏检修灯》' : undefined);
+    getNextLevelLabel(levelId) ?? nextTask;
 
   const resolvedMode = mode || scored?.mode;
   const resolvedEvidence = evidence || scored?.evidence;
@@ -203,6 +229,8 @@ export function AbilityReport({
         mode={resolvedMode}
         nextTask={resolvedNextTask}
         assessment={assessment}
+        score={score}
+        onSavedAttempt={setSavedAttempt}
       />
 
       <div className="report-actions">

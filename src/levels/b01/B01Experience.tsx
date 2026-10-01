@@ -1,4 +1,9 @@
 'use client';
+import { getLevelDisplayName } from '@/src/courses/curriculum';
+import { getNextLevelLabel } from '@/src/courses/curriculum';
+
+
+import { LevelHeading } from '@/src/components/LevelHeading';
 
 import React, { useState } from 'react';
 import {
@@ -14,6 +19,7 @@ import { AbilityReport } from '@/src/components/AbilityReport';
 import { MasterChenAvatar } from '@/src/components/visuals/MasterChenAvatar';
 import { SpeechControls } from '@/src/components/visuals/SpeechControls';
 import { getStudentDisplayName } from '@/src/stores/authStore';
+import { buildChapterBProcessReport, type ChapterBProcessInput } from '@/src/levels/chapterB/ChapterBExperience';
 import { B01OhmLawScene } from './B01OhmLawScene';
 import { B01_STAGE_CONTENT, type B01Step } from './b01Training';
 
@@ -28,6 +34,7 @@ export function B01Experience({ onReturnLobby }: B01ExperienceProps) {
   const [sceneRevision, setSceneRevision] = useState(0);
   const [showWorkOrder, setShowWorkOrder] = useState(false);
   const [hintRequested, setHintRequested] = useState(false);
+  const [processStages, setProcessStages] = useState<NonNullable<ChapterBProcessInput['stages']>>([]);
 
   const guidance = B01_STAGE_CONTENT[currentStep];
 
@@ -56,14 +63,41 @@ export function B01Experience({ onReturnLobby }: B01ExperienceProps) {
     }
   };
 
+  const recordProcessEvent = (type: 'wrong' | 'unsafe') => {
+    const stageIndex = Object.keys(B01_STAGE_CONTENT).indexOf(currentStep);
+    setProcessStages((current) => {
+      const next = [...current];
+      const stage = next[stageIndex] ?? {};
+      next[stageIndex] = type === 'unsafe'
+        ? { ...stage, unsafeActions: (stage.unsafeActions ?? 0) + 1 }
+        : { ...stage, wrongAttempts: (stage.wrongAttempts ?? 0) + 1 };
+      return next;
+    });
+  };
+
+  const handleHintRequest = () => {
+    setHintRequested(true);
+    const stageIndex = Object.keys(B01_STAGE_CONTENT).indexOf(currentStep);
+    setProcessStages((current) => {
+      const next = [...current];
+      const stage = next[stageIndex] ?? {};
+      if ((stage.hintRequests ?? 0) >= 1) return current;
+      next[stageIndex] = { ...stage, hintRequests: 1 };
+      return next;
+    });
+  };
+
   const handleRestart = () => {
     setIsCompleted(false);
     setCurrentStep('FIXED_R_CHANGE_V');
     setStepEvidences({});
     setHintRequested(false);
+    setProcessStages([]);
     setShowWorkOrder(false);
     setSceneRevision((r) => r + 1);
   };
+
+  const processReport = buildChapterBProcessReport('B01', { stages: processStages });
 
   return (
     <main className="app-shell level02-shell b01-shell">
@@ -73,12 +107,7 @@ export function B01Experience({ onReturnLobby }: B01ExperienceProps) {
           <span className="brand-mark safety-mark bg-blue-600 shadow-blue-600/20 text-white">
             <Zap size={22} />
           </span>
-          <div>
-            <p className="eyebrow text-blue-700">篇章二：让电路按要求工作 · B01</p>
-            <h1 className="text-slate-800 font-bold">
-              学习任务5：找出变化规律——欧姆定律应用
-            </h1>
-          </div>
+          <LevelHeading levelId="B01" />
         </div>
 
         {/* Trainee Profile & Controls */}
@@ -122,30 +151,18 @@ export function B01Experience({ onReturnLobby }: B01ExperienceProps) {
                 levelId="B01"
                 domainLabel="技能领域 · 欧姆定律应用"
                 title="欧姆定律与控制变量能力报告"
-                dimensions={[
-                  { id: 'OHM_CALC', label: '欧姆定律定量计算', stars: 5 },
-                  { id: 'VI_CURVE', label: '伏安曲线正比核验', stars: 5 },
-                  { id: 'CONTROL_VAR', label: '控制变量科学思维', stars: 5 },
-                  { id: 'COUNTER_EXAMPLE', label: '极限反例本质辨析', stars: 5 },
-                  { id: 'TOOL_OP', label: '实车改装安全决策', stars: 5 },
-                ]}
-                summaryItems={[
-                  { label: '物理规律核验', value: 'I = U / R 成立' },
-                  { label: '控制变量实验', value: 'U-I正比 & I-R反比' },
-                  { label: '反例辨析结论', value: '电阻为固有物理属性' },
-                  { label: '未知阻值推算', value: '24.0Ω 精准吻合' },
-                  { label: '实车改装评估', value: '拒绝大灯过载私改' },
-                  { label: '本关用时', value: '1 分钟' },
-                ]}
+                dimensions={processReport.dimensions}
+                score={processReport.score}
+                summaryItems={processReport.summaryItems}
                 metrics={stepEvidences}
                 mode="guided"
-                nextTask="学习任务6《负载的连接与灯组改装》"
+                nextTask={getNextLevelLabel('B01')}
                 onRestart={handleRestart}
                 onReturn={onReturnLobby}
               />
             </div>
             <div className="objective-strip">
-              <span>当前任务</span>
+              <span>当前操作</span>
               <strong>查看欧姆定律与控制变量能力报告</strong>
               <output className="feedback">实训评测已通过，控制变量法与欧姆定律工程计算已牢固掌握。</output>
             </div>
@@ -164,10 +181,11 @@ export function B01Experience({ onReturnLobby }: B01ExperienceProps) {
                   currentStep={currentStep}
                   onStepComplete={handleStepComplete}
                   onAdvanceStep={handleAdvanceStep}
+                  onProcessEvent={recordProcessEvent}
                 />
               </div>
               <div className="objective-strip">
-                <span>当前任务</span>
+                <span>当前操作</span>
                 <strong>{guidance.title}</strong>
                 <output className="feedback">{guidance.objective}</output>
               </div>
@@ -240,13 +258,13 @@ export function B01Experience({ onReturnLobby }: B01ExperienceProps) {
         <button
           type="button"
           className={hintRequested ? 'tool-active cursor-pointer' : 'cursor-pointer'}
-          onClick={() => setHintRequested(true)}
+          onClick={handleHintRequest}
         >
           <HelpCircle size={19} /> 请师傅提示
         </button>
         <span className="toolbar-spacer" />
         <span className="unlock-hint">
-          实训要点：控制变量法／U-I正比／I-R反比／防剧透安全决策 · 学习任务5（8页）
+          实训要点：控制变量法／U-I正比／I-R反比／防剧透安全决策 · 教材与考纲见页头
         </span>
         <button type="button" onClick={handleRestart} className="cursor-pointer">
           <RotateCcw size={18} /> 重新开始
@@ -262,9 +280,7 @@ export function B01Experience({ onReturnLobby }: B01ExperienceProps) {
         >
           <section className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
             <p className="eyebrow text-blue-700">工单编号 · WO-B01-OHM</p>
-            <h2 className="mt-1 text-xl font-black text-slate-900">
-              找出变化规律——欧姆定律应用
-            </h2>
+            <h2 className="mt-1 text-xl font-black text-slate-900">{getLevelDisplayName('B01')} · 实训工单</h2>
             <p className="mt-3 leading-7 text-slate-700">
               在汽车欧姆定律控制变量实验台上，运用控制变量法分别验证电阻恒定时的 U-I 正比例规律与电压恒定时的 I-R 反比例规律，深入辨析电阻固有的物理属性，独立推算实车未知阻值，并对大灯大功率私改工程风险作出规范决策。
             </p>

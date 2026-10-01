@@ -21,12 +21,15 @@ function request(token: string, eventData: Record<string, unknown>): NextRequest
   });
 }
 
+import { makeValidA03Metrics } from './helpers/c7EvidenceFixtures';
+
 function makeEvent(
   eventId: string,
   levelId = 'LEVEL_00',
   score = 90,
-  options: { mode?: string; evidence?: Record<string, string>; seed?: string } = {}
+  options: { mode?: string; evidence?: Record<string, string>; seed?: string; metrics?: unknown } = {}
 ) {
+  const isA03 = levelId === 'A03';
   return {
     eventId,
     levelId,
@@ -36,6 +39,7 @@ function makeEvent(
       mode: options.mode || 'guided',
       ...(options.evidence ? { evidence: options.evidence } : {}),
       ...(options.seed ? { seed: options.seed } : {}),
+      ...(options.metrics ? { metrics: options.metrics } : isA03 ? { metrics: makeValidA03Metrics() } : {}),
     },
     occurredAt: Date.now(),
   };
@@ -209,6 +213,30 @@ describe('Attempt Tracking, Replay & Evidence Framework (P1)', () => {
 
     const b02 = await submitCompletion(makeEvent('evt-chain-b02', 'B02', 90));
     expect(b02.status).toBe(200);
+  });
+
+  it('keeps D1 recommendations out of server authorization while retaining hard gates', async () => {
+    const progress = {
+      traineeName: '张晓明',
+      levels: { B01: { status: 'completed', score: 90 } },
+      lastUpdated: Date.now(),
+    };
+    db.prepare(
+      `INSERT INTO user_progress (user_id, progress_data, version, last_updated)
+       VALUES (?, ?, 1, ?)
+       ON CONFLICT(user_id) DO UPDATE SET progress_data=excluded.progress_data, last_updated=excluded.last_updated`
+    ).run('student', JSON.stringify(progress), Date.now());
+
+    // B02 is necessary for B04, so the server must still reject a direct attempt.
+    expect((await submitCompletion(makeEvent('evt-d1-b04-blocked', 'B04', 90))).status).toBe(422);
+
+    // B05 is only recommended for B06, and B04 is only recommended for B05.
+    expect((await submitCompletion(makeEvent('evt-d1-b06-without-b05', 'B06', 90))).status).toBe(200);
+    expect((await submitCompletion(makeEvent('evt-d1-b05-without-b04', 'B05', 90))).status).toBe(200);
+
+    // Complete B02 after the negative assertion but still omit B03; B04 must now be allowed.
+    expect((await submitCompletion(makeEvent('evt-d1-b02', 'B02', 90))).status).toBe(200);
+    expect((await submitCompletion(makeEvent('evt-d1-b04-without-b03', 'B04', 90))).status).toBe(200);
   });
 
   it('maintains strict idempotency on identical payload resubmission', async () => {

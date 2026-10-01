@@ -5,6 +5,9 @@ import { createBaseUserProgress, type UserProgressData } from '@/src/types/progr
 import { applyLearningEvent, isLevelId, LearningTransitionError } from './stateTransitions';
 import { normalizeLevelId, toLegacyLevelId } from '@/src/courses/registry';
 import { selectF01ScenarioSeed, validateF01CompletionMetrics } from '@/src/levels/f01/f01Model';
+import { isC7EvidenceLevelId } from '@/src/types/attemptEvidence';
+import { buildAttemptEvidenceEnvelope } from './attemptEvidenceService';
+import { ProcessEvidenceValidationError } from './processEvidenceValidators';
 
 export interface LearningEventInput {
   eventId: string;
@@ -32,7 +35,8 @@ export type LearningEventErrorCode =
   | 'LEVEL_LOCKED'
   | 'LEVEL_ALREADY_COMPLETED'
   | 'MISSING_ATTEMPT_START'
-  | 'INVALID_SCORE';
+  | 'INVALID_SCORE'
+  | 'INVALID_PROCESS_EVIDENCE';
 
 export class LearningEventError extends Error {
   constructor(public readonly code: LearningEventErrorCode, message: string) {
@@ -136,7 +140,23 @@ export function submitLearningEvent(
     const attemptMode = transition.attemptRecord?.mode ?? extractMode(input.payload);
     const attemptSeed = extractSeed(input.payload);
     let attemptEvidence: string | null = null;
-    if (transition.scoredAssessment) {
+    if (isC7EvidenceLevelId(canonicalLevelId) && input.eventType === 'LEVEL_COMPLETE') {
+      const rawMetrics = extractMetrics(input.payload);
+      try {
+        const envelope = buildAttemptEvidenceEnvelope(
+          canonicalLevelId,
+          rawMetrics,
+          transition.scoredAssessment,
+          (input.payload as Record<string, unknown> | undefined)?.evidence
+        );
+        attemptEvidence = JSON.stringify(envelope);
+      } catch (err) {
+        if (err instanceof ProcessEvidenceValidationError) {
+          throw new LearningEventError('INVALID_PROCESS_EVIDENCE', err.message);
+        }
+        throw err;
+      }
+    } else if (transition.scoredAssessment) {
       const f01Metrics = canonicalLevelId === 'F01' ? extractMetrics(input.payload) : undefined;
       attemptEvidence = JSON.stringify({
         evidence: transition.scoredAssessment.evidence,

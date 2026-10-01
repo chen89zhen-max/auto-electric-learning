@@ -37,6 +37,7 @@ export function E01DiodeScene({
   hintRequested,
 }: E01DiodeSceneProps) {
   const assessment = useLevelAssessment('E01');
+  const requestAssessmentHint = assessment.requestHint;
 
   useEffect(() => {
     if (hintRequested) {
@@ -47,9 +48,9 @@ export function E01DiodeScene({
         BLIND_DIODE_FAULT_DIAGNOSIS: 'blind_test',
         ENGINEERING_REPAIR_AND_DELIVERY: 'transfer',
       };
-      assessment.requestHint(stageMap[currentStep]);
+      requestAssessmentHint(stageMap[currentStep]);
     }
-  }, [hintRequested, currentStep, assessment]);
+  }, [hintRequested, currentStep, requestAssessmentHint]);
   // Multimeter knob: 'OFF' | 'DIODE' | 'OHM_2K' | 'DCV_20'
   const [meterKnob, setMeterKnob] = useState<'OFF' | 'DIODE' | 'OHM_2K' | 'DCV_20'>('OFF');
   const [meterWarning, setMeterWarning] = useState<string | null>(null);
@@ -125,18 +126,18 @@ export function E01DiodeScene({
   const activeSample = E01_SAMPLES[s4SampleIndex];
 
   return (
-    <div className="flex flex-col gap-5 p-4 md:p-6 bg-slate-900/90 border border-slate-700/80 rounded-2xl text-slate-100 shadow-2xl backdrop-blur-md">
+    <div className="flex flex-col gap-5 p-4 md:p-6 bg-slate-50 border border-slate-200 rounded-2xl text-slate-800 shadow-sm">
       {/* 顶部数字万用表状态栏 (全场景防呆) */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-slate-800/80 rounded-xl border border-slate-700">
+      <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-white rounded-xl border border-slate-200 shadow-xs">
         <div className="flex items-center gap-3">
           <div className="p-2.5 bg-blue-500/20 text-blue-400 rounded-lg border border-blue-500/30">
             <Gauge className="w-6 h-6" />
           </div>
           <div>
-            <div className="text-sm text-slate-400 font-semibold tracking-wider uppercase">
+            <div className="text-sm text-slate-700 font-semibold tracking-wider uppercase">
               汽车数字万用表 (DMM-890)
             </div>
-            <div className="text-sm font-bold text-slate-200">
+            <div className="text-sm font-bold text-slate-800">
               当前挡位:{' '}
               <span
                 className={
@@ -154,8 +155,8 @@ export function E01DiodeScene({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-slate-300 font-medium">旋钮挡位:</span>
+        <div className="flex flex-wrap items-center gap-2 min-w-0">
+          <span className="text-sm text-slate-700 font-medium shrink-0">旋钮挡位:</span>
           {(['OFF', 'DIODE', 'OHM_2K', 'DCV_20'] as const).map((knob) => (
             <button
               key={knob}
@@ -196,8 +197,8 @@ export function E01DiodeScene({
               </div>
 
               {/* 动态可视化电路 */}
-              <div className="relative w-full h-52 flex items-center justify-center my-4 bg-slate-900/60 rounded-xl border border-slate-800/80 overflow-hidden">
-                <svg className="w-full h-full max-w-lg" viewBox="0 0 500 200">
+              <div className="relative w-full h-72 flex items-center justify-start lg:justify-center my-4 bg-slate-900/60 rounded-xl border border-slate-800/80 overflow-x-auto">
+                <svg className="w-full min-w-0 max-lg:min-w-[700px] h-full max-w-3xl shrink-0" viewBox="0 0 500 200">
                   {/* 导线 */}
                   <path
                     d="M 50 100 L 150 100 M 230 100 L 330 100 M 410 100 L 450 100"
@@ -250,6 +251,7 @@ export function E01DiodeScene({
                   </g>
                 </svg>
               </div>
+              <p className="text-sm text-slate-300 lg:hidden">左右滑动查看完整电路图。</p>
 
               {/* 测量读数与极性切换 */}
               <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-800">
@@ -276,13 +278,13 @@ export function E01DiodeScene({
             </div>
 
             {/* 右侧零剧透知识验证 */}
-            <div className="lg:col-span-4 p-5 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div className="lg:col-span-4 p-5 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
               <div>
-                <h4 className="text-sm font-bold text-slate-200 mb-2 flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   认知判定与理论验证
                 </h4>
-                <p className="text-sm text-slate-300 mb-4">
+                <p className="text-sm text-slate-600 mb-4">
                   观察上述正反接入现象，选择对硅二极管导通特性的正确描述：
                 </p>
 
@@ -302,7 +304,7 @@ export function E01DiodeScene({
                       className={`w-full text-left p-3 rounded-xl border text-sm transition-all cursor-pointer ${
                         s1Choice === opt.id
                           ? 'border-blue-500 bg-blue-500/10 text-white font-bold'
-                          : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700'
+                          : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-blue-300'
                       }`}
                     >
                       <span className="font-mono font-bold mr-2 text-blue-400">{opt.id}.</span>
@@ -312,7 +314,7 @@ export function E01DiodeScene({
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-slate-800">
+              <div className="mt-4 pt-4 border-t border-slate-200">
                 {!s1Submitted ? (
                   <Button
                     disabled={!s1Choice}
@@ -409,13 +411,13 @@ export function E01DiodeScene({
             </div>
 
             {/* 右侧零剧透判定 */}
-            <div className="lg:col-span-4 p-5 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div className="lg:col-span-4 p-5 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
               <div>
-                <h4 className="text-sm font-bold text-slate-200 mb-2 flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
                   <Zap className="w-4 h-4 text-cyan-400" />
                   好坏与极性判别标准
                 </h4>
-                <p className="text-sm text-slate-300 mb-4">
+                <p className="text-sm text-slate-600 mb-4">
                   根据万用表二极管档测量规范，如何判定该二极管性能良好？
                 </p>
 
@@ -435,7 +437,7 @@ export function E01DiodeScene({
                       className={`w-full text-left p-3 rounded-xl border text-sm transition-all cursor-pointer ${
                         s2Choice === opt.id
                           ? 'border-blue-500 bg-blue-500/10 text-white font-bold'
-                          : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700'
+                          : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-blue-300'
                       }`}
                     >
                       <span className="font-mono font-bold mr-2 text-blue-400">{opt.id}.</span>
@@ -445,7 +447,7 @@ export function E01DiodeScene({
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-slate-800">
+              <div className="mt-4 pt-4 border-t border-slate-200">
                 {!s2Submitted ? (
                   <Button
                     disabled={!s2Choice}
@@ -593,13 +595,13 @@ export function E01DiodeScene({
             </div>
 
             {/* 右侧定量计算题 */}
-            <div className="lg:col-span-4 p-5 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div className="lg:col-span-4 p-5 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
               <div>
-                <h4 className="text-sm font-bold text-slate-200 mb-2 flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   工程计算工单
                 </h4>
-                <p className="text-sm text-slate-300 mb-4">
+                <p className="text-sm text-slate-600 mb-4">
                   汽车电网标称 12V，LED 导通电压 2.0V，要求额定工作电流严格控制在 20mA (0.02A)，应串联多大阻值的限流电阻？
                 </p>
 
@@ -619,7 +621,7 @@ export function E01DiodeScene({
                       className={`w-full text-left p-3 rounded-xl border text-sm transition-all cursor-pointer ${
                         s3Choice === opt.id
                           ? 'border-blue-500 bg-blue-500/10 text-white font-bold'
-                          : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700'
+                          : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-blue-300'
                       }`}
                     >
                       <span className="font-mono font-bold mr-2 text-blue-400">{opt.id}.</span>
@@ -629,7 +631,7 @@ export function E01DiodeScene({
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-slate-800">
+              <div className="mt-4 pt-4 border-t border-slate-200">
                 {!s3Submitted ? (
                   <Button
                     disabled={!s3Choice}
@@ -747,13 +749,13 @@ export function E01DiodeScene({
             </div>
 
             {/* 右侧工单填报 */}
-            <div className="lg:col-span-5 p-5 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div className="lg:col-span-5 p-5 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
               <div>
-                <h4 className="text-sm font-bold text-slate-200 mb-2 flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   盲测诊断报告表
                 </h4>
-                <p className="text-sm text-slate-300 mb-3">为 4 组样件分别下达最终物理状态判定：</p>
+                <p className="text-sm text-slate-600 mb-3">为 4 组样件分别下达最终物理状态判定：</p>
 
                 <div className="space-y-3">
                   {E01_SAMPLES.map((smp) => (
@@ -776,7 +778,7 @@ export function E01DiodeScene({
                             className={`p-2 rounded-lg border text-center text-sm font-medium transition-all cursor-pointer ${
                               s4Diagnoses[smp.id] === opt.val
                                 ? 'border-blue-500 bg-blue-500/20 text-white font-bold'
-                                : 'border-slate-800 bg-slate-950/50 text-slate-400 hover:border-slate-700'
+                                : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-blue-300'
                             }`}
                           >
                             {opt.label}
@@ -788,7 +790,7 @@ export function E01DiodeScene({
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-slate-800">
+              <div className="mt-4 pt-4 border-t border-slate-200">
                 {!s4Submitted ? (
                   <Button
                     disabled={Object.keys(s4Diagnoses).length < 4}
@@ -900,7 +902,7 @@ export function E01DiodeScene({
                           className={`p-2.5 rounded-lg border text-sm text-left transition-all cursor-pointer ${
                             s5SelectedResistor === item.r
                               ? 'border-emerald-500 bg-emerald-500/20 text-white font-bold'
-                              : 'border-slate-800 bg-slate-900 text-slate-300'
+                              : 'border-slate-200 bg-slate-50 text-slate-700'
                           }`}
                         >
                           {item.label}
@@ -961,13 +963,13 @@ export function E01DiodeScene({
             </div>
 
             {/* 右侧交付工单签字 */}
-            <div className="lg:col-span-5 p-5 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div className="lg:col-span-5 p-5 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
               <div>
-                <h4 className="text-sm font-bold text-slate-200 mb-2 flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                   维修质量交付单
                 </h4>
-                <p className="text-sm text-slate-300 mb-3">
+                <p className="text-sm text-slate-600 mb-3">
                   核对维修项目与出厂安全标准：
                 </p>
 
@@ -1005,7 +1007,7 @@ export function E01DiodeScene({
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-slate-800">
+              <div className="mt-4 pt-4 border-t border-slate-200">
                 {!s5Submitted ? (
                   <Button
                     disabled={!s5Signed || !s5PowerOn}

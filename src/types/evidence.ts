@@ -62,7 +62,10 @@ export type EvidenceState = Record<EvidenceDimensionId, EvidenceStatus>;
 
 export interface AttemptSummaryRecord {
   attemptId: string;
+  startedAt?: string;
   completedAt: string;
+  durationMs?: number;
+  timingSource?: 'server' | 'legacy';
   score: number;
   mode: PracticeMode;
   maxHintLevel?: number;

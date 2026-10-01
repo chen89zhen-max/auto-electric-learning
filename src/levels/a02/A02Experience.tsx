@@ -1,4 +1,9 @@
 'use client';
+import { getLevelDisplayName } from '@/src/courses/curriculum';
+import { getNextLevelLabel } from '@/src/courses/curriculum';
+
+
+import { LevelHeading } from '@/src/components/LevelHeading';
 
 import React, { useState } from 'react';
 import {
@@ -17,6 +22,7 @@ import { getStudentDisplayName } from '@/src/stores/authStore';
 import { A02VoltageScene } from './scenes/A02VoltageScene';
 import { A02_STAGE_CONTENT, type A02Step } from './a02Training';
 import type { EvidenceDimensionId, EvidenceStatus } from '@/src/types/evidence';
+import { formatDurationMs } from '@/src/lib/formatDuration';
 
 interface A02ExperienceProps {
   onReturnLobby: () => void;
@@ -29,6 +35,31 @@ const A02_GUIDED_EVIDENCE: Partial<
   RULE_EXPLANATION: 'GUIDED_COMPLETE',
 };
 
+type ProcessCounters = { wrongAttempts: number; hintRequests: number; meterGuardBlocks: number; unsafeActions: number; retries: number };
+type ProcessEvent = keyof ProcessCounters;
+
+function buildA02ProcessReport(counters: ProcessCounters, durationMs: number) {
+  const score = Math.round(Math.max(0, Math.min(1, 1 - 0.12 * counters.wrongAttempts - 0.15 * counters.hintRequests - 0.20 * counters.meterGuardBlocks - 0.30 * counters.unsafeActions - 0.05 * counters.retries)) * 100);
+  const stars = score >= 90 ? 5 : score >= 80 ? 4 : score >= 70 ? 3 : score >= 60 ? 2 : 1;
+  return {
+    score,
+    dimensions: [
+      { id: 'METER_PREP', label: '仪表准备与挡位选择', stars },
+      { id: 'POLARITY', label: '表笔极性与符号识别', stars },
+      { id: 'VOLTAGE_MEASURE', label: '两点测压与通路验证', stars },
+      { id: 'DROP_DIAGNOSIS', label: '接触电阻与压降诊断', stars },
+      { id: 'DECISION', label: '维修决策与逻辑表达', stars },
+    ],
+    summaryItems: [
+      { label: '过程答错记录', value: `${counters.wrongAttempts} 次` },
+      { label: '教学提示使用', value: `${counters.hintRequests} 次` },
+      { label: '仪表安全拦截', value: `${counters.meterGuardBlocks} 次` },
+      { label: '安全违规操作', value: `${counters.unsafeActions} 次` },
+      { label: '本关用时', value: formatDurationMs(durationMs) },
+    ],
+  };
+}
+
 export function A02Experience({ onReturnLobby }: A02ExperienceProps) {
   const [currentStep, setCurrentStep] = useState<A02Step>('BATTERY_PROBING');
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
@@ -38,6 +69,9 @@ export function A02Experience({ onReturnLobby }: A02ExperienceProps) {
   const [sceneRevision, setSceneRevision] = useState(0);
   const [showWorkOrder, setShowWorkOrder] = useState(false);
   const [hintRequested, setHintRequested] = useState(false);
+  const [startedAt, setStartedAt] = useState(() => Date.now());
+  const [completedAt, setCompletedAt] = useState<number | null>(null);
+  const [processCounters, setProcessCounters] = useState<ProcessCounters>({ wrongAttempts: 0, hintRequests: 0, meterGuardBlocks: 0, unsafeActions: 0, retries: 0 });
 
   const guidance = A02_STAGE_CONTENT[currentStep];
 
@@ -59,8 +93,14 @@ export function A02Experience({ onReturnLobby }: A02ExperienceProps) {
     } else if (currentStep === 'CONTACT_RESISTANCE_DROP') {
       setCurrentStep('TRANSFER_DIAGNOSIS');
     } else if (currentStep === 'TRANSFER_DIAGNOSIS') {
+      setCompletedAt(Date.now());
       setIsCompleted(true);
     }
+    setHintRequested(false);
+  };
+
+  const recordProcessEvent = (event: ProcessEvent) => {
+    setProcessCounters((current) => ({ ...current, [event]: current[event] + 1 }));
   };
 
   const handleRestart = () => {
@@ -68,9 +108,14 @@ export function A02Experience({ onReturnLobby }: A02ExperienceProps) {
     setCurrentStep('BATTERY_PROBING');
     setStepEvidences({});
     setHintRequested(false);
+    setStartedAt(Date.now());
+    setCompletedAt(null);
+    setProcessCounters({ wrongAttempts: 0, hintRequests: 0, meterGuardBlocks: 0, unsafeActions: 0, retries: 0 });
     setShowWorkOrder(false);
     setSceneRevision((revision) => revision + 1);
   };
+
+  const report = buildA02ProcessReport(processCounters, completedAt === null ? 0 : Math.max(0, completedAt - startedAt));
 
   return (
     <main className="app-shell level02-shell a02-shell">
@@ -79,12 +124,7 @@ export function A02Experience({ onReturnLobby }: A02ExperienceProps) {
           <span className="brand-mark safety-mark bg-amber-600 shadow-amber-600/20">
             <Zap size={22} />
           </span>
-          <div>
-            <p className="eyebrow text-amber-700">篇章一：把电路看明白 · A02</p>
-            <h1 className="text-slate-800 font-bold">
-              学习任务4：给电路做体检——电压分析与测量
-            </h1>
-          </div>
+          <LevelHeading levelId="A02" />
         </div>
 
         <div className="flex items-center gap-2 ml-auto">
@@ -121,34 +161,19 @@ export function A02Experience({ onReturnLobby }: A02ExperienceProps) {
                 levelId="A02"
                 domainLabel="技能领域 · 电压分析与测量"
                 title="电压分析与测量能力报告"
-                dimensions={[
-                  { id: 'METER_PREP', label: '仪表准备与挡位选择', stars: 5 },
-                  { id: 'POLARITY', label: '表笔极性与符号识别', stars: 5 },
-                  { id: 'VOLTAGE_MEASURE', label: '两点测压与通路验证', stars: 5 },
-                  { id: 'DROP_DIAGNOSIS', label: '接触电阻与压降诊断', stars: 5 },
-                  { id: 'DECISION', label: '维修决策与逻辑表达', stars: 5 },
-                ]}
-                summaryItems={[
-                  {
-                    label: '测量记录项数',
-                    value: `${Object.keys(stepEvidences).length > 0 ? Object.keys(stepEvidences).length : 4} / 4 环节`,
-                  },
-                  { label: '正反极性验证', value: '±12V 准确识别' },
-                  { label: '开关通断核验', value: '0V / 12V 明确' },
-                  { label: '异常压降定位', value: '供电侧 0.91V' },
-                  { label: '维修处理建议', value: '清洁紧固氧化触点' },
-                  { label: '本关用时', value: '1 分钟' },
-                ]}
+                dimensions={report.dimensions}
+                score={report.score}
+                summaryItems={report.summaryItems}
                 metrics={stepEvidences}
                 evidence={A02_GUIDED_EVIDENCE}
                 mode="guided"
-                nextTask="学习任务3《元件身份核验——电阻识别与测量》"
+                nextTask={getNextLevelLabel('A02')}
                 onRestart={handleRestart}
                 onReturn={onReturnLobby}
               />
             </div>
             <div className="objective-strip">
-              <span>当前任务</span>
+              <span>当前操作</span>
               <strong>查看电压分析与测量能力报告</strong>
               <output className="feedback">实训评测已通过，诊断思维已牢固建立。</output>
             </div>
@@ -166,10 +191,11 @@ export function A02Experience({ onReturnLobby }: A02ExperienceProps) {
                   currentStep={currentStep}
                   onStepComplete={handleStepComplete}
                   onAdvanceStep={handleAdvanceStep}
+                  onProcessEvent={recordProcessEvent}
                 />
               </div>
               <div className="objective-strip">
-                <span>当前任务</span>
+                <span>当前操作</span>
                 <strong>{guidance.title}</strong>
                 <output className="feedback">{guidance.objective}</output>
               </div>
@@ -240,13 +266,16 @@ export function A02Experience({ onReturnLobby }: A02ExperienceProps) {
         <button
           type="button"
           className={hintRequested ? 'tool-active' : ''}
-          onClick={() => setHintRequested(true)}
+          onClick={() => {
+            if (!hintRequested) recordProcessEvent('hintRequests');
+            setHintRequested(true);
+          }}
         >
           <HelpCircle size={19} /> 请师傅提示
         </button>
         <span className="toolbar-spacer" />
         <span className="unlock-hint">
-          测量要点：表笔极性／接点压降 · 学习任务4（18页）
+          测量要点：表笔极性／接点压降 · 教材与考纲见页头
         </span>
         <button type="button" onClick={handleRestart}>
           <RotateCcw size={18} /> 重新开始
@@ -261,9 +290,7 @@ export function A02Experience({ onReturnLobby }: A02ExperienceProps) {
         >
           <section className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
             <p className="eyebrow">工单编号 · WO-A02-VOLTAGE</p>
-            <h2 className="mt-1 text-xl font-black text-slate-900">
-              给电路做体检
-            </h2>
+            <h2 className="mt-1 text-xl font-black text-slate-900">{getLevelDisplayName('A02')} · 实训工单</h2>
             <p className="mt-3 leading-7 text-slate-700">
               在 12V
               检修灯训练台上完成两点电压测量，记录表笔极性、开关状态和带载接点压降。读数必须来自当前接线与仪表状态。

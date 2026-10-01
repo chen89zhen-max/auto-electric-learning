@@ -112,7 +112,7 @@ test.describe.serial('F01 browser end-to-end delivery lifecycle', () => {
     test.setTimeout(180_000);
     await login(page, 'student');
     await page.goto('/?level=F01');
-    await expect(page.getByRole('heading', { name: 'F01 实训中心交付挑战——智能检修灯控制总成终检' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'F01 完成综合检修工单' })).toBeVisible();
     await expect(page.getByText('阶段 1/5')).toBeVisible();
 
     const ordinal1 = await page.evaluate(() => {
@@ -151,7 +151,7 @@ test.describe.serial('F01 browser end-to-end delivery lifecycle', () => {
 
     // Return to lobby
     await page.getByRole('button', { name: '返回任务大厅' }).click();
-    await expect(page.getByRole('heading', { name: '汽车电工电子 · 课程地图与实训大厅' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '汽车电工电子闯关实训' })).toBeVisible();
 
     // Check Chapter F tab or task card
     const showAllBtn = page.getByRole('button', { name: /查看全部.*个任务/ });
@@ -165,7 +165,7 @@ test.describe.serial('F01 browser end-to-end delivery lifecycle', () => {
 
     // Re-enter F01 for second attempt (replay)
     await f01Card.click();
-    await expect(page.getByRole('heading', { name: 'F01 实训中心交付挑战——智能检修灯控制总成终检' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'F01 完成综合检修工单' })).toBeVisible();
 
     // Rotate seed to next attempt
     const ordinal2 = ordinal1 + 1;

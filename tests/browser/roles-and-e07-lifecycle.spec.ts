@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { login } from './helpers';
+import { login, logout } from './helpers';
 
 async function loginAsTeacher(page: Page, username: 'teacher' | 'teacher2') {
   await page.goto('/');
@@ -18,7 +18,7 @@ test.describe.serial('three-role organization and E07 signature lifecycle', () =
     await expect(page.getByRole('cell', { name: 'student1' })).toBeVisible();
     await expect(page.getByRole('cell', { name: 'student2' })).toHaveCount(0);
 
-    await page.getByRole('button', { name: '退出' }).click();
+    await logout(page);
     await loginAsTeacher(page, 'teacher2');
     await expect(page.getByRole('cell', { name: 'student2' })).toBeVisible();
     await expect(page.getByRole('cell', { name: 'student1' })).toHaveCount(0);
@@ -43,7 +43,7 @@ test.describe.serial('three-role organization and E07 signature lifecycle', () =
     expect(signResponse.status()).toBe(403);
   });
 
-  test('teacher A signs the seeded E07 attempt and the signed card becomes read-only', async ({ page }, testInfo) => {
+  test('teacher A signs the seeded E07 attempt and the signed card becomes read-only', async ({ page, browser }, testInfo) => {
     const attemptId = `browser_e07_${testInfo.project.name}`;
     await loginAsTeacher(page, 'teacher');
     const row = page.getByRole('row').filter({ hasText: 'student1' });
@@ -61,9 +61,10 @@ test.describe.serial('three-role organization and E07 signature lifecycle', () =
     await expect(signedCard.getByText('实物总分: 100 / 100 分')).toBeVisible();
     await expect(signedCard.locator('input, button')).toHaveCount(0);
 
-    await page.getByRole('button', { name: '退出' }).click();
-    await login(page, 'student');
-    const { status, payload } = await page.evaluate(async (id) => {
+    const studentContext = await browser.newContext({ baseURL: 'http://127.0.0.1:4175' });
+    const studentPage = await studentContext.newPage();
+    await login(studentPage, 'student');
+    const { status, payload } = await studentPage.evaluate(async (id) => {
       const response = await fetch(`/api/learning/evaluations?attemptId=${encodeURIComponent(id)}`, { cache: 'no-store' });
       return { status: response.status, payload: await response.json() };
     }, attemptId);
@@ -81,6 +82,7 @@ test.describe.serial('three-role organization and E07 signature lifecycle', () =
         evidence_explanation: 10,
       },
     });
+    await studentContext.close();
   });
 
   test('administrator creates and archives a class, assigns Teacher A, and moves Student A with cleanup', async ({ page }, testInfo) => {
@@ -106,12 +108,12 @@ test.describe.serial('three-role organization and E07 signature lifecycle', () =
     await studentForm.getByRole('button', { name: '执行转班' }).click();
     await expect(page.getByText(`张晓明 → ${className}`)).toBeVisible();
 
-    await page.getByRole('button', { name: '退出' }).click();
+    await logout(page);
     await loginAsTeacher(page, 'teacher');
     await expect(page.getByRole('cell', { name: 'student1' })).toBeVisible();
     await expect(page.getByRole('cell', { name: 'student2' })).toHaveCount(0);
 
-    await page.getByRole('button', { name: '退出' }).click();
+    await logout(page);
     await login(page, 'admin');
     await page.getByRole('button', { name: '教学关系' }).click();
     const cleanupStudentForm = page.locator('form').filter({ hasText: '选择学生' });

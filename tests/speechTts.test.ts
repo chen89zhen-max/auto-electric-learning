@@ -52,6 +52,7 @@ describe('SpeechTts', () => {
   beforeEach(() => {
     localStorage.clear();
     vi.restoreAllMocks();
+    resetVoiceCache();
 
     if (typeof SpeechSynthesisUtterance === 'undefined') {
       // @ts-expect-error Mocking SpeechSynthesisUtterance for jsdom
@@ -120,11 +121,11 @@ describe('SpeechTts', () => {
       cancel: mockCancel,
       getVoices: () => [
         {
-          name: 'Microsoft Xiaoxiao Online (Natural) - Chinese (Mainland)',
+          name: 'Microsoft Kangkang - Chinese (Simplified, PRC)',
           lang: 'zh-CN',
           default: true,
           localService: false,
-          voiceURI: 'Xiaoxiao',
+          voiceURI: 'Kangkang',
         } as SpeechSynthesisVoice,
       ],
       speaking: false,
@@ -186,6 +187,21 @@ describe('SpeechTts', () => {
     expect(pickedMale?.name).toContain('Zhiwei');
   });
 
+  it.each([
+    { voices: [{ name: 'Microsoft Xiaoxiao', lang: 'zh-CN' }] },
+    { voices: [] },
+  ])('never speaks Chen with a female or default voice when no Chinese male is available', ({ voices }) => {
+    const mockSpeak = vi.fn();
+    window.speechSynthesis = {
+      speak: mockSpeak,
+      cancel: vi.fn(),
+      getVoices: () => voices as SpeechSynthesisVoice[],
+    } as unknown as SpeechSynthesis;
+
+    expect(speakText('陈师傅提示')).toEqual({ ok: false, reason: 'no_voice' });
+    expect(mockSpeak).not.toHaveBeenCalled();
+  });
+
   it('uses default middle-aged male pitch of 0.88 and rate of 0.98', () => {
     expect(DEFAULT_MALE_PITCH).toBe(0.88);
     expect(DEFAULT_MALE_RATE).toBe(0.98);
@@ -194,7 +210,7 @@ describe('SpeechTts', () => {
     window.speechSynthesis = {
       speak: mockSpeak,
       cancel: vi.fn(),
-      getVoices: () => [],
+      getVoices: () => [{ name: 'Microsoft Kangkang', lang: 'zh-CN', voiceURI: 'Kangkang' } as SpeechSynthesisVoice],
     } as unknown as SpeechSynthesis;
 
     speakText('测试音调');

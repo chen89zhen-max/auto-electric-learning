@@ -1,4 +1,9 @@
 'use client';
+import { getLevelDisplayName } from '@/src/courses/curriculum';
+import { getNextLevelLabel } from '@/src/courses/curriculum';
+
+
+import { LevelHeading } from '@/src/components/LevelHeading';
 
 import React, { useState } from 'react';
 import {
@@ -81,10 +86,7 @@ export function E04Experience({ onReturnLobby }: E04ExperienceProps) {
           <span className="brand-mark safety-mark bg-blue-600 shadow-blue-600/20 text-white">
             <Zap size={22} />
           </span>
-          <div>
-            <p className="eyebrow">篇章五：让电路感知、判断和执行 · 电子开关基石</p>
-            <h1>E04 小信号控制负载——三极管放大与开关</h1>
-          </div>
+          <LevelHeading levelId="E04" />
         </div>
 
         <div className="trainee-badge">
@@ -92,7 +94,7 @@ export function E04Experience({ onReturnLobby }: E04ExperienceProps) {
           <span>见习电工 · {getStudentDisplayName('见习学员')} ({isCompleted ? '已通过验收' : '实训推进中'})</span>
         </div>
 
-        <div className="topbar-actions">
+        <div className="topbar-actions hidden">
           <FullscreenButton />
           <button
             type="button"
@@ -127,10 +129,16 @@ export function E04Experience({ onReturnLobby }: E04ExperienceProps) {
             <span>返回大厅</span>
           </button>
         </div>
+        <div className="flex items-center gap-2 ml-auto">
+          <FullscreenButton />
+          <button type="button" onClick={onReturnLobby} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg transition-colors cursor-pointer shadow-xs" title="退出当前实训并返回课程地图">
+            <LogOut size={15} /><span>返回课程大厅</span>
+          </button>
+        </div>
       </header>
 
       {/* 5-Stage Stepper */}
-      <nav className="training-stage-stepper px-6 py-2.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between text-sm overflow-x-auto">
+      <nav className="hidden training-stage-stepper px-6 py-2.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between text-sm overflow-x-auto">
         {(
           [
             { id: 'TRANSISTOR_PRINCIPLE_COGNITION', num: '1', name: '小控大原理认知' },
@@ -171,7 +179,7 @@ export function E04Experience({ onReturnLobby }: E04ExperienceProps) {
       </nav>
 
       {/* Master Chen Voice Prompt */}
-      <section className="bg-slate-800/80 border-b border-slate-700/80 px-6 py-3 flex items-center gap-4">
+      <section className="hidden bg-slate-800/80 border-b border-slate-700/80 px-6 py-3 flex items-center gap-4">
         <MasterChenAvatar emotion={guidance.mentorEmotion} size={48} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 text-sm font-bold text-amber-400">
@@ -187,7 +195,10 @@ export function E04Experience({ onReturnLobby }: E04ExperienceProps) {
       </section>
 
       {/* Main Workspace Area */}
-      <div className="workspace-main flex-1 p-4 md:p-6 overflow-y-auto">
+      <section className={isCompleted ? 'workspace single' : 'workspace'} aria-label="E04 实训工作区">
+        <div className="scene-panel">
+          <div className="scene-heading"><span className={isCompleted ? 'status-dot bg-emerald-500 shadow-emerald-500/20' : 'status-dot bg-blue-500 shadow-blue-500/20'} /><span>电子电路实训中心 · E04 三极管放大与开关</span><span className="scene-meta">{isCompleted ? '验收完成' : '5 阶段渐进实训'}</span></div>
+          <div className="scene-content" key={sceneRevision}>
         {isCompleted ? (
           <AbilityReport
             levelId="E04"
@@ -195,7 +206,7 @@ export function E04Experience({ onReturnLobby }: E04ExperienceProps) {
             title="E04 三极管开关与继电器驱动实训报告"
             assessment={assessmentResult ?? undefined}
             metrics={stepEvidences}
-            nextTask="E05 电路的条件判断——逻辑门电路认知"
+            nextTask={getNextLevelLabel('E04')}
             onRestart={handleRestart}
             onReturn={onReturnLobby}
           />
@@ -212,43 +223,59 @@ export function E04Experience({ onReturnLobby }: E04ExperienceProps) {
             }}
           />
         )}
-      </div>
+          </div>
+          <div className="objective-strip"><span>当前操作</span><strong>{isCompleted ? '查看实训能力报告' : guidance.title}</strong><output className="feedback">{isCompleted ? '已完成五阶段实训与验收。' : guidance.objective}</output></div>
+        </div>
+        {!isCompleted && (
+          <aside className="tutor-panel" aria-label="陈师傅实训指导">
+            <div className="tutor-title flex items-center gap-3.5 pb-3 border-b border-slate-200"><MasterChenAvatar emotion={guidance.mentorEmotion} size={58} /><div><div className="flex items-center gap-1.5"><strong className="text-base font-bold text-slate-800">陈师傅</strong><span className="text-sm bg-blue-100 text-blue-800 font-semibold px-1.5 py-0.5 rounded">带教技师</span></div><small className="text-sm text-slate-500 font-medium">汽车电子电路诊断专家</small></div></div>
+            <div className="message-card relative my-4 p-4 rounded-xl border-l-4 border-blue-500 bg-blue-50/90 text-slate-800 shadow-xs" aria-live="polite"><div className="flex flex-col gap-2"><div className="flex items-center justify-end"><SpeechControls currentText={hintRequested ? guidance.hint : guidance.mentorPrompt} /></div><p className="text-sm font-semibold leading-relaxed m-0">{hintRequested ? guidance.hint : ('“' + guidance.mentorPrompt + '”')}</p></div></div>
+            <div className="mt-5 rounded-xl border border-blue-100 bg-blue-50/60 p-3 text-sm text-blue-950"><strong className="block text-sm tracking-wide text-blue-700">本步目标</strong><span className="mt-1 block leading-6">{guidance.objective}</span></div>
+            <div className="tutor-context"><span>当前实训环节</span><strong>E04 · {guidance.title.split('：')[0]}</strong></div>
+          </aside>
+        )}
+      </section>
+
+      <nav className="bottom-bar" aria-label="E04 实训功能栏">
+        <button type="button" className={showWorkOrder ? 'tool-active cursor-pointer' : 'cursor-pointer'} onClick={() => setShowWorkOrder((open) => !open)}><ClipboardList size={19} /> 工单</button>
+        <button type="button" className={hintRequested ? 'tool-active cursor-pointer' : 'cursor-pointer'} onClick={() => setHintRequested(true)}><HelpCircle size={19} /> 请师傅提示</button>
+        <span className="toolbar-spacer" /><span className="unlock-hint">实训要点：按电子电路测试规范完成本关 5 阶段任务 · 当前第 {Object.keys(stepEvidences).length + 1} / 5 阶段</span>
+        <button type="button" onClick={handleRestart} className="cursor-pointer"><RotateCcw size={18} /> 重新开始</button>
+      </nav>
 
       {/* Floating Work Order Modal */}
       {showWorkOrder && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="font-bold text-slate-100 flex items-center gap-2">
-                <ClipboardList className="w-5 h-5 text-blue-400" />
-                实训任务书 · E04 三极管放大与开关
+        <div className="fixed inset-0 z-50 bg-slate-950/35 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                <ClipboardList className="w-5 h-5 text-blue-600" />
+                {getLevelDisplayName('E04')} · 实训工单
               </h3>
-              <button
-                onClick={() => setShowWorkOrder(false)}
-                className="text-slate-400 hover:text-white text-sm"
+              <button aria-label="关闭工单" onClick={() => setShowWorkOrder(false)}
+                className="text-slate-600 hover:text-white text-sm"
               >
                 ✕
               </button>
             </div>
-            <div className="space-y-3 text-sm text-slate-300">
-              <div className="p-3 bg-slate-800/60 rounded-xl">
-                <span className="font-bold text-blue-400">教材目标:</span> 学习任务 16 三极管及其应用的分析 (8页)
+            <div className="space-y-3 text-sm text-slate-700">
+              <div className="p-3 bg-blue-50 rounded-xl">
+                <span className="font-bold text-blue-700">学习依据：</span>查看页头“教材与考纲”
               </div>
               <div className="space-y-1">
-                <span className="font-bold text-slate-200">当前实训指引:</span>
-                <p className="text-slate-400">{guidance.objective}</p>
+                <span className="font-bold text-slate-800">当前实训指引:</span>
+                <p className="text-slate-600">{guidance.objective}</p>
               </div>
               <div className="space-y-1">
-                <span className="font-bold text-slate-200">规范操作动作:</span>
-                <ul className="list-disc list-inside space-y-1 text-slate-400">
+                <span className="font-bold text-slate-800">规范操作动作:</span>
+                <ul className="list-disc list-inside space-y-1 text-slate-600">
                   {guidance.actions.map((act, i) => (
                     <li key={i}>{act}</li>
                   ))}
                 </ul>
               </div>
             </div>
-            <button
-              onClick={() => setShowWorkOrder(false)}
+            <button aria-label="关闭工单" onClick={() => setShowWorkOrder(false)}
               className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold"
             >
               已查阅，继续实训

@@ -1,4 +1,7 @@
 'use client';
+import { getLevelDisplayName, getNextLevelLabel } from '@/src/courses/curriculum';
+
+import { LevelHeading } from '@/src/components/LevelHeading';
 
 import React, { useState } from 'react';
 import {
@@ -175,10 +178,7 @@ export function F01Experience({ onReturnLobby }: F01ExperienceProps) {
           <span className="brand-mark safety-mark bg-amber-600 text-white">
             <ClipboardCheck size={22} />
           </span>
-          <div>
-            <p className="eyebrow">篇章六：完成综合交付 · 阶段 {stageIndex + 1}/5</p>
-            <h1>F01 实训中心交付挑战——智能检修灯控制总成终检</h1>
-          </div>
+          <LevelHeading levelId="F01"><p className="level-heading-subtitle">阶段 {stageIndex + 1}/5</p></LevelHeading>
         </div>
         <div className="trainee-badge">
           <GraduationCap size={18} />
@@ -198,17 +198,17 @@ export function F01Experience({ onReturnLobby }: F01ExperienceProps) {
           <div className="scene-heading">
             <span className="status-dot bg-amber-500" />
             <span>综合交付工位 · 智能检修灯控制总成</span>
-            <span className="scene-meta">游戏内终结考核</span>
+            <span className="scene-meta">智能检修灯综合工单考核</span>
           </div>
           <div className="scene-content">
             {isCompleted ? (
               <AbilityReport
                 levelId="F01"
-                domainLabel="篇章六 · 综合交付能力"
-                title="智能检修灯控制总成终检能力报告"
+                domainLabel="篇章六 · 智能检修灯综合工单交付"
+                title="F01 智能检修灯综合实训 · 能力报告"
                 assessment={assessmentResult ?? undefined}
                 metrics={completionMetrics ?? undefined}
-                nextTask="课程地图 · 已完成全部28项任务"
+                nextTask={getNextLevelLabel('F01')}
                 onRestart={handleRestart}
                 onReturn={onReturnLobby}
               />
@@ -227,7 +227,7 @@ export function F01Experience({ onReturnLobby }: F01ExperienceProps) {
             )}
           </div>
           <div className="objective-strip">
-            <span>当前任务</span>
+            <span>当前操作</span>
             <strong>{guidance.title}</strong>
             <span className="feedback">{feedback?.message || guidance.objective}</span>
           </div>
@@ -276,11 +276,11 @@ export function F01Experience({ onReturnLobby }: F01ExperienceProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="max-w-lg space-y-4 rounded-2xl border border-slate-700 bg-slate-900 p-6 text-slate-100">
             <div className="flex items-center justify-between border-b border-slate-700 pb-3">
-              <h3 className="text-base font-bold text-amber-400">智能检修灯控制总成终检工单</h3>
+              <h3 className="text-base font-bold text-amber-400">{getLevelDisplayName('F01')} · 实训工单</h3>
               <button
                 type="button"
                 onClick={() => setShowWorkOrder(false)}
-                className="text-slate-400 hover:text-white"
+                className="text-slate-600 hover:text-white"
               >
                 ✕
               </button>
@@ -289,6 +289,9 @@ export function F01Experience({ onReturnLobby }: F01ExperienceProps) {
             <p className="text-sm">故障现象：{F01_FAULT_COPY[model.seed].workOrderSymptom}</p>
             <p className="text-sm text-slate-400">
               本实训模型参数：低压电源12V（内阻1Ω），检修灯负载5Ω，控制分压5V（上支路1kΩ，下支路1kΩ），逻辑阈值2.0V。
+            </p>
+            <p className="rounded-lg bg-amber-950/60 border border-amber-800/60 p-2.5 text-sm text-amber-300">
+              工单提示：本工单仅针对本样本综合实训任务进行考核验收，不推断全课程、全部考纲或官方考试通过。
             </p>
             <button
               type="button"

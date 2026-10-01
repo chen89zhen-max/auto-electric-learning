@@ -37,6 +37,7 @@ interface A02VoltageSceneProps {
   currentStep: A02Step;
   onStepComplete: (step: A02Step, evidence: Record<string, unknown>) => void;
   onAdvanceStep: () => void;
+  onProcessEvent?: (event: 'wrongAttempts' | 'meterGuardBlocks') => void;
 }
 
 type ProbeColor = 'red' | 'black';
@@ -76,19 +77,20 @@ const PROBE_DOCKS: Record<ProbeColor, Point> = {
   black: { x: 474, y: 254 },
 };
 
-const RECORD_LABELS: Record<A02MeasurementKey, string> = {
-  batteryForward: '正向电压约 12V',
-  batteryReverse: '反向电压约 −12V',
-  switchOpen: '断开的开关两端约 12V',
-  lampClosed: '工作中的检修灯两端约 12V',
-  faultLamp: '灯端工作电压约 10.91V',
-  supplyDrop: '供电侧接点压降约 0.91V',
-  groundDrop: '搭铁侧接点压降约 0.18V',
+const RECORD_LABELS: Record<A02MeasurementKey, { pending: string; completed: string }> = {
+  batteryForward: { pending: '蓄电池正向电压（待测）', completed: '蓄电池正向电压：实测约 12V' },
+  batteryReverse: { pending: '蓄电池反向电压（待测）', completed: '蓄电池反向电压：实测约 −12V' },
+  switchOpen: { pending: '开关断开：输入端—输出端（待测）', completed: '开关断开：输入端—输出端实测约 12V' },
+  switchClosed: { pending: '开关闭合：输入端—输出端（待测）', completed: '开关闭合：输入端—输出端实测约 0V' },
+  lampClosed: { pending: '开关闭合并移动表笔：检修灯正极—负极（待测）', completed: '开关闭合：检修灯正极—负极实测约 12V' },
+  faultLamp: { pending: '故障状态下检修灯两端电压（待测）', completed: '灯端工作电压：实测约 10.91V' },
+  supplyDrop: { pending: '供电侧接点压降（待测）', completed: '供电侧接点压降：实测约 0.91V' },
+  groundDrop: { pending: '搭铁侧接点压降（待测）', completed: '搭铁侧接点压降：实测约 0.18V' },
 };
 
 const STEP_RECORDS: Record<A02Step, readonly A02MeasurementKey[]> = {
   BATTERY_PROBING: ['batteryForward', 'batteryReverse'],
-  SWITCH_AND_LOAD: ['switchOpen', 'lampClosed'],
+  SWITCH_AND_LOAD: ['switchOpen', 'switchClosed', 'lampClosed'],
   CONTACT_RESISTANCE_DROP: ['faultLamp', 'supplyDrop', 'groundDrop'],
   TRANSFER_DIAGNOSIS: [],
 };
@@ -108,6 +110,7 @@ export function A02VoltageScene({
   currentStep,
   onStepComplete,
   onAdvanceStep,
+  onProcessEvent,
 }: A02VoltageSceneProps) {
   const [dial, setDial] = useState<MultimeterDialMode>('OFF');
   const [redJack, setRedJack] = useState<'V_OHM' | 'A_10A'>('V_OHM');
@@ -269,6 +272,7 @@ export function A02VoltageScene({
       measuredValue: dmmResult.measuredValue,
     });
     if (!result.recordedKey) {
+      onProcessEvent?.(dial !== 'DC_V' || redJack !== 'V_OHM' ? 'meterGuardBlocks' : 'wrongAttempts');
       if (dial !== 'DC_V')
         setRecordFeedback('未记录：请先把功能旋钮拨到“直流电压”。');
       else if (redJack !== 'V_OHM')
@@ -282,7 +286,7 @@ export function A02VoltageScene({
       return;
     }
     setProgress(result.progress);
-    setRecordFeedback(`已记录：${RECORD_LABELS[result.recordedKey]}。`);
+    setRecordFeedback(`已记录：${RECORD_LABELS[result.recordedKey].completed}。`);
     if (result.stepComplete && !completedStepsRef.current.has(currentStep)) {
       completedStepsRef.current.add(currentStep);
       onStepComplete(currentStep, {
@@ -312,6 +316,7 @@ export function A02VoltageScene({
         });
       }
     } else {
+      onProcessEvent?.('wrongAttempts');
       setRecordFeedback(
         '证据不支持直接更换部件。请比较供电侧与搭铁侧的压降大小。',
       );
@@ -937,7 +942,9 @@ export function A02VoltageScene({
                       >
                         {progress[key] && <Check size={16} />}
                       </span>
-                      {RECORD_LABELS[key]}
+                      {progress[key]
+                        ? RECORD_LABELS[key].completed
+                        : RECORD_LABELS[key].pending}
                     </div>
                   ))}
                 </div>

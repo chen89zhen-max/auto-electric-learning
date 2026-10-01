@@ -4,11 +4,11 @@ import './training-visuals.css';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://neev-technician-onboarding.zippy-hinny-9086.chatgpt.site'),
-  title: '新能源汽车电工电子｜安全用电实训',
-  description: '新能源汽车电工电子 AI 游戏化学习系统 Sprint 0—1',
+  title: '汽车电工电子闯关实训',
+  description: '汽车电工电子基础：课程闯关、考纲关卡索引与低压故障练习工单',
   openGraph: {
-    title: '新能源汽车电工电子｜安全用电实训',
-    description: '新能源汽车电工电子 AI 游戏化学习系统 Sprint 0—1',
+    title: '汽车电工电子闯关实训',
+    description: '汽车电工电子基础：课程闯关、考纲关卡索引与低压故障练习工单',
     type: 'website',
   },
 };

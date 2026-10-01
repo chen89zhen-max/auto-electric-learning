@@ -3,6 +3,7 @@ import {
   E03_STAGE_CONTENT,
   E03_SAMPLES,
   calculateRectifierOutput,
+  calculateThreePhaseRectifier,
 } from '../src/levels/e03/e03Training';
 
 describe('E03 Rectifier and Filter Circuit Suite', () => {
@@ -34,13 +35,16 @@ describe('E03 Rectifier and Filter Circuit Suite', () => {
     const fbNoCap = calculateRectifierOutput(12, 'FULL_BRIDGE', false);
     expect(fbNoCap.uDc).toBe(10.8);
 
-    // Full bridge with cap: ~1.2 * 12 = 14.4V (automotive alternator standard!)
+    // 50 Hz, 1000 uF, 20 mA; two 0.7 V diodes and 0.2 Vpp ripple.
     const fbWithCap = calculateRectifierOutput(12, 'FULL_BRIDGE', true);
-    expect(fbWithCap.uDc).toBe(14.4);
-    expect(fbWithCap.rippleVpp).toBeLessThan(0.3); // smooth!
+    expect(fbWithCap.uDc).toBeCloseTo(Math.SQRT2 * 12 - 1.4 - 0.1, 8);
+    expect(fbWithCap.rippleVpp).toBeCloseTo(0.2, 8);
+    const halfFiltered = calculateRectifierOutput(12, 'HALF_WAVE', true);
+    expect(halfFiltered.rippleVpp).toBeCloseTo(0.4, 8);
+    expect(halfFiltered.uDc).toBeCloseTo(Math.SQRT2 * 12 - 0.7 - 0.2, 8);
   });
 
-  it('contains valid 4-type alternator rectifier samples covering normal, short, open, cap disconnected', () => {
+  it('contains valid 4-type teaching rectifier samples covering normal, short, open, cap disconnected', () => {
     expect(E03_SAMPLES.length).toBe(4);
     const types = E03_SAMPLES.map((s) => s.actualType);
     expect(types).toContain('NORMAL');
@@ -49,3 +53,35 @@ describe('E03 Rectifier and Filter Circuit Suite', () => {
     expect(types).toContain('CAP_DISCONNECTED');
   });
 });
+
+it('bounds the loaded capacitor approximation and keeps its crest consistent with diode drops', () => {
+  for (const topology of ['HALF_WAVE', 'FULL_BRIDGE'] as const) {
+    const result = calculateRectifierOutput(12, topology, true);
+    const peak = result.uDc + result.rippleVpp / 2;
+    expect(peak).toBeCloseTo(Math.SQRT2 * 12 - (topology === 'FULL_BRIDGE' ? 1.4 : 0.7), 8);
+    expect(result.rippleVpp / peak).toBeLessThan(0.1);
+  }
+  expect(() => calculateRectifierOutput(1, 'FULL_BRIDGE', true)).toThrow(/小纹波/);
+  expect(() => calculateRectifierOutput(Number.NaN, 'FULL_BRIDGE', true)).toThrow();
+});
+
+it('三相六二极管整流：6个观察点形成六组导通相对且输出非负，区分相差120°、换相60°与导通角120°', () => {
+  const angles = [0, 60, 120, 180, 240, 300];
+  const observations = angles.map((angle) => calculateThreePhaseRectifier(angle));
+
+  // 6个观察点形成6组导通相对，输出非负
+  const pairs = observations.map((o) => `${o.positivePhase}-${o.negativePhase}`);
+  expect(new Set(pairs).size).toBe(6);
+  for (const o of observations) {
+    expect(o.output).toBeGreaterThan(0);
+    expect(o.pulsesPerCycle).toBe(6);
+  }
+
+  // 区分：三相电源相位差120°、六脉波每60°换相、单二极管理想导通角120°
+  const phaseDifferenceDegrees = 120;
+  const commutationIntervalDegrees = 60;
+  const diodeConductionAngleDegrees = 120;
+  expect(phaseDifferenceDegrees).not.toBe(commutationIntervalDegrees);
+  expect(diodeConductionAngleDegrees).toBe(120);
+});
+

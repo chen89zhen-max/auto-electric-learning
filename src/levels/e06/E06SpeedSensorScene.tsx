@@ -36,6 +36,7 @@ export function E06SpeedSensorScene({
   hintRequested = false,
 }: E06SpeedSensorSceneProps) {
   const assessment = useLevelAssessment('E06');
+  const requestAssessmentHint = assessment.requestHint;
   // Multimeter knob: 'OFF' | 'OHM_2K' | 'DCV_20' | 'OSCILLOSCOPE'
   const [meterKnob, setMeterKnob] = useState<'OFF' | 'OHM_2K' | 'DCV_20' | 'OSCILLOSCOPE'>('OFF');
   const [meterWarning, setMeterWarning] = useState<string | null>(null);
@@ -78,9 +79,9 @@ export function E06SpeedSensorScene({
         BLIND_SPEED_SENSOR_FAULT_DIAGNOSIS: 'blind_test',
         ENGINEERING_REPAIR_AND_DELIVERY: 'transfer',
       };
-      assessment.requestHint(stageMap[currentStep]);
+      requestAssessmentHint(stageMap[currentStep]);
     }
-  }, [hintRequested, currentStep, assessment]);
+  }, [hintRequested, currentStep, requestAssessmentHint]);
 
   const requireMeterKnob = (required: ('OHM_2K' | 'DCV_20' | 'OSCILLOSCOPE') | ('OHM_2K' | 'DCV_20' | 'OSCILLOSCOPE')[]): boolean => {
     const stageMap: Record<E06Step, 'cognition' | 'standard' | 'calculation' | 'blind_test' | 'transfer'> = {
@@ -111,9 +112,9 @@ export function E06SpeedSensorScene({
   const activeSample = E06_SAMPLES[s4SampleIndex];
 
   return (
-    <div className="flex flex-col gap-5 p-4 md:p-6 bg-slate-900/90 border border-slate-700/80 rounded-2xl text-slate-100 shadow-2xl backdrop-blur-md">
+    <div className="flex flex-col gap-5 p-4 md:p-6 bg-slate-50 border border-slate-200 rounded-2xl text-slate-800 shadow-sm">
       {/* 顶部数字万用表 / 汽车示波器状态栏 */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-slate-800/80 rounded-xl border border-slate-700">
+      <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-white rounded-xl border border-slate-200 shadow-xs">
         <div className="flex items-center gap-3">
           <div className="p-2.5 bg-blue-500/20 text-blue-400 rounded-lg border border-blue-500/30">
             <Gauge className="w-6 h-6" />
@@ -249,13 +250,13 @@ export function E06SpeedSensorScene({
             </div>
 
             {/* 右侧零剧透知识验证 */}
-            <div className="lg:col-span-4 p-5 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div className="lg:col-span-4 p-5 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
               <div>
-                <h4 className="text-sm font-bold text-slate-200 mb-2 flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   认知判定与理论验证
                 </h4>
-                <p className="text-sm text-slate-300 mb-4">
+                <p className="text-sm text-slate-600 mb-4">
                   关于磁电式与霍尔式转速传感器的核心差异，下列哪项描述最为准确？
                 </p>
 
@@ -275,7 +276,7 @@ export function E06SpeedSensorScene({
                       className={`w-full text-left p-3 rounded-xl border text-sm transition-all cursor-pointer ${
                         s1Choice === opt.id
                           ? 'border-blue-500 bg-blue-500/10 text-white font-bold'
-                          : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700'
+                          : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-blue-300'
                       }`}
                     >
                       <span className="font-mono font-bold mr-2 text-blue-400">{opt.id}.</span>
@@ -285,7 +286,7 @@ export function E06SpeedSensorScene({
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-slate-800">
+              <div className="mt-4 pt-4 border-t border-slate-200">
                 {!s1Submitted ? (
                   <Button
                     disabled={!s1Choice}
@@ -377,13 +378,13 @@ export function E06SpeedSensorScene({
             </div>
 
             {/* 右侧零剧透判定 */}
-            <div className="lg:col-span-4 p-5 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div className="lg:col-span-4 p-5 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
               <div>
-                <h4 className="text-sm font-bold text-slate-200 mb-2 flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
                   <Zap className="w-4 h-4 text-cyan-400" />
                   60-2 缺齿波形功能识别
                 </h4>
-                <p className="text-sm text-slate-300 mb-4">
+                <p className="text-sm text-slate-600 mb-4">
                   在示波器上观察到的 60-2 齿靶轮波形中，连续两个齿缺失产生的一段宽平脉冲具有什么工程作用？
                 </p>
 
@@ -403,7 +404,7 @@ export function E06SpeedSensorScene({
                       className={`w-full text-left p-3 rounded-xl border text-sm transition-all cursor-pointer ${
                         s2Choice === opt.id
                           ? 'border-blue-500 bg-blue-500/10 text-white font-bold'
-                          : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700'
+                          : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-blue-300'
                       }`}
                     >
                       <span className="font-mono font-bold mr-2 text-blue-400">{opt.id}.</span>
@@ -413,7 +414,7 @@ export function E06SpeedSensorScene({
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-slate-800">
+              <div className="mt-4 pt-4 border-t border-slate-200">
                 {!s2Submitted ? (
                   <Button
                     disabled={!s2Choice}
@@ -536,13 +537,13 @@ export function E06SpeedSensorScene({
             </div>
 
             {/* 右侧定量计算 */}
-            <div className="lg:col-span-4 p-5 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div className="lg:col-span-4 p-5 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
               <div>
-                <h4 className="text-sm font-bold text-slate-200 mb-2 flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   工程计算工单
                 </h4>
-                <p className="text-sm text-slate-300 mb-4">
+                <p className="text-sm text-slate-600 mb-4">
                   汽车发动机转速为 3000 rpm，曲轴齿轮有效齿数 Z = 58 齿，此时转速传感器输出的脉冲信号频率应是多少？
                 </p>
 
@@ -562,7 +563,7 @@ export function E06SpeedSensorScene({
                       className={`w-full text-left p-3 rounded-xl border text-sm transition-all cursor-pointer ${
                         s3Choice === opt.id
                           ? 'border-blue-500 bg-blue-500/10 text-white font-bold'
-                          : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700'
+                          : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-blue-300'
                       }`}
                     >
                       <span className="font-mono font-bold mr-2 text-blue-400">{opt.id}.</span>
@@ -572,7 +573,7 @@ export function E06SpeedSensorScene({
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-slate-800">
+              <div className="mt-4 pt-4 border-t border-slate-200">
                 {!s3Submitted ? (
                   <Button
                     disabled={!s3Choice}
@@ -682,13 +683,13 @@ export function E06SpeedSensorScene({
             </div>
 
             {/* 右侧工单填报 */}
-            <div className="lg:col-span-5 p-5 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div className="lg:col-span-5 p-5 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
               <div>
-                <h4 className="text-sm font-bold text-slate-200 mb-2 flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   传感器故障诊断工单
                 </h4>
-                <p className="text-sm text-slate-300 mb-3">为 4 组未知样件确诊内部故障：</p>
+                <p className="text-sm text-slate-600 mb-3">为 4 组未知样件确诊内部故障：</p>
 
                 <div className="space-y-3">
                   {E06_SAMPLES.map((smp) => (
@@ -711,7 +712,7 @@ export function E06SpeedSensorScene({
                             className={`p-2 rounded-lg border text-center text-sm font-medium transition-all cursor-pointer ${
                               s4Diagnoses[smp.id] === opt.val
                                 ? 'border-blue-500 bg-blue-500/20 text-white font-bold'
-                                : 'border-slate-800 bg-slate-950/50 text-slate-400 hover:border-slate-700'
+                                : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-blue-300'
                             }`}
                           >
                             {opt.label}
@@ -723,7 +724,7 @@ export function E06SpeedSensorScene({
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-slate-800">
+              <div className="mt-4 pt-4 border-t border-slate-200">
                 {!s4Submitted ? (
                   <Button
                     disabled={Object.keys(s4Diagnoses).length < 4}
@@ -885,13 +886,13 @@ export function E06SpeedSensorScene({
             </div>
 
             {/* 右侧交付签署 */}
-            <div className="lg:col-span-5 p-5 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div className="lg:col-span-5 p-5 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
               <div>
-                <h4 className="text-sm font-bold text-slate-200 mb-2 flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                   工程交付验收单
                 </h4>
-                <p className="text-sm text-slate-300 mb-3">核验传感器系统修复指标：</p>
+                <p className="text-sm text-slate-600 mb-3">核验传感器系统修复指标：</p>
 
                 <div className="space-y-2 text-sm">
                   <div className="p-2.5 bg-slate-900 rounded-lg border border-slate-800 flex justify-between">
@@ -927,7 +928,7 @@ export function E06SpeedSensorScene({
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-slate-800">
+              <div className="mt-4 pt-4 border-t border-slate-200">
                 {!s5Submitted ? (
                   <Button
                     disabled={!s5Signed || !s5TestDrove}

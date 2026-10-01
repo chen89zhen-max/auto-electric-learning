@@ -37,7 +37,7 @@ describe('全关卡通关报告标准化 (AbilityReport) 测试', () => {
     );
 
     expect(html).toContain('技能解锁 · 安全作业Ⅰ');
-    expect(html).toContain('安全作业能力报告');
+    expect(html).toContain('O01 安全作业与应急判断 · 能力报告');
     expect(html).toContain('环境观察');
     expect(html).toContain('危险识别');
     expect(html).toContain('危险源控制');
@@ -49,7 +49,7 @@ describe('全关卡通关报告标准化 (AbilityReport) 测试', () => {
     expect(html).toContain('提示使用');
     expect(html).toContain('火情处置');
     expect(html).toContain('本关用时');
-    expect(html).toContain('2 分钟');
+    expect(html).toContain('1 分 35 秒');
     expect(html).toContain('重新开始本关');
     expect(html).toContain('返回任务大厅');
   });
@@ -85,7 +85,7 @@ describe('全关卡通关报告标准化 (AbilityReport) 测试', () => {
     );
 
     expect(html).toContain('技能领域 · 电压分析与测量');
-    expect(html).toContain('电压分析与测量能力报告');
+    expect(html).toContain('A02 给电路做体检 · 能力报告');
     expect(html).toContain('仪表准备与挡位选择');
     expect(html).toContain('表笔极性与符号识别');
     expect(html).toContain('两点测压与通路验证');
@@ -151,7 +151,7 @@ describe('全关卡通关报告标准化 (AbilityReport) 测试', () => {
     );
 
     expect(html).toContain('技能领域 · 车间入职认知');
-    expect(html).toContain('见习学员入职培训能力报告');
+    expect(html).toContain('O00 走进实训中心 · 能力报告');
     expect(html).toContain('工作任务认知');
     expect(html).toContain('工位交接流程');
     expect(html).toContain('重新开始本关');

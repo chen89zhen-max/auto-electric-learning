@@ -80,6 +80,7 @@ export function D04InductanceScene({
   hintRequested,
 }: D04InductanceSceneProps) {
   const assessment = useLevelAssessment('D04');
+  const requestAssessmentHint = assessment.requestHint;
 
   useEffect(() => {
     if (hintRequested) {
@@ -90,9 +91,9 @@ export function D04InductanceScene({
         BLIND_IGNITION_FAULT_ISOLATION: 'blind_test',
         ENGINEERING_REPAIR_AND_SPARK_ACCEPTANCE: 'transfer',
       };
-      assessment.requestHint(stageMap[currentStep]);
+      requestAssessmentHint(stageMap[currentStep]);
     }
-  }, [hintRequested, currentStep, assessment]);
+  }, [hintRequested, currentStep, requestAssessmentHint]);
 
   // Multimeter Knob: 'OFF' | 'DCV_20' | 'OHM_200' | 'OHM_20K'
   const [meterKnob, setMeterKnob] = useState<'OFF' | 'DCV_20' | 'OHM_200' | 'OHM_20K'>('OFF');
@@ -156,7 +157,7 @@ export function D04InductanceScene({
   };
 
   return (
-    <div className="flex flex-col flex-1 min-h-[580px] w-full bg-slate-900 text-white rounded-xl p-4 lg:p-6 shadow-2xl border border-slate-800 space-y-6">
+    <div className="d04-training-scene flex flex-col flex-1 min-h-[580px] w-full bg-slate-50 text-slate-800 rounded-xl p-4 lg:p-6 shadow-sm border border-slate-200 space-y-6">
       {/* Warning Toast */}
       {meterWarning && (
         <div className="p-3 bg-amber-500/20 border border-amber-500/50 rounded-lg text-amber-200 text-sm flex items-center justify-between">
@@ -660,11 +661,11 @@ export function D04InductanceScene({
           </div>
 
           {/* Form & Assessment Panel (Zero-spoiler!) */}
-          <div className="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
+          <div className="d04-assessment flex-1 bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col justify-between">
             {/* Step 1 Question */}
             {currentStep === 'SELF_INDUCTANCE_AND_TRANSIENT_SPARK' && (
               <div className="space-y-3">
-                <div className="text-sm font-semibold text-orange-300">
+                <div className="text-sm font-semibold text-orange-700">
                   【步骤1反峰机理】为什么 12V 直流回路在断开开关瞬间能产生几百伏电弧火花？
                 </div>
                 <div className="space-y-2">
@@ -675,7 +676,7 @@ export function D04InductanceScene({
                   ].map((opt) => {
                     const isSelected = s1Choice === opt.id;
                     const isCorrect = opt.id === 'A';
-                    let borderClass = 'border-slate-800 bg-slate-900/60 hover:border-slate-700';
+                    let borderClass = 'border-slate-200 bg-slate-50 text-slate-700 hover:border-orange-300';
                     if (s1Submitted) {
                       if (isSelected && isCorrect) borderClass = 'border-emerald-500 bg-emerald-950/40 text-emerald-200';
                       else if (isSelected && !isCorrect) borderClass = 'border-rose-500 bg-rose-950/40 text-rose-200';
@@ -745,7 +746,7 @@ export function D04InductanceScene({
             {/* Step 2 Question */}
             {currentStep === 'FREEWHEELING_DIODE_PROTECTION' && (
               <div className="space-y-3">
-                <div className="text-sm font-semibold text-orange-300">
+                <div className="text-sm font-semibold text-orange-700">
                   【步骤2续流二极管作用】在线圈两端反向并联续流二极管后，火花为何彻底消失？
                 </div>
                 <div className="space-y-2">
@@ -756,7 +757,7 @@ export function D04InductanceScene({
                   ].map((opt) => {
                     const isSelected = s2Choice === opt.id;
                     const isCorrect = opt.id === 'A';
-                    let borderClass = 'border-slate-800 bg-slate-900/60 hover:border-slate-700';
+                    let borderClass = 'border-slate-200 bg-slate-50 text-slate-700 hover:border-orange-300';
                     if (s2Submitted) {
                       if (isSelected && isCorrect) borderClass = 'border-emerald-500 bg-emerald-950/40 text-emerald-200';
                       else if (isSelected && !isCorrect) borderClass = 'border-rose-500 bg-rose-950/40 text-rose-200';
@@ -826,7 +827,7 @@ export function D04InductanceScene({
             {/* Step 3 Question */}
             {currentStep === 'MUTUAL_INDUCTANCE_IGNITION_COIL' && (
               <div className="space-y-3">
-                <div className="text-sm font-semibold text-orange-300">
+                <div className="text-sm font-semibold text-orange-700">
                   【步骤3互感升压机理】点火线圈次级产生 20kV 超高压的核心关键物理动作是？
                 </div>
                 <div className="space-y-2">
@@ -837,7 +838,7 @@ export function D04InductanceScene({
                   ].map((opt) => {
                     const isSelected = s3Choice === opt.id;
                     const isCorrect = opt.id === 'A';
-                    let borderClass = 'border-slate-800 bg-slate-900/60 hover:border-slate-700';
+                    let borderClass = 'border-slate-200 bg-slate-50 text-slate-700 hover:border-orange-300';
                     if (s3Submitted) {
                       if (isSelected && isCorrect) borderClass = 'border-emerald-500 bg-emerald-950/40 text-emerald-200';
                       else if (isSelected && !isCorrect) borderClass = 'border-rose-500 bg-rose-950/40 text-rose-200';
@@ -911,7 +912,7 @@ export function D04InductanceScene({
                   <div className="font-bold text-orange-300">{activeBlind.vehicleName}</div>
                   <div className="text-slate-300 mt-0.5">{activeBlind.symptom}</div>
                 </div>
-                <div className="text-sm font-semibold text-orange-300">
+                <div className="text-sm font-semibold text-orange-700">
                   结合万用表测得的数据，判定点火系统故障根因：
                 </div>
                 <div className="space-y-2">
@@ -922,7 +923,7 @@ export function D04InductanceScene({
                   ].map((opt) => {
                     const isSelected = s4Choice === opt.id;
                     const isCorrect = opt.id === activeBlind.faultType;
-                    let borderClass = 'border-slate-800 bg-slate-900/60 hover:border-slate-700';
+                    let borderClass = 'border-slate-200 bg-slate-50 text-slate-700 hover:border-orange-300';
                     if (s4Submitted) {
                       if (isSelected && isCorrect) borderClass = 'border-emerald-500 bg-emerald-950/40 text-emerald-200';
                       else if (isSelected && !isCorrect) borderClass = 'border-rose-500 bg-rose-950/40 text-rose-200';
@@ -1002,7 +1003,7 @@ export function D04InductanceScene({
             {/* Step 5 Question */}
             {currentStep === 'ENGINEERING_REPAIR_AND_SPARK_ACCEPTANCE' && (
               <div className="space-y-3">
-                <div className="text-sm font-semibold text-orange-300">
+                <div className="text-sm font-semibold text-orange-700">
                   【步骤5交付验收】换新点火线圈与火花塞间隙校准后，实车复测：
                 </div>
                 <div className="p-3 bg-slate-900 border border-slate-800 rounded-lg space-y-2 text-sm">

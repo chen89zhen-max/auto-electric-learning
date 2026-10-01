@@ -6,6 +6,8 @@ import { logoutUser, useAuth } from '@/src/stores/authStore';
 import { ClassOverview } from './ClassOverview';
 import { StudentEvidence } from './StudentEvidence';
 import type { TeacherClassItem, TeacherStudentItem } from './teacherTypes';
+import { CANONICAL_COURSE_REGISTRY, CHAPTER_LIST } from '@/src/courses/registry';
+import { getLevelCurriculumSummary } from '@/src/courses/curriculum';
 
 export function TeacherDashboard() {
   const { user } = useAuth();
@@ -61,10 +63,47 @@ export function TeacherDashboard() {
 }
 
 function ReadOnlyCoursePreview() {
-  const levels = [
-    ['Sprint 0', '维修中心第一天——见习技师入职训练'],
-    ['Sprint 1', '实训车间突发事故——安全用电'],
-    ['Sprint 2', '点亮第一盏检修灯'],
-  ];
-  return <section className="rounded-xl border border-slate-200 bg-white p-5"><p className="text-xs font-bold text-amber-700">只读课程预览 · 不产生学习记录</p><h2 className="mt-1 text-xl font-black">当前已开发课程结构</h2><div className="mt-4 grid gap-3 md:grid-cols-3">{levels.map(([id, title]) => <article key={id} className="rounded-xl border border-slate-200 bg-slate-50 p-4"><span className="text-xs font-bold text-amber-700">{id}</span><h3 className="mt-1 font-bold">{title}</h3><p className="mt-2 text-xs text-slate-500">预览上下文仅展示课程结构，不调用学习事件或进度写入接口。</p></article>)}</div></section>;
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-5">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+        <div>
+          <p className="text-xs font-bold text-amber-700">只读课程预览 · 标准关卡结构（共 {CANONICAL_COURSE_REGISTRY.length} 关）</p>
+          <h2 className="mt-1 text-xl font-black">汽车电工电子全套实训关卡</h2>
+        </div>
+        <span className="text-xs text-slate-500">预览模式不调用学习事件或进度写入接口</span>
+      </div>
+      <div className="mt-4 space-y-6">
+        {CHAPTER_LIST.map((chapter) => {
+          const levels = CANONICAL_COURSE_REGISTRY.filter((l) => l.chapterId === chapter.id);
+          return (
+            <div key={chapter.id} className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="rounded-md bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">{chapter.num}</span>
+                <h3 className="font-bold text-slate-800">{chapter.title}</h3>
+                <span className="text-xs text-slate-400">({levels.length} 个关卡)</span>
+              </div>
+              <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+                {levels.map((level) => (
+                  <article key={level.canonicalId} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="rounded-md bg-slate-200 px-1.5 py-0.5 font-mono text-xs font-bold text-slate-700">{level.canonicalId}</span>
+                      <span className="text-[11px] text-slate-500">{level.duration}</span>
+                      {level.curriculumRequirement === 'elective' && (
+                        <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[10px] font-bold text-purple-800">课程拓展 · 重庆2027备考必学</span>
+                      )}
+                    </div>
+                    <h4 className="mt-1.5 font-bold text-sm text-slate-900">{level.title}</h4>
+                    <p className="text-xs text-slate-500 truncate">{level.subtitle}</p>
+                    <div className="mt-2 border-t border-slate-200/60 pt-1.5 text-[11px] text-slate-600">
+                      <span>依据：{getLevelCurriculumSummary(level.canonicalId)}</span>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
 }

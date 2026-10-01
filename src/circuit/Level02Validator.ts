@@ -11,7 +11,7 @@ export interface Level02ValidationResult {
 }
 
 /**
- * Validates whether the circuit meets the strict Sprint 2 Learning Task 2 standard:
+ * Validates whether the circuit meets the strict A01 Learning Task 2 standard:
  * 1. Closed circuit from battery positive to battery negative (or through chassis ground)
  * 2. Must traverse Fuse F1
  * 3. Must traverse Switch S1

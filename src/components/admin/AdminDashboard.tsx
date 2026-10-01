@@ -19,6 +19,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/src/stores/authStore';
 import type { UserProgressData } from '@/src/stores/userProgressStore';
+import { formatDateTimeSeconds, formatDurationMs } from '@/src/lib/formatDuration';
 
 interface ClassItem {
   id: string;
@@ -447,7 +448,7 @@ export function AdminDashboard({ onReturnLobby }: AdminDashboardProps) {
                       <td className="py-3 px-4">
                         {l0?.status === 'completed' ? (
                           <span className="text-emerald-700 font-bold flex items-center gap-1">
-                            <CheckCircle2 size={13} /> {l0.score || 100}分
+                            <CheckCircle2 size={13} /> {l0.recentRecord?.score ?? l0.score ?? 100}分
                           </span>
                         ) : (
                           <span className="text-slate-400">未通关</span>
@@ -456,7 +457,7 @@ export function AdminDashboard({ onReturnLobby }: AdminDashboardProps) {
                       <td className="py-3 px-4">
                         {l1?.status === 'completed' ? (
                           <span className="text-emerald-700 font-bold flex items-center gap-1">
-                            <CheckCircle2 size={13} /> {l1.score || 100}分
+                            <CheckCircle2 size={13} /> {l1.recentRecord?.score ?? l1.score ?? 100}分
                           </span>
                         ) : (
                           <span className="text-slate-400">未通关</span>
@@ -465,7 +466,7 @@ export function AdminDashboard({ onReturnLobby }: AdminDashboardProps) {
                       <td className="py-3 px-4">
                         {l2?.status === 'completed' ? (
                           <span className="text-emerald-700 font-bold flex items-center gap-1">
-                            <CheckCircle2 size={13} /> {l2.score || 100}分
+                            <CheckCircle2 size={13} /> {l2.recentRecord?.score ?? l2.score ?? 100}分
                           </span>
                         ) : (
                           <span className="text-slate-400">未通关</span>
@@ -572,10 +573,14 @@ export function AdminDashboard({ onReturnLobby }: AdminDashboardProps) {
               <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
                 <span className="text-xs text-slate-500 font-bold block">任务0 准入规范</span>
                 <strong className="text-base font-black text-slate-800 mt-1 block">
-                  {activeStudent.progress.levels['LEVEL_00']?.status === 'completed' ? '已完成 (100分)' : '未完成'}
+                  {activeStudent.progress.levels['LEVEL_00']?.status === 'completed'
+                    ? `已完成 (${activeStudent.progress.levels['LEVEL_00'].recentRecord?.score ?? activeStudent.progress.levels['LEVEL_00'].score ?? 100}分)`
+                    : '未完成'}
                 </strong>
                 <small className="text-[10px] text-slate-400 block mt-0.5">
-                  {activeStudent.progress.levels['LEVEL_00']?.completedAt || '待通过'}
+                  {activeStudent.progress.levels['LEVEL_00']?.recentRecord
+                    ? `${formatDateTimeSeconds(activeStudent.progress.levels['LEVEL_00'].recentRecord.completedAt)} · 用时 ${activeStudent.progress.levels['LEVEL_00'].recentRecord.durationMs === undefined ? '历史记录未提供' : formatDurationMs(activeStudent.progress.levels['LEVEL_00'].recentRecord.durationMs)}`
+                    : activeStudent.progress.levels['LEVEL_00']?.completedAt || '待通过'}
                 </small>
               </div>
 
@@ -583,11 +588,13 @@ export function AdminDashboard({ onReturnLobby }: AdminDashboardProps) {
                 <span className="text-xs text-slate-500 font-bold block">任务1 安全用电</span>
                 <strong className="text-base font-black text-slate-800 mt-1 block">
                   {activeStudent.progress.levels['LEVEL_01']?.status === 'completed'
-                    ? `已完成 (${activeStudent.progress.levels['LEVEL_01'].score || 100}分)`
+                    ? `已完成 (${activeStudent.progress.levels['LEVEL_01'].recentRecord?.score ?? activeStudent.progress.levels['LEVEL_01'].score ?? 100}分)`
                     : '未完成'}
                 </strong>
                 <small className="text-[10px] text-slate-400 block mt-0.5">
-                  {activeStudent.progress.levels['LEVEL_01']?.completedAt || '待通过'}
+                  {activeStudent.progress.levels['LEVEL_01']?.recentRecord
+                    ? `${formatDateTimeSeconds(activeStudent.progress.levels['LEVEL_01'].recentRecord.completedAt)} · 用时 ${activeStudent.progress.levels['LEVEL_01'].recentRecord.durationMs === undefined ? '历史记录未提供' : formatDurationMs(activeStudent.progress.levels['LEVEL_01'].recentRecord.durationMs)}`
+                    : activeStudent.progress.levels['LEVEL_01']?.completedAt || '待通过'}
                 </small>
               </div>
 
@@ -595,11 +602,13 @@ export function AdminDashboard({ onReturnLobby }: AdminDashboardProps) {
                 <span className="text-xs text-slate-500 font-bold block">任务2 闭合回路</span>
                 <strong className="text-base font-black text-slate-800 mt-1 block">
                   {activeStudent.progress.levels['LEVEL_02']?.status === 'completed'
-                    ? `已完成 (${activeStudent.progress.levels['LEVEL_02'].score || 100}分)`
+                    ? `已完成 (${activeStudent.progress.levels['LEVEL_02'].recentRecord?.score ?? activeStudent.progress.levels['LEVEL_02'].score ?? 100}分)`
                     : '未完成'}
                 </strong>
                 <small className="text-[10px] text-slate-400 block mt-0.5">
-                  {activeStudent.progress.levels['LEVEL_02']?.completedAt || '待通过'}
+                  {activeStudent.progress.levels['LEVEL_02']?.recentRecord
+                    ? `${formatDateTimeSeconds(activeStudent.progress.levels['LEVEL_02'].recentRecord.completedAt)} · 用时 ${activeStudent.progress.levels['LEVEL_02'].recentRecord.durationMs === undefined ? '历史记录未提供' : formatDurationMs(activeStudent.progress.levels['LEVEL_02'].recentRecord.durationMs)}`
+                    : activeStudent.progress.levels['LEVEL_02']?.completedAt || '待通过'}
                 </small>
               </div>
             </div>

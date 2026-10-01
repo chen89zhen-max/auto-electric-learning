@@ -1,4 +1,9 @@
 'use client';
+import { getLevelDisplayName } from '@/src/courses/curriculum';
+import { getNextLevelLabel } from '@/src/courses/curriculum';
+
+
+import { LevelHeading } from '@/src/components/LevelHeading';
 
 import React, { useState } from 'react';
 import {
@@ -14,6 +19,7 @@ import { AbilityReport } from '@/src/components/AbilityReport';
 import { MasterChenAvatar } from '@/src/components/visuals/MasterChenAvatar';
 import { SpeechControls } from '@/src/components/visuals/SpeechControls';
 import { getStudentDisplayName } from '@/src/stores/authStore';
+import { buildChapterBProcessReport, type ChapterBProcessInput } from '@/src/levels/chapterB/ChapterBExperience';
 import { B03KclKvlScene } from './B03KclKvlScene';
 import { B03_STAGE_CONTENT, type B03Step } from './b03Training';
 
@@ -28,6 +34,7 @@ export function B03Experience({ onReturnLobby }: B03ExperienceProps) {
   const [sceneRevision, setSceneRevision] = useState(0);
   const [showWorkOrder, setShowWorkOrder] = useState(false);
   const [hintRequested, setHintRequested] = useState(false);
+  const [processStages, setProcessStages] = useState<NonNullable<ChapterBProcessInput['stages']>>([]);
 
   const guidance = B03_STAGE_CONTENT[currentStep];
 
@@ -56,14 +63,41 @@ export function B03Experience({ onReturnLobby }: B03ExperienceProps) {
     }
   };
 
+  const recordProcessEvent = (type: 'wrong' | 'unsafe') => {
+    const stageIndex = Object.keys(B03_STAGE_CONTENT).indexOf(currentStep);
+    setProcessStages((current) => {
+      const next = [...current];
+      const stage = next[stageIndex] ?? {};
+      next[stageIndex] = type === 'unsafe'
+        ? { ...stage, unsafeActions: (stage.unsafeActions ?? 0) + 1 }
+        : { ...stage, wrongAttempts: (stage.wrongAttempts ?? 0) + 1 };
+      return next;
+    });
+  };
+
+  const handleHintRequest = () => {
+    setHintRequested(true);
+    const stageIndex = Object.keys(B03_STAGE_CONTENT).indexOf(currentStep);
+    setProcessStages((current) => {
+      const next = [...current];
+      const stage = next[stageIndex] ?? {};
+      if ((stage.hintRequests ?? 0) >= 1) return current;
+      next[stageIndex] = { ...stage, hintRequests: 1 };
+      return next;
+    });
+  };
+
   const handleRestart = () => {
     setIsCompleted(false);
     setCurrentStep('KCL_NODE_CURRENT');
     setStepEvidences({});
     setHintRequested(false);
+    setProcessStages([]);
     setShowWorkOrder(false);
     setSceneRevision((r) => r + 1);
   };
+
+  const processReport = buildChapterBProcessReport('B03', { stages: processStages });
 
   return (
     <main className="app-shell level02-shell b03-shell">
@@ -73,12 +107,7 @@ export function B03Experience({ onReturnLobby }: B03ExperienceProps) {
           <span className="brand-mark safety-mark bg-indigo-600 shadow-indigo-600/20 text-white">
             <Network size={22} />
           </span>
-          <div>
-            <p className="eyebrow text-indigo-700">篇章二：让电路按要求工作 · B03</p>
-            <h1 className="text-slate-800 font-bold">
-              学习任务7：追踪节点与回路——基尔霍夫定律
-            </h1>
-          </div>
+          <LevelHeading levelId="B03" />
         </div>
 
         {/* Trainee Profile & Controls */}
@@ -122,30 +151,18 @@ export function B03Experience({ onReturnLobby }: B03ExperienceProps) {
                 levelId="B03"
                 domainLabel="技能领域 · 基尔霍夫定律与复杂网络"
                 title="基尔霍夫定律与搭铁诊断能力报告"
-                dimensions={[
-                  { id: 'KCL_BALANCE', label: '节点电流平衡与电荷守恒', stars: 5 },
-                  { id: 'KVL_LOOP', label: '回路电位代数和与能量守恒', stars: 5 },
-                  { id: 'REF_GROUND_INVARIANT', label: '参考地平移与两点电压不变性', stars: 5 },
-                  { id: 'BRANCH_SOLVER', label: '多支路未知量盲测推算', stars: 5 },
-                  { id: 'GROUND_FAULT_DIAG', label: '汽车搭铁不良浮地倒灌排查', stars: 5 },
-                ]}
-                summaryItems={[
-                  { label: 'KCL 节点电流', value: '∑I_入 = ∑I_出 严格守恒' },
-                  { label: 'KVL 回路压降', value: '∑U = 0 闭合回路闭环' },
-                  { label: '搭铁参考地规律', value: '各点电位改变但电压差不变' },
-                  { label: '电气盒未知量', value: 'I4=3.0A 流出 / U_AB=7.2V' },
-                  { label: '实车搭铁整改', value: '打磨除锈紧固 恢复单回路' },
-                  { label: '本关用时', value: '1 分钟' },
-                ]}
+                dimensions={processReport.dimensions}
+                score={processReport.score}
+                summaryItems={processReport.summaryItems}
                 metrics={stepEvidences}
                 mode="guided"
-                nextTask="学习任务8《工位用电预算——电能与电功率分析》"
+                nextTask={getNextLevelLabel('B03')}
                 onRestart={handleRestart}
                 onReturn={onReturnLobby}
               />
             </div>
             <div className="objective-strip">
-              <span>当前任务</span>
+              <span>当前操作</span>
               <strong>查看基尔霍夫定律与搭铁诊断能力报告</strong>
               <output className="feedback">实训评测已通过，KCL/KVL分析方法与汽车搭铁不良浮地回流故障排查已熟练掌握。</output>
             </div>
@@ -164,10 +181,11 @@ export function B03Experience({ onReturnLobby }: B03ExperienceProps) {
                   currentStep={currentStep}
                   onStepComplete={handleStepComplete}
                   onAdvanceStep={handleAdvanceStep}
+                  onProcessEvent={recordProcessEvent}
                 />
               </div>
               <div className="objective-strip">
-                <span>当前任务</span>
+                <span>当前操作</span>
                 <strong>{guidance.title}</strong>
                 <output className="feedback">{guidance.objective}</output>
               </div>
@@ -240,13 +258,13 @@ export function B03Experience({ onReturnLobby }: B03ExperienceProps) {
         <button
           type="button"
           className={hintRequested ? 'tool-active cursor-pointer' : 'cursor-pointer'}
-          onClick={() => setHintRequested(true)}
+          onClick={handleHintRequest}
         >
           <HelpCircle size={19} /> 请师傅提示
         </button>
         <span className="toolbar-spacer" />
         <span className="unlock-hint">
-          实训要点：KCL电荷守恒／KVL能量闭环／参考地转移守恒／尾灯搭铁不良排故 · 学习任务4/6（18/16页）
+          实训要点：KCL电荷守恒／KVL能量闭环／参考地转移守恒／尾灯搭铁不良排故 · 教材与考纲见页头
         </span>
         <button type="button" onClick={handleRestart} className="cursor-pointer">
           <RotateCcw size={18} /> 重新开始
@@ -262,9 +280,7 @@ export function B03Experience({ onReturnLobby }: B03ExperienceProps) {
         >
           <section className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
             <p className="eyebrow text-indigo-700">工单编号 · WO-B03-KIRCHHOFF</p>
-            <h2 className="mt-1 text-xl font-black text-slate-900">
-              追踪节点与回路——基尔霍夫定律
-            </h2>
+            <h2 className="mt-1 text-xl font-black text-slate-900">{getLevelDisplayName('B03')} · 实训工单</h2>
             <p className="mt-3 leading-7 text-slate-700">
               在汽车节点回路与搭铁分析实验台上，运用基尔霍夫电流定律 (KCL) 验证电气节点电荷守恒与干支分流，运用基尔霍夫电压定律 (KVL) 验证闭合回路电位代数和为零。通过移动搭铁参考地实验深刻理解电位相对性与两点电压客观不变性，独立推算中央配电盒未知支路电流，并解决实车中最经典的“尾灯搭铁不良浮地倒灌借道串电”故障。
             </p>

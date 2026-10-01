@@ -1,5 +1,7 @@
 'use client';
 
+import { LevelHeading } from '@/src/components/LevelHeading';
+
 import React from 'react';
 import {
   ClipboardList,
@@ -29,7 +31,7 @@ const stageLabels: Record<Level02Stage, string> = {
   CHASSIS_GROUND_CHALLENGE: '实训步骤 5：实车车身搭铁挑战',
   TRANSFER_CHALLENGE: '实训步骤 6：空间拓扑打乱测试',
   REFLECTION: '实训步骤 7：用自己的话说出电路规律',
-  COMPLETE: 'Sprint 2 检修灯任务能力报告',
+  COMPLETE: 'A01 检修灯任务能力报告',
 };
 
 function Level02GameContent({ onReturnLobby }: { onReturnLobby: () => void }) {
@@ -37,16 +39,13 @@ function Level02GameContent({ onReturnLobby }: { onReturnLobby: () => void }) {
 
   return (
     <main className="app-shell level02-shell">
-      {/* Top Header matching Sprint 0 and Sprint 1 */}
+      {/* Top Header */}
       <header className="topbar">
         <div className="brand-lockup">
           <span className="brand-mark safety-mark bg-amber-600 shadow-amber-600/20">
             <Zap size={22} />
           </span>
-          <div>
-            <p className="eyebrow text-amber-700">新能源汽车维修中心 · 第二天</p>
-            <h1 className="text-slate-800 font-bold">学习任务2：点亮第一盏检修灯——电路的认知</h1>
-          </div>
+          <LevelHeading levelId="A01" />
         </div>
 
         <Level02Progress completed={state.completedObjectives} />
@@ -71,7 +70,7 @@ function Level02GameContent({ onReturnLobby }: { onReturnLobby: () => void }) {
         </div>
       </header>
 
-      {/* Main Workspace matching Sprint 0 and Sprint 1 layout */}
+      {/* Main Workspace */}
       <section
         className={state.currentStage === 'COMPLETE' ? 'workspace single' : 'workspace'}
         aria-label="检修灯实训工作区"
@@ -93,7 +92,7 @@ function Level02GameContent({ onReturnLobby }: { onReturnLobby: () => void }) {
           </div>
 
           <div className="objective-strip">
-            <span>当前任务</span>
+            <span>当前操作</span>
             <strong>{stageLabels[state.currentStage]}</strong>
             {state.feedback && (
               <output className="feedback">
@@ -107,7 +106,7 @@ function Level02GameContent({ onReturnLobby }: { onReturnLobby: () => void }) {
         {state.currentStage !== 'COMPLETE' && <Level02Tutor />}
       </section>
 
-      {/* Bottom Functional Toolbar matching Sprint 0 and Sprint 1 */}
+      {/* Bottom Functional Toolbar */}
       <nav className="bottom-bar" aria-label="实训功能栏">
         <button type="button" onClick={() => dispatch({ type: 'OPEN_WORK_ORDER' })}>
           <ClipboardList size={19} />

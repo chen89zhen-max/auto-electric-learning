@@ -18,19 +18,37 @@ export function SpeechControls({ currentText, className = '' }: SpeechControlsPr
   const [prefs, setPrefs] = useState<SpeechPreferences>(getSpeechPreferences());
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [showSettings, setShowSettings] = useState<boolean>(false);
-  const [unsupportedNotice, setUnsupportedNotice] = useState<boolean>(false);
+  const [speechNotice, setSpeechNotice] = useState<'unsupported' | 'no_voice' | null>(null);
+
+  const showSpeechNotice = (reason: 'unsupported' | 'no_voice') => {
+    setSpeechNotice(reason);
+    setTimeout(() => setSpeechNotice(null), 4000);
+  };
 
   useEffect(() => {
     // When text changes, if autoRead is ON, speak automatically
     const currentPrefs = getSpeechPreferences();
+    let removeVoiceListener: (() => void) | undefined;
     if (currentPrefs.autoRead && !currentPrefs.muted && currentText) {
-      const res = speakText(currentText, {
-        isAuto: true,
-        onEnd: () => setIsPlaying(false),
-        onError: () => setIsPlaying(false),
-      });
+      const tryAutoRead = () => speakText(currentText, {
+          isAuto: true,
+          onEnd: () => setIsPlaying(false),
+          onError: () => setIsPlaying(false),
+        });
+      const res = tryAutoRead();
       if (res.ok) {
         queueMicrotask(() => setIsPlaying(true));
+      } else if (res.reason === 'no_voice' && typeof window.speechSynthesis.addEventListener === 'function') {
+        const synthesis = window.speechSynthesis;
+        const onVoicesChanged = () => {
+          const retry = tryAutoRead();
+          if (retry.ok) {
+            synthesis.removeEventListener('voiceschanged', onVoicesChanged);
+            setIsPlaying(true);
+          }
+        };
+        synthesis.addEventListener('voiceschanged', onVoicesChanged);
+        removeVoiceListener = () => synthesis.removeEventListener('voiceschanged', onVoicesChanged);
       }
     } else {
       stopSpeaking();
@@ -38,14 +56,14 @@ export function SpeechControls({ currentText, className = '' }: SpeechControlsPr
     }
 
     return () => {
+      removeVoiceListener?.();
       stopSpeaking();
     };
   }, [currentText]);
 
   const handlePlayOrReplay = () => {
     if (!isSpeechSupported()) {
-      setUnsupportedNotice(true);
-      setTimeout(() => setUnsupportedNotice(false), 4000);
+      showSpeechNotice('unsupported');
       return;
     }
 
@@ -74,9 +92,11 @@ export function SpeechControls({ currentText, className = '' }: SpeechControlsPr
         onError: () => setIsPlaying(false),
       });
       if (retryRes.ok) setIsPlaying(true);
+      else if (retryRes.reason === 'no_voice') showSpeechNotice('no_voice');
     } else if (res.reason === 'unsupported') {
-      setUnsupportedNotice(true);
-      setTimeout(() => setUnsupportedNotice(false), 4000);
+      showSpeechNotice('unsupported');
+    } else if (res.reason === 'no_voice') {
+      showSpeechNotice('no_voice');
     }
   };
 
@@ -173,13 +193,15 @@ export function SpeechControls({ currentText, className = '' }: SpeechControlsPr
       </button>
 
       {/* Non-blocking unsupported toast */}
-      {unsupportedNotice && (
+      {speechNotice && (
         <output
           data-testid="unsupported-speech-toast"
           aria-live="polite"
           className="absolute top-full mt-2 left-0 z-50 bg-slate-900 border border-amber-500/40 text-amber-200 text-xs px-3 py-1.5 rounded-lg shadow-xl whitespace-nowrap block"
         >
-          当前浏览器不支持语音合成，已保持文字指引。
+          {speechNotice === 'no_voice'
+            ? '未找到中文男声，请使用已安装中文男声的浏览器（如 Edge）；文字指引仍可使用。'
+            : '当前浏览器不支持语音合成，已保持文字指引。'}
         </output>
       )}
 

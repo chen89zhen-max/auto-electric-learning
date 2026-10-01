@@ -45,7 +45,7 @@ const ALTERNATOR_BLIND_CASES: AlternatorBlindCase[] = [
     bPlusVoltage: 11.8,
     rotorResistance: 999999, // OL
     statorSymmVoltage: '三相对称 (均为0V无励磁)',
-    explanation: '两滑环间电阻测得 OL，励磁绕组断路无法建立旋转磁场，发电机输出为零！',
+    explanation: '本案例直接跨两滑环测得OL，并经引线及接触复核，判定转子绕组断路；不能从一次读数排除测试接触问题。',
   },
   {
     id: 'CASE_BRUSH_WORN',
@@ -56,7 +56,7 @@ const ALTERNATOR_BLIND_CASES: AlternatorBlindCase[] = [
     bPlusVoltage: 11.9,
     rotorResistance: 65.0, // High unstable resistance (normal 3.0Ω)
     statorSymmVoltage: '三相电压微弱且剧烈抖动',
-    explanation: '碳刷磨损极限导致接触电阻飙升至 65Ω，励磁电流严重不足，发电机失灵。',
+    explanation: '本案例经电刷端测励磁通路为65Ω、直接跨滑环复核正常，并拆检确认碳刷磨损；该通路值不是直接跨滑环的绕组电阻。',
   },
   {
     id: 'CASE_STATOR_PHASE_LOST',
@@ -79,6 +79,7 @@ export function D03AlternatorScene({
   hintRequested,
 }: D03AlternatorSceneProps) {
   const assessment = useLevelAssessment('D03');
+  const requestAssessmentHint = assessment.requestHint;
 
   useEffect(() => {
     if (hintRequested) {
@@ -89,9 +90,9 @@ export function D03AlternatorScene({
         BLIND_ALTERNATOR_FAULT_DIAGNOSIS: 'blind_test',
         ENGINEERING_REPAIR_AND_CHARGING_ACCEPTANCE: 'transfer',
       };
-      assessment.requestHint(stageMap[currentStep]);
+      requestAssessmentHint(stageMap[currentStep]);
     }
-  }, [hintRequested, currentStep, assessment]);
+  }, [hintRequested, currentStep, requestAssessmentHint]);
 
   // Multimeter Knob: 'OFF' | 'DCV_20' | 'ACV_200' | 'OHM_200'
   const [meterKnob, setMeterKnob] = useState<'OFF' | 'DCV_20' | 'ACV_200' | 'OHM_200'>('OFF');
@@ -156,7 +157,9 @@ export function D03AlternatorScene({
   };
 
   return (
-    <div className="flex flex-col flex-1 min-h-[580px] w-full bg-slate-900 text-white rounded-xl p-4 lg:p-6 shadow-2xl border border-slate-800 space-y-6">
+    <div className="d03-training-scene flex flex-col flex-1 min-h-[580px] w-full bg-slate-50 text-slate-800 rounded-xl p-4 lg:p-6 shadow-sm border border-slate-200 space-y-6">
+      <p className="text-sm text-slate-600">测量边界：步骤2、3为未整流定子交流测试端；B+是整流后的直流输出。交流有效值不能直接与电池直流电压比较来判断充电。故障数值及指示灯为案例设定，实车须结合测点、负载、励磁和线路数据。</p>
+      {currentStep === 'BLIND_ALTERNATOR_FAULT_DIAGNOSIS' && <p className="text-sm text-slate-600">本案例电阻测点：{activeBlind.faultType === 'BRUSH_WORN' ? '经电刷端测量励磁通路；另已直接跨滑环复核绕组正常，并拆检确认电刷磨损。' : '断电隔离后直接跨转子两滑环测量，排除表笔接触与引线问题；此测点不包含碳刷。'}</p>}
       {/* Warning Toast */}
       {meterWarning && (
         <div className="p-3 bg-amber-500/20 border border-amber-500/50 rounded-lg text-amber-200 text-sm flex items-center justify-between">
@@ -497,14 +500,14 @@ export function D03AlternatorScene({
                     meterKnob === 'ACV_200' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300'
                   }`}
                 >
-                  用 ACV 交流挡测 (规范: 读取有效值 14.0V)
+                  用 ACV 交流挡测 (未整流交流端：有效值14.0V)
                 </button>
               </div>
             )}
 
             {currentStep === 'SPEED_CHARACTERISTIC_AND_ROTATION' && (
               <div className="flex items-center gap-3">
-                <span className="text-sm text-slate-300 font-medium">发动机转速:</span>
+                <span className="text-sm text-slate-300 font-medium">模型发电机轴转速:</span>
                 <button
                   onClick={() => {
                     sounds.click();
@@ -512,7 +515,7 @@ export function D03AlternatorScene({
                   }}
                   className={`px-3.5 py-2 rounded text-sm cursor-pointer ${engineRpm === 800 ? 'bg-amber-600 text-white font-semibold' : 'bg-slate-800 text-slate-300'}`}
                 >
-                  800 rpm (怠速充电不足)
+                  800 rpm (模型发电机低速)
                 </button>
                 <button
                   onClick={() => {
@@ -554,7 +557,7 @@ export function D03AlternatorScene({
                   }}
                   className={`px-3 py-1.5 rounded text-sm cursor-pointer ${s4TestTarget === 'ROTOR_RES' ? 'bg-teal-600 text-white font-semibold' : 'bg-slate-800 text-slate-300'}`}
                 >
-                  转子滑环励磁电阻
+                  励磁电阻（测点见说明）
                 </button>
                 <button
                   onClick={() => {
@@ -737,11 +740,11 @@ export function D03AlternatorScene({
           </div>
 
           {/* Form & Assessment Panel (Zero-spoiler!) */}
-          <div className="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
+          <div className="d03-assessment flex-1 bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col justify-between">
             {/* Step 1 Question */}
             {currentStep === 'FARADAY_INDUCTION_AND_RIGHT_HAND_RULE' && (
               <div className="space-y-3">
-                <div className="text-sm font-semibold text-teal-300">
+                <div className="text-sm font-semibold text-teal-700">
                   【步骤1定则判定】导体在垂直向下磁场中向右切割时，根据右手定则得出的感应电流方向为？
                 </div>
                 <div className="space-y-2">
@@ -752,7 +755,7 @@ export function D03AlternatorScene({
                   ].map((opt) => {
                     const isSelected = s1Choice === opt.id;
                     const isCorrect = opt.id === 'OUT';
-                    let borderClass = 'border-slate-800 bg-slate-900/60 hover:border-slate-700';
+                    let borderClass = 'border-slate-200 bg-slate-50 text-slate-700 hover:border-teal-300';
                     if (s1Submitted) {
                       if (isSelected && isCorrect) borderClass = 'border-emerald-500 bg-emerald-950/40 text-emerald-200';
                       else if (isSelected && !isCorrect) borderClass = 'border-rose-500 bg-rose-950/40 text-rose-200';
@@ -822,8 +825,8 @@ export function D03AlternatorScene({
             {/* Step 2 Question */}
             {currentStep === 'SINE_AC_WAVEFORM_AND_THREE_ELEMENTS' && (
               <div className="space-y-3">
-                <div className="text-sm font-semibold text-teal-300">
-                  【步骤2打表反例辨析】用万用表直流挡(DCV)测交流发电机输出显示 0.00V，为什么？
+                <div className="text-sm font-semibold text-teal-700">
+                  【步骤2测点辨析】在未整流定子交流测试端测零均值正弦电压，DCV理想读数0.00V，为什么？（不是B+端）
                 </div>
                 <div className="space-y-2">
                   {[
@@ -833,7 +836,7 @@ export function D03AlternatorScene({
                   ].map((opt) => {
                     const isSelected = s2Choice === opt.id;
                     const isCorrect = opt.id === 'A';
-                    let borderClass = 'border-slate-800 bg-slate-900/60 hover:border-slate-700';
+                    let borderClass = 'border-slate-200 bg-slate-50 text-slate-700 hover:border-teal-300';
                     if (s2Submitted) {
                       if (isSelected && isCorrect) borderClass = 'border-emerald-500 bg-emerald-950/40 text-emerald-200';
                       else if (isSelected && !isCorrect) borderClass = 'border-rose-500 bg-rose-950/40 text-rose-200';
@@ -903,8 +906,8 @@ export function D03AlternatorScene({
             {/* Step 3 Question */}
             {currentStep === 'SPEED_CHARACTERISTIC_AND_ROTATION' && (
               <div className="space-y-3">
-                <div className="text-sm font-semibold text-teal-300">
-                  【步骤3转速特性规律】发动机转速从 800rpm 升至 2000rpm 时，发电机输出信号的变化规律是？
+                <div className="text-sm font-semibold text-teal-700">
+                  【步骤3转速特性规律】模型发电机轴转速从 800rpm 升至 2000rpm 时，发电机输出信号的变化规律是？
                 </div>
                 <div className="space-y-2">
                   {[
@@ -914,7 +917,7 @@ export function D03AlternatorScene({
                   ].map((opt) => {
                     const isSelected = s3Choice === opt.id;
                     const isCorrect = opt.id === 'A';
-                    let borderClass = 'border-slate-800 bg-slate-900/60 hover:border-slate-700';
+                    let borderClass = 'border-slate-200 bg-slate-50 text-slate-700 hover:border-teal-300';
                     if (s3Submitted) {
                       if (isSelected && isCorrect) borderClass = 'border-emerald-500 bg-emerald-950/40 text-emerald-200';
                       else if (isSelected && !isCorrect) borderClass = 'border-rose-500 bg-rose-950/40 text-rose-200';
@@ -988,18 +991,18 @@ export function D03AlternatorScene({
                   <div className="font-bold text-teal-300">{activeBlind.vehicleName}</div>
                   <div className="text-slate-300 mt-0.5">{activeBlind.symptom}</div>
                 </div>
-                <div className="text-sm font-semibold text-teal-300">
+                <div className="text-sm font-semibold text-teal-700">
                   结合打表测得的数据，判定故障真因：
                 </div>
                 <div className="space-y-2">
                   {[
-                    { id: 'ROTOR_OPEN', text: '转子励磁线圈内部断路开路 (滑环阻值显示无穷大 OL)' },
-                    { id: 'BRUSH_WORN', text: '电刷磨损极限接触不良 (滑环接触电阻飙升至 65Ω)' },
+                    { id: 'ROTOR_OPEN', text: '转子励磁绕组断路（直接滑环OL，经测试接触与引线复核）' },
+                    { id: 'BRUSH_WORN', text: '电刷磨损极限接触不良 (经电刷端励磁通路65Ω，直接滑环测量正常且拆检确认)' },
                     { id: 'STATOR_PHASE_LOST', text: '定子 U 相断路缺相 (三相失衡，U相电压为 0V)' },
                   ].map((opt) => {
                     const isSelected = s4Choice === opt.id;
                     const isCorrect = opt.id === activeBlind.faultType;
-                    let borderClass = 'border-slate-800 bg-slate-900/60 hover:border-slate-700';
+                    let borderClass = 'border-slate-200 bg-slate-50 text-slate-700 hover:border-teal-300';
                     if (s4Submitted) {
                       if (isSelected && isCorrect) borderClass = 'border-emerald-500 bg-emerald-950/40 text-emerald-200';
                       else if (isSelected && !isCorrect) borderClass = 'border-rose-500 bg-rose-950/40 text-rose-200';
@@ -1079,12 +1082,12 @@ export function D03AlternatorScene({
             {/* Step 5 Question */}
             {currentStep === 'ENGINEERING_REPAIR_AND_CHARGING_ACCEPTANCE' && (
               <div className="space-y-3">
-                <div className="text-sm font-semibold text-teal-300">
+                <div className="text-sm font-semibold text-teal-700">
                   【步骤5交付验收】换新碳刷调节器并打磨滑环后，实车通电复验：
                 </div>
                 <div className="p-3 bg-slate-900 border border-slate-800 rounded-lg space-y-2 text-sm">
                   <div className="flex items-center justify-between text-slate-300">
-                    <span>1. 转子滑环静态直流电阻:</span>
+                    <span>1. 电刷端励磁通路静态电阻:</span>
                     <span className="font-mono text-emerald-400 font-bold">3.0 Ω (标称 2.8Ω~3.2Ω 合格)</span>
                   </div>
                   <div className="flex items-center justify-between text-slate-300">

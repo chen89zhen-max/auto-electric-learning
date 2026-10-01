@@ -1,4 +1,5 @@
 'use client';
+import { getLevelDisplayName } from '@/src/courses/curriculum';
 
 import React from 'react';
 import { ClipboardCheck, Sparkles, Shield, Wrench, X } from 'lucide-react';
@@ -28,9 +29,7 @@ export function Level02WorkOrder() {
             <p className="text-xs uppercase tracking-wider text-amber-700 font-bold">
               维修工单 · WO-0201
             </p>
-            <h2 id="level02-work-order-title" className="text-xl font-bold text-slate-800">
-              安装一盏 12V 检修灯
-            </h2>
+            <h2 id="level02-work-order-title" className="text-xl font-bold text-slate-800">{getLevelDisplayName('A01')} · 实训工单</h2>
           </div>
         </div>
 

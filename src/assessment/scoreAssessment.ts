@@ -87,7 +87,7 @@ export function scoreAssessment(result: LevelAssessmentResult): ScoredAssessment
       0.30 * unsafe +
       0.05 * retries;
 
-    const quality = Math.min(1.0, Math.max(0.4, 1 - penalty));
+    const quality = Math.min(1.0, Math.max(0, 1 - penalty));
     stageQualities.set(stageId, quality);
     weightedPointsSum += maxPts * quality;
   }

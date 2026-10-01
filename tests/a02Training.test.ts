@@ -52,8 +52,8 @@ describe('A02 实训测量记录规则', () => {
     expect(reverse.stepComplete).toBe(true);
   });
 
-  it('第二步只接受断开开关压降和闭合灯端电压两项有效记录', () => {
-    const ignored = recordA02Measurement(createA02Progress(), {
+  it('第二步必须依次记录断开开关12V、闭合开关0V和闭合灯端12V', () => {
+    const prematureClosed = recordA02Measurement(createA02Progress(), {
       ...validVoltageMeasurement,
       step: 'SWITCH_AND_LOAD',
       redProbe: 'SW_IN',
@@ -61,9 +61,9 @@ describe('A02 实训测量记录规则', () => {
       switchClosed: true,
       measuredValue: 0,
     });
-    expect(ignored.recordedKey).toBeNull();
+    expect(prematureClosed.recordedKey).toBeNull();
 
-    const switchOpen = recordA02Measurement(ignored.progress, {
+    const switchOpen = recordA02Measurement(prematureClosed.progress, {
       ...validVoltageMeasurement,
       step: 'SWITCH_AND_LOAD',
       redProbe: 'SW_IN',
@@ -74,7 +74,28 @@ describe('A02 实训测量记录规则', () => {
     expect(switchOpen.recordedKey).toBe('switchOpen');
     expect(switchOpen.stepComplete).toBe(false);
 
-    const lampClosed = recordA02Measurement(switchOpen.progress, {
+    const prematureLamp = recordA02Measurement(switchOpen.progress, {
+      ...validVoltageMeasurement,
+      step: 'SWITCH_AND_LOAD',
+      redProbe: 'LAMP_POS',
+      blackProbe: 'LAMP_NEG',
+      switchClosed: true,
+      measuredValue: 12,
+    });
+    expect(prematureLamp.recordedKey).toBeNull();
+
+    const switchClosed = recordA02Measurement(prematureLamp.progress, {
+      ...validVoltageMeasurement,
+      step: 'SWITCH_AND_LOAD',
+      redProbe: 'SW_IN',
+      blackProbe: 'SW_OUT',
+      switchClosed: true,
+      measuredValue: 0,
+    });
+    expect(switchClosed.recordedKey).toBe('switchClosed');
+    expect(switchClosed.stepComplete).toBe(false);
+
+    const lampClosed = recordA02Measurement(switchClosed.progress, {
       ...validVoltageMeasurement,
       step: 'SWITCH_AND_LOAD',
       redProbe: 'LAMP_POS',
@@ -136,7 +157,7 @@ describe('A02 表笔拖放吸附规则', () => {
 });
 
 describe('A02 全流程四阶段状态推进与完成判断', () => {
-  it('完成前三步的全部七项测量记录，各阶段完成判定正确', () => {
+  it('完成前三步的全部八项测量记录，各阶段完成判定正确', () => {
     let progress = createA02Progress();
 
     // Step 1: Battery forward & reverse
@@ -157,7 +178,7 @@ describe('A02 全流程四阶段状态推进与完成判断', () => {
     expect(s1_r.stepComplete).toBe(true);
     progress = s1_r.progress;
 
-    // Step 2: Switch open & lamp closed
+    // Step 2: Switch open, switch closed, then lamp closed
     const s2_sw = recordA02Measurement(progress, {
       ...validVoltageMeasurement,
       step: 'SWITCH_AND_LOAD',
@@ -166,7 +187,17 @@ describe('A02 全流程四阶段状态推进与完成判断', () => {
       switchClosed: false,
       measuredValue: 12.0,
     });
-    const s2_lamp = recordA02Measurement(s2_sw.progress, {
+    const s2_closed = recordA02Measurement(s2_sw.progress, {
+      ...validVoltageMeasurement,
+      step: 'SWITCH_AND_LOAD',
+      redProbe: 'SW_IN',
+      blackProbe: 'SW_OUT',
+      switchClosed: true,
+      measuredValue: 0,
+    });
+    expect(s2_closed.recordedKey).toBe('switchClosed');
+    expect(s2_closed.stepComplete).toBe(false);
+    const s2_lamp = recordA02Measurement(s2_closed.progress, {
       ...validVoltageMeasurement,
       step: 'SWITCH_AND_LOAD',
       redProbe: 'LAMP_POS',
@@ -205,10 +236,11 @@ describe('A02 全流程四阶段状态推进与完成判断', () => {
     expect(s3_gnd.stepComplete).toBe(true);
     progress = s3_gnd.progress;
 
-    // All 7 measurements recorded
+    // All 8 measurements recorded
     expect(progress.batteryForward).toBe(true);
     expect(progress.batteryReverse).toBe(true);
     expect(progress.switchOpen).toBe(true);
+    expect((progress as Record<string, boolean>).switchClosed).toBe(true);
     expect(progress.lampClosed).toBe(true);
     expect(progress.faultLamp).toBe(true);
     expect(progress.supplyDrop).toBe(true);

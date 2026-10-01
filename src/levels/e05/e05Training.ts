@@ -17,18 +17,18 @@ export interface E05StageContent {
 
 export const E05_STAGE_CONTENT: Record<E05Step, E05StageContent> = {
   LOGIC_GATE_SYMBOLS_AND_TRUTH_TABLE: {
-    title: '实训步骤 1：三大基本逻辑门 (AND / OR / NOT) 与真值表认知',
+    title: '实训步骤 1：五种逻辑门 (AND / OR / NOT / NAND / NOR) 与真值验证',
     objective: '掌握与门(全1出1)、或门(有1出1)、非门(相反反相)的逻辑符号、布尔表达式及真值表',
     actions: [
       '认知与门 (AND 门, Y = A · B)：只有当输入端 A 和 B 同时为高电平 1 时，输出 Y 才为 1；只要有一个输入为 0，输出即为 0。',
       '认知或门 (OR 门, Y = A + B)：只要输入端 A 或 B 中有一个为高电平 1，输出 Y 就为 1；全 0 时才输出 0。',
       '认知非门 (NOT 门 / 反相器, Y = Ā)：输入为 1 输出为 0，输入为 0 输出为 1。',
-      '拓展与非门 (NAND) 与或非门 (NOR)：在与门/或门输出端增加非门小圆圈取反。',
+      '验证与非门 (NAND) 与或非门 (NOR)：在与门/或门输出端增加非门小圆圈取反。',
     ],
-    completion: '建立数字逻辑门电路与二进制高低电平布尔逻辑思维。',
+    completion: '完成五种门关键输入组合的输出判读并形成记录，再通过理论判断。',
     mentorPrompt:
       '徒弟，现代汽车越来越聪明，会自己思考做决定，靠的就是数字逻辑！“与门”就像两个串联的开关，必须都按下去灯才亮；“或门”就像两个并联的开关，按哪个灯都亮；“非门”就是反着来！这三大门是所有汽车电脑逻辑判断的基石！',
-    hint: '点击切换“与门 / 或门 / 非门”，观察不同输入组合下高低电平与输出真值表的映射关系。',
+    hint: '选择五种门并拨动输入，判读输出0/1，记录要求组合。每个门需有独立输入输出证据。',
     mentorEmotion: 'NORMAL',
   },
   EXPERIMENT_BOX_TRUTH_VERIFICATION: {
@@ -37,10 +37,10 @@ export const E05_STAGE_CONTENT: Record<E05Step, E05StageContent> = {
     actions: [
       '将数字逻辑试验箱接通 5V 直流供电，芯片 VCC 引脚接 5V，GND 引脚接地。',
       '验证 74HC08 (四 2 输入与门)：拨动开关 A=0/B=0(LED灭), A=0/B=1(灭), A=1/B=0(灭), A=1/B=1(LED亮)，完成真值表比对。',
-      '验证 74HC32 (四 2 输入或门)：拨动开关验证只要任一开关置 1，输出 LED 立即亮起。',
-      '验证 74HC04 (六反相器非门)：输入置 0 时输出点亮，置 1 时输出熄灭。',
+      '对照步骤1的或门记录，比较与门和或门在混合输入时的输出差异。',
+      '对照步骤1的非门记录，复习反相规律。',
     ],
-    completion: '全组合验证三大基本门电路真值表，掌握数字电平实测规范。',
+    completion: '完成与门四种输入组合实测；五种门的关键组合已在步骤1分别验证。',
     mentorPrompt:
       '拿逻辑试验箱做实验，输入端就是高低电平开关，输出端就是发光二极管！把 00、01、10、11 这四种组合全都拨一遍，眼见为实看看指示灯到底亮不亮，这就是真值表验证！',
     hint: '拨动开关 A 和 B，逐一比对 4 种电平组合的实测结果并完成真值表填报。',
@@ -67,7 +67,7 @@ export const E05_STAGE_CONTENT: Record<E05Step, E05StageContent> = {
     actions: [
       '依次将 4 片待测 IC 插入锁紧测试座。',
       '使用万用表逻辑电平笔或直流电压档测试 VCC/GND 供电引脚及各逻辑输出引脚。',
-      '排故特征识别：良好芯片（完全符合与门/或门真值表）；VCC 供电脱焊（芯片无供电，所有输出恒为 0V 无响应）；输入脚内部悬空（CMOS 芯片输入悬空等效为高电平 1，输入 0 时仍按 1 计算）；输出脚击穿接地（无论输入何种电平，输出端电阻仅 0.2Ω 恒为 0V）。',
+      '排故特征识别：良好芯片（完全符合与门/或门真值表）；VCC 供电脱焊（芯片无供电，所有输出恒为 0V 无响应）；输入脚内部悬空（本模型模拟 B 输入故障性偏高；真实 CMOS 悬空电平不确定，不能视为固定高电平）；输出脚击穿接地（无论输入何种电平，输出端电阻仅 0.2Ω 恒为 0V）。',
       '在工单中提交诊断分类。',
     ],
     completion: '准确诊断板级数字逻辑芯片开路、悬空与短路故障，具备车机与仪表板维修能力。',
@@ -88,7 +88,7 @@ export const E05_STAGE_CONTENT: Record<E05Step, E05StageContent> = {
     ],
     completion: '排除实车安全带检测信号线虚接搭铁短路严重电气缺陷，规范修复并完成路试复验。',
     mentorPrompt:
-      '干得漂亮！安全带线束被座椅滑轨割破搭铁，导致逻辑芯片永远判定为“安全带没插好”（输入恒为 1）！换上新锁扣加装耐磨波纹管，系上立刻消音，拔出立刻报警，安全闭环交车！',
+      '干得漂亮！安全带线束被座椅滑轨割破搭铁，导致逻辑芯片永远判定为“安全带没插好”（信号线物理低电平，经 BCM 解码后的“未系”逻辑量恒为 1）！换上新锁扣加装耐磨波纹管，系上立刻消音，拔出立刻报警，安全闭环交车！',
     hint: '万用表测出搭铁短路，更换锁扣耐磨线束总成并进行实车动态测试。',
     mentorEmotion: 'PRAISE',
   },
@@ -124,3 +124,21 @@ export const E05_SAMPLES: LogicIcSample[] = [
   { id: 'IC_3', name: '逻辑芯片 #3 (输入 B 悬空高)', outputTruths: [false, false, true, true], actualType: 'INPUT_FLOATING' },
   { id: 'IC_4', name: '逻辑芯片 #4 (输出引脚对地击穿)', outputTruths: [false, false, false, false], actualType: 'OUTPUT_SHORT_GND' },
 ];
+
+export interface GateReading { gate: LogicGateType; a: boolean; b: boolean; output: boolean }
+// Both mixed inputs are retained to reject accidental single-input behavior.
+export const GATE_REQUIRED_INPUTS: Record<LogicGateType, readonly string[]> = {
+  AND: ['01', '10', '11'], OR: ['00', '01', '10'], NOT: ['0', '1'],
+  NAND: ['01', '10', '11'], NOR: ['00', '01', '10'],
+};
+export function gateReadingKey(gate: LogicGateType, a: boolean, b: boolean): string {
+  return `${gate}:${Number(a)}${gate === 'NOT' ? '' : Number(b)}`;
+}
+export function hasAllGateEvidence(readings: Record<string, GateReading>): boolean {
+  return (Object.keys(GATE_REQUIRED_INPUTS) as LogicGateType[]).every(gate =>
+    GATE_REQUIRED_INPUTS[gate].every(input => {
+      const reading = readings[`${gate}:${input}`];
+      return reading?.gate === gate && gateReadingKey(gate, reading.a, reading.b) === `${gate}:${input}` && reading.output === evaluateLogicGate(gate, reading.a, reading.b);
+    })
+  );
+}

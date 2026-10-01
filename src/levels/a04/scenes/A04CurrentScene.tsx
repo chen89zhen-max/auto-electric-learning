@@ -46,6 +46,7 @@ interface A04CurrentSceneProps {
   practiceMode?: PracticeMode;
   onStepComplete: (step: A04Step, evidence: Record<string, unknown>) => void;
   onAdvanceStep: () => void;
+  onProcessEvent?: (event: 'wrongAttempts' | 'meterGuardBlocks') => void;
 }
 
 export function A04CurrentScene({
@@ -53,6 +54,7 @@ export function A04CurrentScene({
   practiceMode = 'guided',
   onStepComplete,
   onAdvanceStep,
+  onProcessEvent,
 }: A04CurrentSceneProps) {
   // Step 1 & 2: Series ammeter & switch state
   const [isSwitchClosed, setIsSwitchClosed] = useState(false);
@@ -165,6 +167,7 @@ export function A04CurrentScene({
     sounds.zap();
     sounds.warningBuzz();
     setIsV06BridgeAttempted(true);
+    onProcessEvent?.('meterGuardBlocks');
     onStepComplete('SHORT_CIRCUIT_INTERCEPT', {
       v06Intercepted: true,
       dangerDirectBridgeAttempted: true,
@@ -250,6 +253,7 @@ export function A04CurrentScene({
         mode: practiceMode,
       });
     } else {
+      onProcessEvent?.('wrongAttempts');
       sounds.warningBuzz();
       setDiagFeedback(
         '方案不合理：加大蓄电池容量无法解决持续漏电；更换大保险丝有线束过热起火隐患；更换 BCM 属于误判过度维修。请重新分析加装电器的受控逻辑！'
@@ -525,8 +529,8 @@ export function A04CurrentScene({
                 <div>
                   <strong className="text-sm block font-bold">车间智能安防系统已执行强制拦截 (基准 V06)</strong>
                   <p className="mt-1 leading-relaxed text-red-900">
-                    电流表内部阻抗极小（只有 0.01Ω 分流电阻），若直接并联在 12V 蓄电池两端，短路电流可达 1200A！
-                    会导致表笔瞬间飞溅电弧爆熔、蓄电池极板损坏！车间电子短路断路器已执行纳秒级保护跳闸，禁止通电！
+                    该操作将形成极低阻抗回路，可能产生严重过流并损坏仪表、表笔及蓄电池。
+                    仿真安全规则已在送电前阻断操作，禁止形成危险回路。
                   </p>
                 </div>
               </div>

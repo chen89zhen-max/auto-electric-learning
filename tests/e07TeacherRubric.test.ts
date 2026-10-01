@@ -7,6 +7,7 @@ import { createSession } from '@/src/server/auth/session';
 import { assignStudentToClass, assignTeacherToClass, createClass } from '@/src/server/db/classService';
 import { createSqliteAdapter, setDatabaseInstance, type AppDatabase } from '@/src/server/db/database';
 import { createBaseUserProgress } from '@/src/types/progress';
+import { listStudentE07Attempts } from '@/src/server/teaching/teacherService';
 
 let db: AppDatabase;
 let teacherAToken: string;
@@ -92,6 +93,15 @@ describe('E07 Teacher Physical Rubric Evaluation', () => {
     safety_process: 19,         // max 20
     evidence_explanation: 9,    // max 10
   }; // total = 94
+
+  it('returns authoritative started time and elapsed milliseconds for teacher review', () => {
+    const attempts = listStudentE07Attempts('teacher_a', 'student_a', db);
+    expect(attempts[0]).toMatchObject({
+      attemptId: attemptE07AId,
+      durationMs: 120_000,
+    });
+    expect(attempts[0].startedAt).toBe(attempts[0].completedAt - 120_000);
+  });
 
   it('rejects POST from student role with 403', async () => {
     const res = await teacherEvaluationPost(request('/api/teacher/evaluations', studentAToken, {

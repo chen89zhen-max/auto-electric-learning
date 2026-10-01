@@ -43,16 +43,18 @@ interface B04PowerEnergySceneProps {
   currentStep: B04Step;
   onStepComplete: (step: B04Step, evidence: Record<string, unknown>) => void;
   onAdvanceStep: () => void;
+  onProcessEvent?: (type: 'wrong' | 'unsafe') => void;
 }
 
 export function B04PowerEnergyScene({
   currentStep,
   onStepComplete,
   onAdvanceStep,
+  onProcessEvent,
 }: B04PowerEnergySceneProps) {
   // Step 1: Rated vs Actual Power
   const [selectedVoltage, setSelectedVoltage] = useState<6 | 12 | 16>(12);
-  const lampResistance = 6.0; // 6Ω
+  const lampResistance = 6.0; // Fixed-resistance teaching model, not a tungsten thermal model
   const actualCurrent = selectedVoltage / lampResistance;
   const actualPower = (selectedVoltage * selectedVoltage) / lampResistance;
 
@@ -114,6 +116,7 @@ export function B04PowerEnergyScene({
       });
     } else {
       sounds.warningBuzz();
+      onProcessEvent?.('wrong');
       setStep2Feedback('辨析有误。细导线发热并不是因为电压升高或磁场吸引，而是导线电阻偏大，大电流流经大电阻产生巨大焦耳热（P = I² · R）引发超温！');
     }
   };
@@ -124,7 +127,7 @@ export function B04PowerEnergyScene({
     setStep4Submitted(true);
     if (step4Choice === 'OPT_A') {
       sounds.success();
-      setStep4Feedback('计算完全正确！360W ÷ 12V = 30.0A；按汽车 1.33 倍防误熔裕量选用 40A 专用保险丝；安全连续载流 30A 对应专用导线规格不小于 6.0mm²！');
+      setStep4Feedback('计算完全正确！360W ÷ 12V = 30.0A；按本题给定配套表选择40A熔丝、6.0mm²电缆；实车须结合长度、敷设、温度、压降和保护配合复核！');
       onStepComplete('QUANTITATIVE_FUSE_SELECT', {
         userChoice: step4Choice,
         ampCurrent: 30.0,
@@ -134,7 +137,8 @@ export function B04PowerEnergyScene({
       });
     } else {
       sounds.warningBuzz();
-      setStep4Feedback('计算有误。根据 P = U · I，满载工作电流 I = 360W ÷ 12V = 30.0A。保险丝容量必须略大于工作电流（40A），且导线截面积必须承受 30A（6.0mm²）！');
+      onProcessEvent?.('wrong');
+      setStep4Feedback('计算有误。根据 P = U · I，满载工作电流 I = 360W ÷ 12V = 30.0A。本题配套表给定40A熔丝和6.0mm²电缆，不能只由30A推出唯一的通用选型！');
     }
   };
 
@@ -144,7 +148,7 @@ export function B04PowerEnergyScene({
     setStep5Submitted(true);
     if (step5Decision === 'OPT_DIRECT_BATTERY') {
       sounds.success();
-      setStep5Feedback('技师整改方案合规专业！1000W 在 12V 下工作电流超 83A，点烟器插孔限流仅 10A。必须从蓄电池桩头引出 16.0mm² 专线并加装 100A 主保险！');
+      setStep5Feedback('技师整改方案合规专业！1000W 在 12V 下工作电流超 83A，点烟器插孔限流仅 10A。本题整改配置为16.0mm²专线与100A主保险，实际安装须依车型和设备资料复核！');
       onStepComplete('TRANSFER_SMOKE_OVERLOAD_DIAG', {
         userChoice: step5Decision,
         currentDemanded: 83.33,
@@ -153,12 +157,14 @@ export function B04PowerEnergyScene({
       });
     } else {
       sounds.warningBuzz();
+      onProcessEvent?.('unsafe');
       setStep5Feedback('方案极度危险！点烟器内部细线与弹片根本无法通过 83A 极端电流。盲目换大保险丝或换原厂插座会直接导致仪表台深处整条线束自燃！');
     }
   };
 
   return (
     <div className="flex flex-col gap-4 w-full h-full min-h-[580px] p-2">
+      <p className="text-sm text-slate-600">模型说明：本关灯泡按恒阻6Ω计算，真实灯丝电阻随温度改变。线缆温度、电价和选型规格均为题设示例，不构成车辆通用维修标准。</p>
       {/* Top Advance Banner */}
       <div className="flex items-center justify-between p-3.5 bg-gradient-to-r from-amber-900 to-orange-900 text-white rounded-xl shadow-md border border-amber-700">
         <div className="flex items-center gap-2">
@@ -251,7 +257,7 @@ export function B04PowerEnergyScene({
                   strokeWidth="2.5"
                 />
                 <text x="350" y="105" fill="#e2e8f0" fontSize="11" textAnchor="middle" fontWeight="bold">
-                  24W 车灯 (R=6Ω)
+                  24W车灯恒阻教学模型 (R=6Ω)
                 </text>
                 <text x="350" y="118" fill="#94a3b8" fontSize="9" textAnchor="middle">
                   实际: {actualPower.toFixed(1)}W
@@ -287,14 +293,14 @@ export function B04PowerEnergyScene({
             {selectedVoltage === 6 && (
               <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-lg text-sm text-amber-900 font-semibold flex items-center gap-2">
                 <AlertTriangle size={18} className="text-amber-600 shrink-0" />
-                <span>欠压现象：电压降低一半至 6V，实际功率暴跌至 6.0W（额定 24W 的 1/4）！灯丝仅发出微弱暗红光。验证实际功率与电压平方成正比。</span>
+                <span>欠压现象：电压降低一半至 6V，实际功率暴跌至 6.0W（额定 24W 的 1/4）！灯丝仅发出微弱暗红光。验证恒阻条件下P=U²/R；真实灯丝电阻随温度改变。</span>
               </div>
             )}
 
             {selectedVoltage === 16 && (
               <div className="p-3.5 bg-red-50 border border-red-300 rounded-lg text-sm text-red-900 font-semibold flex items-center gap-2">
                 <Flame size={18} className="text-red-600 shrink-0" />
-                <span>过压危险：电压升高至 16V，实际功率激增至 42.7W（超额定 77%）！灯泡极度过热，灯丝随时可能融断，必须由电压调节器稳压在 14V 内！</span>
+                <span>过压危险：电压升高至 16V，实际功率激增至 42.7W（超额定 77%）！灯泡极度过热，灯丝随时可能融断，应按车型与灯具规定电压检查供电，不能统一规定14V上限！</span>
               </div>
             )}
           </div>
@@ -328,7 +334,7 @@ export function B04PowerEnergyScene({
 
             <div className="p-3.5 bg-slate-800/80 rounded-lg text-sm text-slate-300 leading-relaxed border border-slate-700">
               <strong className="block text-amber-300 mb-1 font-bold">额定 vs 实际核心铁律：</strong>
-              “额定功率”是设备在制造标准额定电压（12V）下的设计指标；而“实际功率”则严格取决于施加的实际电压：<strong>P = U² / R</strong>。工作电压一旦波动，实际功率将发生剧烈非线性变化！
+              “额定功率”是设备在制造标准额定电压（12V）下的设计指标；本题采用恒阻6Ω模型计算实际功率：<strong>P = U² / R</strong>。仅在R不变时P随U²变化；真实灯丝热态电阻变化需另建模型。
             </div>
           </div>
         </div>
@@ -367,7 +373,7 @@ export function B04PowerEnergyScene({
                 }}
                 className={`cursor-pointer font-bold text-sm ${selectedWire === '2.5mm' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : ''}`}
               >
-                测试 2.5mm² 标准汽车粗导线 (规范匹配，线阻 0.05Ω)
+                测试2.5mm²较粗导线（题设线阻0.05Ω）
               </Button>
             </div>
 
@@ -379,7 +385,7 @@ export function B04PowerEnergyScene({
                 <div className="flex items-center gap-3">
                   <Flame size={selectedWire === '0.5mm' ? 36 : 24} className={selectedWire === '0.5mm' ? 'text-red-500 animate-bounce' : 'text-emerald-400'} />
                   <span className="text-lg font-mono font-bold">
-                    红外热成像测温：{wireTempC} °C
+                    模拟温度示例：{wireTempC} °C
                   </span>
                 </div>
                 <div className="text-xs text-slate-300 font-mono">
@@ -392,7 +398,7 @@ export function B04PowerEnergyScene({
                 )}
                 {selectedWire === '2.5mm' && (
                   <span className="text-xs font-bold text-emerald-300 bg-emerald-900/60 px-2.5 py-1 rounded border border-emerald-600">
-                    ✓ 安全达标：表面温升仅 36°C，线皮无变形，安全余量充足。
+                    本题温度示例：表面36℃；这是温度而非温升，实车安全须按敷设与绝缘条件校核。
                   </span>
                 )}
               </div>
@@ -613,8 +619,8 @@ export function B04PowerEnergyScene({
 
             <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 leading-relaxed">
               <strong className="text-slate-900">工程改装情境：</strong>
-              车主要求加装一套额定功率高达 <span className="font-bold text-blue-700">360 W</span> 的 12.0V 车载重低音功放。
-              请根据电功率基本公式（P = U · I）与汽车电气工程 1.25~1.5 倍防误熔裕量标准，核算满载电流、匹配专用主保险丝与安全电缆截面积：
+              本题功放在12V下的输入功率为 <span className="font-bold text-blue-700">360 W</span> ；输入功率不同于音频输出功率。题设安装配套表规定40A熔丝、6.0mm²电缆，请计算输入电流并选择符合题设的组合。
+              请根据P=U·I计算输入电流，并按上方题设配套表匹配保险丝和电缆；本题不以统一倍数代替真实保护配合设计：
             </div>
 
             {/* Answer Options: NO SPOILER */}
@@ -622,7 +628,7 @@ export function B04PowerEnergyScene({
               {[
                 {
                   id: 'OPT_A',
-                  text: 'A. 满载工作电流 30.0 A (360W ÷ 12V)；按 1.33 倍裕量选用 40 A 保险丝；配套电缆截面积不得小于 6.0 mm²',
+                  text: 'A. 满载工作电流 30.0 A (360W ÷ 12V)；按本题配套表选40A熔丝、6.0mm²电缆',
                 },
                 {
                   id: 'OPT_B',
@@ -707,7 +713,7 @@ export function B04PowerEnergyScene({
 
             <div className="p-3.5 bg-slate-800/80 rounded-lg text-sm text-slate-300 leading-relaxed border border-slate-700">
               <strong className="block text-amber-300 mb-1 font-bold">改装核算要领：</strong>
-              满载电流计算：I = P / U = 360W / 12V = 30.0A。保险丝不能刚好等于 30A（启动冲击会误烧），一般乘 1.33 倍取 40A；同时 30A 持续电流必须配 6.0mm² 纯铜粗线！
+              满载电流计算：I = P / U = 360W / 12V = 30.0A。本题配套表给定40A熔丝及6.0mm²电缆；真实选型还需负载冲击、熔丝特性、线长压降、温度及敷设条件。
             </div>
           </div>
         </div>
@@ -742,7 +748,7 @@ export function B04PowerEnergyScene({
                 {[
                   {
                     id: 'OPT_DIRECT_BATTERY',
-                    text: 'A. 严厉制止点烟器私插行为：1000W 电流超 83A，点烟器插座及原车细线绝对无法承受。必须使用专用铜鼻从蓄电池正负极桩头直连引出 16.0mm² 专用耐热粗铜缆，回路正极加装 100A 专用主熔断器，并配置耐高温大电流快插接头',
+                    text: 'A. 严厉制止点烟器私插行为：1000W 电流超 83A，点烟器插座及原车细线绝对无法承受。按本题给定整改配置采用16.0mm²专线、100A主熔断器及匹配连接器；实车按设备与车辆资料验证供电能力、压降和保护配合',
                   },
                   {
                     id: 'OPT_FUSE_100A',
@@ -832,7 +838,7 @@ export function B04PowerEnergyScene({
 
             <div className="p-3.5 bg-slate-800/80 rounded-lg text-sm text-slate-300 leading-relaxed border border-slate-700">
               <strong className="block text-amber-300 mb-1 font-bold">汽车大功率用电铁律：</strong>
-              原车点烟器插孔只适用于 120W 以内的小型电子设备。所有超过 200W 的大功率逆变器、车载充气泵、绞盘，<strong>严禁使用点烟器插头</strong>，必须使用 16mm² 以上专用耐热电缆直接从蓄电池桩头取电并配置专用高容量主保险！
+              本题点烟器限额为120W；其他车辆按插座标识和维修资料确定。超过该插座允许负荷的设备，<strong>严禁使用点烟器插头</strong>，应设计专用受保护供电线路；16mm²及100A仅为本题给定整改方案，不能套用于所有设备。
             </div>
           </div>
         </div>

@@ -211,6 +211,12 @@ describe('阶段1 安全风险封堵全量自动化验证 (Phase 1 Security Cont
       headers,
       body: JSON.stringify({ eventId: 'evt-valid-level000', levelId: 'LEVEL_00', eventType: 'LEVEL_COMPLETE', payload: { score: 100, teacherMode: true }, occurredAt: Date.now() }),
     });
+    const reqValidStart = new NextRequest('http://localhost:3000/api/learning/events', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ eventId: 'evt-start-level000', levelId: 'LEVEL_00', eventType: 'LEVEL_START', payload: {}, occurredAt: Date.now() }),
+    });
+    expect((await learningEventPost(reqValidStart)).status).toBe(200);
     const resValid = await learningEventPost(reqValid);
     expect(resValid.status).toBe(200);
     const savedBody = (await resValid.json()) as { projection: { teacherMode: boolean } };
@@ -240,7 +246,18 @@ describe('阶段1 安全风险封堵全量自动化验证 (Phase 1 Security Cont
       tokens.push(token);
     }
 
-    // Perform 40 concurrent POST requests
+    // Start all 40 server-side exam clocks before completing them.
+    const startResponses = await Promise.all(tokens.map((tok, idx) => {
+      const req = new NextRequest('http://localhost:3000/api/learning/events', {
+        method: 'POST',
+        headers: { cookie: `nev_session=${tok}` },
+        body: JSON.stringify({ eventId: `evt-concurrent-start-${idx}`, levelId: 'LEVEL_00', eventType: 'LEVEL_START', payload: {}, occurredAt: Date.now() }),
+      });
+      return learningEventPost(req);
+    }));
+    expect(startResponses.every((response) => response.status === 200)).toBe(true);
+
+    // Perform 40 concurrent completion requests
     const promises = tokens.map((tok, idx) => {
       const req = new NextRequest('http://localhost:3000/api/learning/events', {
         method: 'POST',

@@ -49,6 +49,7 @@ describe('SQLite learning event projection', () => {
   });
   it('is idempotent by eventId and returns the originally stored projection', async () => {
     const input = event('evt-00000001');
+    await eventPost(request(studentToken, event('evt-start-00000001', 'LEVEL_00', 'LEVEL_START')));
     const first = await eventPost(request(studentToken, input));
     const firstBody = await first.json() as { projection: unknown };
     const second = await eventPost(request(studentToken, input));
@@ -57,16 +58,17 @@ describe('SQLite learning event projection', () => {
     expect(first.status).toBe(200);
     expect(secondBody.idempotent).toBe(true);
     expect(secondBody.projection).toEqual(firstBody.projection);
-    expect(db.prepare<{ count: number }>('SELECT COUNT(*) count FROM learning_events').get()?.count).toBe(1);
+    expect(db.prepare<{ count: number }>('SELECT COUNT(*) count FROM learning_events').get()?.count).toBe(2);
     expect(db.prepare<{ count: number }>('SELECT COUNT(*) count FROM learning_attempts').get()?.count).toBe(1);
   });
 
   it('rejects skip-level completion and scores outside 0-100 without persisting anything', async () => {
     expect((await eventPost(request(studentToken, event('evt-00000002', 'LEVEL_01')))).status).toBe(422);
+    expect((await eventPost(request(studentToken, event('evt-start-invalid', 'LEVEL_00', 'LEVEL_START')))).status).toBe(200);
     expect((await eventPost(request(studentToken, event('evt-00000003', 'LEVEL_00', 'LEVEL_COMPLETE', -1)))).status).toBe(422);
     expect((await eventPost(request(studentToken, event('evt-00000004', 'LEVEL_00', 'LEVEL_COMPLETE', 101)))).status).toBe(422);
-    expect(db.prepare<{ count: number }>('SELECT COUNT(*) count FROM learning_events').get()?.count).toBe(0);
-    expect(db.prepare<{ count: number }>('SELECT COUNT(*) count FROM learning_attempts').get()?.count).toBe(0);
+    expect(db.prepare<{ count: number }>("SELECT COUNT(*) count FROM learning_attempts WHERE status='completed'").get()?.count).toBe(0);
+    expect(db.prepare<{ count: number }>("SELECT COUNT(*) count FROM learning_attempts WHERE status='in_progress'").get()?.count).toBe(1);
   });
 
   it('rejects non-student event submission', async () => {
@@ -74,7 +76,9 @@ describe('SQLite learning event projection', () => {
   });
 
   it('commits event, attempt and projection together across sequential levels', async () => {
+    await eventPost(request(studentToken, event('evt-start-00000006', 'LEVEL_00', 'LEVEL_START')));
     expect((await eventPost(request(studentToken, event('evt-00000006', 'LEVEL_00', 'LEVEL_COMPLETE', 88)))).status).toBe(200);
+    await eventPost(request(studentToken, event('evt-start-00000007', 'LEVEL_01', 'LEVEL_START')));
     expect((await eventPost(request(studentToken, event('evt-00000007', 'LEVEL_01', 'LEVEL_COMPLETE', 92)))).status).toBe(200);
     const projection = JSON.parse(db.prepare<{ progress_data: string }>(
       'SELECT progress_data FROM user_progress WHERE user_id=?'
@@ -86,12 +90,13 @@ describe('SQLite learning event projection', () => {
   });
 
   it('rolls back event and attempt if projection persistence fails', async () => {
+    await eventPost(request(studentToken, event('evt-start-00000008', 'LEVEL_00', 'LEVEL_START')));
     db.exec(`CREATE TRIGGER reject_projection BEFORE INSERT ON user_progress
       BEGIN SELECT RAISE(ABORT, 'projection unavailable'); END;`);
     const response = await eventPost(request(studentToken, event('evt-00000008')));
     expect(response.status).toBe(500);
-    expect(db.prepare<{ count: number }>('SELECT COUNT(*) count FROM learning_events').get()?.count).toBe(0);
-    expect(db.prepare<{ count: number }>('SELECT COUNT(*) count FROM learning_attempts').get()?.count).toBe(0);
+    expect(db.prepare<{ count: number }>("SELECT COUNT(*) count FROM learning_events WHERE id='evt-00000008'").get()?.count).toBe(0);
+    expect(db.prepare<{ count: number }>("SELECT COUNT(*) count FROM learning_attempts WHERE status='in_progress'").get()?.count).toBe(1);
   });
 
   it('retries the complete transaction only for SQLITE_BUSY, at most three retries', () => {

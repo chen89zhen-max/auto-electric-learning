@@ -67,45 +67,36 @@ function findMiddleAgedMaleVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesi
     );
   });
 
-  const candidates = zhVoices.length > 0 ? zhVoices : voices;
+  // A non-Chinese or unidentified voice must never impersonate Master Chen.
+  const candidates = zhVoices;
+  const identity = (voice: SpeechSynthesisVoice) => `${voice.name} ${voice.voiceURI || ''}`;
 
   // Priority 1: Yunyang (云扬) - Middle-aged mature broadcaster male (Windows / Edge flagship male voice)
-  const yunyang = candidates.find((v) => /yunyang|云扬/i.test(v.name));
+  const yunyang = candidates.find((v) => /yunyang|云扬/i.test(identity(v)));
   if (yunyang) return yunyang;
 
   // Priority 2: Yunjian (云健) - Mature male
-  const yunjian = candidates.find((v) => /yunjian|云健/i.test(v.name));
+  const yunjian = candidates.find((v) => /yunjian|云健/i.test(identity(v)));
   if (yunjian) return yunjian;
 
   // Priority 3: Kangkang (康康) - Windows native offline male
-  const kangkang = candidates.find((v) => /kangkang|康康/i.test(v.name));
+  const kangkang = candidates.find((v) => /kangkang|康康/i.test(identity(v)));
   if (kangkang) return kangkang;
 
   // Priority 4: Yunxi (云希) - Male
-  const yunxi = candidates.find((v) => /yunxi|云希/i.test(v.name));
+  const yunxi = candidates.find((v) => /yunxi|云希/i.test(identity(v)));
   if (yunxi) return yunxi;
 
   // Priority 5: Any explicit male voice, excluding known female keywords
   const explicitMale = candidates.find((v) => {
-    const name = v.name.toLowerCase();
+    const name = identity(v).toLowerCase();
     const hasMale = /male|man|boy|男|nan|danny|zhiwei|sinji|li-mu/i.test(name);
     const hasFemale = /female|女|nv|xiaoxiao|huihui|yaoyao|xiaoyi|tingting|meijia|shanchan|xiaomo/i.test(name);
     return hasMale && !hasFemale;
   });
   if (explicitMale) return explicitMale;
 
-  // Priority 6: Chinese voice that is NOT explicitly female
-  const nonFemale = candidates.find((v) => {
-    const name = v.name.toLowerCase();
-    return !/female|女|nv|xiaoxiao|huihui|yaoyao|xiaoyi|tingting|meijia|shanchan|xiaomo/i.test(name);
-  });
-  if (nonFemale) return nonFemale;
-
-  // Priority 7: zh-CN voice
-  const zhCn = candidates.find((v) => (v.lang || '').toLowerCase() === 'zh-cn');
-  if (zhCn) return zhCn;
-
-  return candidates[0] || null;
+  return null;
 }
 
 export function getPreferredVoice(): SpeechSynthesisVoice | null {
@@ -149,6 +140,11 @@ export function speakText(text: string, options?: SpeakOptions): SpeechResult {
       return { ok: false, reason: 'error' };
     }
 
+    const voice = getPreferredVoice();
+    if (!voice) {
+      return { ok: false, reason: 'no_voice' };
+    }
+
     const utterance = new SpeechSynthesisUtterance(clean);
     utterance.lang = 'zh-CN';
     utterance.rate = options?.rate ?? prefs.rate ?? DEFAULT_MALE_RATE;
@@ -156,10 +152,7 @@ export function speakText(text: string, options?: SpeakOptions): SpeechResult {
     utterance.pitch = options?.pitch ?? DEFAULT_MALE_PITCH;
     utterance.volume = options?.volume ?? prefs.volume ?? 1.0;
 
-    const voice = getPreferredVoice();
-    if (voice) {
-      utterance.voice = voice;
-    }
+    utterance.voice = voice;
 
     if (options?.onEnd) {
       utterance.onend = () => options.onEnd?.();

@@ -16,6 +16,7 @@ import {
   type LogicGateType,
   E05_SAMPLES,
   evaluateLogicGate,
+  GATE_REQUIRED_INPUTS, gateReadingKey, hasAllGateEvidence, type GateReading,
 } from './e05Training';
 import { useLevelAssessment } from '@/src/assessment/useLevelAssessment';
 import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
@@ -37,6 +38,7 @@ export function E05LogicGatesScene({
   hintRequested = false,
 }: E05LogicGatesSceneProps) {
   const assessment = useLevelAssessment('E05');
+  const requestAssessmentHint = assessment.requestHint;
   // Multimeter knob: 'OFF' | 'DCV_20' | 'LOGIC_PROBE' | 'OHM_200'
   const [meterKnob, setMeterKnob] = useState<'OFF' | 'DCV_20' | 'LOGIC_PROBE' | 'OHM_200'>('OFF');
   const [meterWarning, setMeterWarning] = useState<string | null>(null);
@@ -47,6 +49,20 @@ export function E05LogicGatesScene({
   const [s1InB, setS1InB] = useState<boolean>(true);
   const [s1Choice, setS1Choice] = useState<string | null>(null);
   const [s1Submitted, setS1Submitted] = useState<boolean>(false);
+
+  const [gateReadings, setGateReadings] = useState<Record<string, GateReading>>({});
+  const [gateFeedback, setGateFeedback] = useState('');
+  const allGatesVerified = hasAllGateEvidence(gateReadings);
+  const recordGateOutput = (output: boolean) => {
+    if (s1Submitted) return;
+    if (output !== evaluateLogicGate(s1Gate, s1InA, s1InB)) {
+      assessment.recordWrong('cognition');
+      setGateFeedback('输出判断有误，请结合输入和该门的取反关系重新判读。');
+      return;
+    }
+    setGateReadings(prev => ({ ...prev, [gateReadingKey(s1Gate, s1InA, s1InB)]: { gate: s1Gate, a: s1InA, b: s1InB, output } }));
+    setGateFeedback('当前输入与输出已验证并记录。');
+  };
 
   // Step 2: Truth Table Verification
   const [s2SwitchA, setS2SwitchA] = useState<boolean>(false);
@@ -85,9 +101,9 @@ export function E05LogicGatesScene({
         BLIND_LOGIC_IC_FAULT_DIAGNOSIS: 'blind_test',
         ENGINEERING_REPAIR_AND_DELIVERY: 'transfer',
       };
-      assessment.requestHint(stageMap[currentStep]);
+      requestAssessmentHint(stageMap[currentStep]);
     }
-  }, [hintRequested, currentStep, assessment]);
+  }, [hintRequested, currentStep, requestAssessmentHint]);
 
   const requireMeterKnob = (required: ('DCV_20' | 'LOGIC_PROBE' | 'OHM_200') | ('DCV_20' | 'LOGIC_PROBE' | 'OHM_200')[]): boolean => {
     const stageMap: Record<E05Step, 'cognition' | 'standard' | 'calculation' | 'blind_test' | 'transfer'> = {
@@ -122,24 +138,24 @@ export function E05LogicGatesScene({
   const s4SampleOut = activeSample.outputTruths[s4InputIdx];
 
   return (
-    <div className="flex flex-col gap-5 p-4 md:p-6 bg-slate-900/90 border border-slate-700/80 rounded-2xl text-slate-100 shadow-2xl backdrop-blur-md">
+    <div className="flex flex-col gap-5 p-3 sm:p-4 md:p-6 bg-slate-50 border border-slate-200 rounded-2xl text-slate-800 shadow-sm w-full max-w-full min-w-0 box-border">
       {/* 顶部数字万用表 / 逻辑笔状态栏 */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-slate-800/80 rounded-xl border border-slate-700">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-blue-500/20 text-blue-400 rounded-lg border border-blue-500/30">
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3 sm:p-4 bg-white rounded-xl border border-slate-200 shadow-xs min-w-0">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="p-2.5 bg-blue-500/20 text-blue-400 rounded-lg border border-blue-500/30 shrink-0">
             <Gauge className="w-6 h-6" />
           </div>
-          <div>
-            <div className="text-sm text-slate-400 font-semibold tracking-wider uppercase">
+          <div className="min-w-0">
+            <div className="text-sm text-slate-400 font-semibold tracking-wider uppercase break-words">
               数字逻辑测试仪 (LOGIC-PROBE / DMM)
             </div>
-            <div className="text-sm font-bold text-slate-200">
+            <div className="text-sm font-bold text-slate-700">
               当前挡位:{' '}
               <span
                 className={
                   meterKnob === 'OFF'
                     ? 'text-rose-400 font-mono'
-                    : 'text-emerald-400 font-mono font-black'
+                    : 'text-emerald-600 font-mono font-black'
                 }
               >
                 {meterKnob === 'OFF' && 'OFF (电源关闭)'}
@@ -151,8 +167,8 @@ export function E05LogicGatesScene({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-slate-300">旋钮挡位:</span>
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+          <span className="text-sm font-medium text-slate-500">旋钮挡位:</span>
           {(['OFF', 'LOGIC_PROBE', 'DCV_20', 'OHM_200'] as const).map((knob) => (
             <button
               key={knob}
@@ -161,7 +177,7 @@ export function E05LogicGatesScene({
                 setMeterWarning(null);
                 sounds.playToggleSound?.();
               }}
-              className={`px-3.5 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${
+              className={`px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${
                 meterKnob === knob
                   ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30 ring-2 ring-blue-400'
                   : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
@@ -184,12 +200,12 @@ export function E05LogicGatesScene({
       {currentStep === 'LOGIC_GATE_SYMBOLS_AND_TRUTH_TABLE' && (
         <div className="flex flex-col gap-5">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-            <div className="lg:col-span-8 flex flex-col justify-between p-6 bg-slate-950/80 rounded-2xl border border-slate-800 min-h-[360px]">
-              <div className="flex items-center justify-between">
+            <div className="lg:col-span-8 flex flex-col justify-between p-3.5 sm:p-6 bg-slate-950/80 rounded-2xl border border-slate-800 min-h-[360px] min-w-0 max-w-full">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-sm font-bold uppercase text-blue-400 tracking-wider">
                   逻辑门符号与输出仿真：{s1Gate} 门
                 </span>
-                <div className="flex gap-1">
+                <div className="flex flex-wrap gap-1">
                   {(['AND', 'OR', 'NOT', 'NAND', 'NOR'] as const).map((g) => (
                     <button
                       key={g}
@@ -197,7 +213,7 @@ export function E05LogicGatesScene({
                         setS1Gate(g);
                         sounds.playToggleSound?.();
                       }}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-bold border transition-all cursor-pointer ${
+                      className={`px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg text-sm font-bold border transition-all cursor-pointer ${
                         s1Gate === g
                           ? 'border-blue-500 bg-blue-500/20 text-white'
                           : 'border-slate-800 bg-slate-900 text-slate-400 hover:border-slate-700'
@@ -210,7 +226,7 @@ export function E05LogicGatesScene({
               </div>
 
               {/* 动态逻辑门展示 */}
-              <div className="relative w-full h-48 flex items-center justify-center my-4 bg-slate-900/60 rounded-xl border border-slate-800/80 p-3">
+              <div className="relative w-full h-64 flex items-center justify-center my-4 bg-slate-900/60 rounded-xl border border-slate-800/80 p-3 overflow-x-auto min-w-0">
                 <svg className="w-full h-full max-w-sm" viewBox="0 0 300 160">
                   {/* 输入 A */}
                   <line x1="20" y1="50" x2="100" y2="50" stroke={s1InA ? '#10b981' : '#64748b'} strokeWidth="3" />
@@ -248,7 +264,7 @@ export function E05LogicGatesScene({
 
               {/* 输入开关控制 */}
               <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-800">
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button
                     size="sm"
                     onClick={() => {
@@ -273,7 +289,7 @@ export function E05LogicGatesScene({
                   )}
                 </div>
 
-                <div className="text-sm font-mono">
+                <div className="text-sm font-mono break-words">
                   布尔表达式:{' '}
                   <span className="text-amber-300 font-bold">
                     {s1Gate === 'AND' && 'Y = A · B (全1出1)'}
@@ -286,14 +302,35 @@ export function E05LogicGatesScene({
               </div>
             </div>
 
+            <section className="lg:col-span-12 order-last p-4 bg-white border rounded-xl space-y-3 min-w-0 max-w-full">
+              <h3 className="font-bold text-sm sm:text-base">五种门输入输出验证</h3>
+              <p className="text-sm text-slate-600 break-words">拨动输入开关，判读当前输出后记录。每种门都需包含输出为0和1的例证，双输入门还需区分01与10。</p>
+              <div className="flex flex-wrap gap-2">
+                <Button disabled={s1Submitted} size="sm" onClick={() => recordGateOutput(false)}>判读输出 0 并记录</Button>
+                <Button disabled={s1Submitted} size="sm" onClick={() => recordGateOutput(true)}>判读输出 1 并记录</Button>
+                <Button disabled={s1Submitted} size="sm" variant="outline" onClick={() => { setGateReadings({}); setGateFeedback('记录已清空，请重新验证。'); }}>清空五种门记录</Button>
+              </div>
+              <output className="block text-sm">{gateFeedback}</output>
+              <div className="space-y-1.5 text-sm">
+                {(Object.keys(GATE_REQUIRED_INPUTS) as LogicGateType[]).map(gate => (
+                  <p key={gate} className="break-words">
+                    <strong className="font-mono">{gate}</strong> 必验输入：
+                    {GATE_REQUIRED_INPUTS[gate].map(input => {
+                      const row = gateReadings[`${gate}:${input}`];
+                      return `${input} → ${row ? Number(row.output) + ' ✓' : '待验证'}`;
+                    }).join('；')}
+                  </p>
+                ))}
+              </div>
+            </section>
             {/* 右侧零剧透知识验证 */}
-            <div className="lg:col-span-4 p-5 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div className="lg:col-span-4 p-3.5 sm:p-5 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between min-w-0 max-w-full">
               <div>
-                <h4 className="text-sm font-bold text-slate-200 mb-2 flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   认知判定与理论验证
                 </h4>
-                <p className="text-sm text-slate-300 mb-4">
+                <p className="text-sm text-slate-600 mb-4">
                   关于基本逻辑门电路的真值表规律，下列哪项表述是完全正确的？
                 </p>
 
@@ -313,7 +350,7 @@ export function E05LogicGatesScene({
                       className={`w-full text-left p-3 rounded-xl border text-sm transition-all cursor-pointer ${
                         s1Choice === opt.id
                           ? 'border-blue-500 bg-blue-500/10 text-white font-bold'
-                          : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700'
+                          : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-blue-300'
                       }`}
                     >
                       <span className="font-mono font-bold mr-2 text-blue-400">{opt.id}.</span>
@@ -323,15 +360,16 @@ export function E05LogicGatesScene({
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-slate-800">
+              <div className="mt-4 pt-4 border-t border-slate-200">
                 {!s1Submitted ? (
                   <Button
-                    disabled={!s1Choice}
+                    disabled={!s1Choice || !allGatesVerified}
                     onClick={() => {
+                      if (!allGatesVerified || s1Submitted) return;
                       if (s1Choice === 'A') {
                         setS1Submitted(true);
                         sounds.playSuccessSound?.();
-                        onStepComplete('LOGIC_GATE_SYMBOLS_AND_TRUTH_TABLE', { s1Choice, s1Gate });
+                        onStepComplete('LOGIC_GATE_SYMBOLS_AND_TRUTH_TABLE', { s1Choice, s1Gate, gateReadings });
                       } else {
                         assessment.recordWrong('cognition');
                         sounds.playFailureSound?.();
@@ -370,19 +408,19 @@ export function E05LogicGatesScene({
       {currentStep === 'EXPERIMENT_BOX_TRUTH_VERIFICATION' && (
         <div className="flex flex-col gap-5">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-            <div className="lg:col-span-8 p-6 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between min-h-[380px]">
+            <div className="lg:col-span-8 p-3.5 sm:p-6 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between min-h-[380px] min-w-0 max-w-full">
               <div>
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
                   <span className="text-sm font-bold uppercase text-blue-400">
                     试验箱工位：74HC08 四 2 输入与门真值表实测
                   </span>
-                  <span className="text-sm text-slate-300">
+                  <span className="text-sm text-slate-300 break-words">
                     当前输入: A={s2SwitchA ? '1' : '0'}, B={s2SwitchB ? '1' : '0'} → 输出 Y={s2CurrentOut ? '1 (灯亮)' : '0 (灯灭)'}
                   </span>
                 </div>
 
                 {/* 拨动开关与 LED */}
-                <div className="p-4 bg-slate-900/80 rounded-xl border border-slate-800 flex items-center justify-around mb-4">
+                <div className="p-3 sm:p-4 bg-slate-900/80 rounded-xl border border-slate-800 flex flex-wrap items-center justify-around gap-2 mb-4">
                   <div className="text-center">
                     <div className="text-sm text-slate-300 mb-1">电平开关 A</div>
                     <Button
@@ -414,7 +452,7 @@ export function E05LogicGatesScene({
                   <div className="text-center">
                     <div className="text-sm text-slate-300 mb-1">输出指示灯 Y</div>
                     <div
-                      className={`w-10 h-10 rounded-full mx-auto flex items-center justify-center font-bold text-sm border-2 ${
+                      className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full mx-auto flex items-center justify-center font-bold text-sm border-2 ${
                         s2CurrentOut
                           ? 'bg-amber-400 border-amber-300 text-slate-950 shadow-lg shadow-amber-400/50'
                           : 'bg-slate-800 border-slate-700 text-slate-500'
@@ -426,7 +464,7 @@ export function E05LogicGatesScene({
                 </div>
 
                 {/* 记录当前行到真值表 */}
-                <div className="flex justify-end">
+                <div className="flex flex-wrap justify-end">
                   <Button
                     size="sm"
                     onClick={() => {
@@ -442,7 +480,7 @@ export function E05LogicGatesScene({
               </div>
 
               {/* 真值表记录卡 */}
-              <div className="grid grid-cols-4 gap-2 pt-4 border-t border-slate-800 text-center text-sm">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-4 border-t border-slate-800 text-center text-sm">
                 {[
                   { a: '0', b: '0', exp: '0' },
                   { a: '0', b: '1', exp: '0' },
@@ -467,13 +505,13 @@ export function E05LogicGatesScene({
             </div>
 
             {/* 右侧零剧透判定 */}
-            <div className="lg:col-span-4 p-5 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div className="lg:col-span-4 p-3.5 sm:p-5 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between min-w-0 max-w-full">
               <div>
-                <h4 className="text-sm font-bold text-slate-200 mb-2 flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
                   <Zap className="w-4 h-4 text-cyan-400" />
                   实测结果确认
                 </h4>
-                <p className="text-sm text-slate-300 mb-4">
+                <p className="text-sm text-slate-600 mb-4">
                   拨动全部 4 种电平开关组合后，74HC08 与门输出 LED 只有在何种条件下才被点亮？
                 </p>
 
@@ -493,7 +531,7 @@ export function E05LogicGatesScene({
                       className={`w-full text-left p-3 rounded-xl border text-sm transition-all cursor-pointer ${
                         s2Choice === opt.id
                           ? 'border-blue-500 bg-blue-500/10 text-white font-bold'
-                          : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700'
+                          : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-blue-300'
                       }`}
                     >
                       <span className="font-mono font-bold mr-2 text-blue-400">{opt.id}.</span>
@@ -503,7 +541,7 @@ export function E05LogicGatesScene({
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-slate-800">
+              <div className="mt-4 pt-4 border-t border-slate-200">
                 {!s2Submitted ? (
                   <Button
                     disabled={!s2Choice || Object.keys(s2VerifiedRows).length < 4}
@@ -551,9 +589,9 @@ export function E05LogicGatesScene({
       {currentStep === 'VEHICLE_SAFETY_INTERLOCK_LOGIC' && (
         <div className="flex flex-col gap-5">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-            <div className="lg:col-span-8 p-6 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between min-h-[380px]">
+            <div className="lg:col-span-8 p-3.5 sm:p-6 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between min-h-[380px] min-w-0 max-w-full">
               <div>
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
                   <span className="text-sm font-bold uppercase text-blue-400">
                     实车联锁逻辑仿真：安全带未系报警联锁
                   </span>
@@ -563,7 +601,7 @@ export function E05LogicGatesScene({
                 </div>
 
                 {/* 三项输入条件 */}
-                <div className="grid grid-cols-3 gap-3 p-4 bg-slate-900/90 rounded-xl border border-slate-800 mb-4 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 sm:p-4 bg-slate-900/90 rounded-xl border border-slate-800 mb-4 text-sm">
                   <div className="p-3 bg-slate-950 rounded-lg border border-slate-800 text-center">
                     <div className="text-sm text-slate-300 mb-1">条件 A: 压力传感器</div>
                     <Button
@@ -608,8 +646,8 @@ export function E05LogicGatesScene({
                 </div>
 
                 {/* 逻辑综合判定示意 */}
-                <div className="p-4 bg-slate-900 border border-slate-700 rounded-xl flex items-center justify-between">
-                  <div className="text-sm font-mono">
+                <div className="p-3 sm:p-4 bg-slate-900 border border-slate-700 rounded-xl flex flex-wrap items-center justify-between gap-2">
+                  <div className="text-sm font-mono break-words">
                     逻辑表达式: <span className="text-emerald-400 font-bold">Alarm = A · B · C (三输入与门)</span>
                   </div>
                   <div className="text-sm font-mono">
@@ -620,19 +658,19 @@ export function E05LogicGatesScene({
                 </div>
               </div>
 
-              <div className="text-sm text-slate-300 pt-4 border-t border-slate-800 font-mono">
+              <div className="text-sm text-slate-300 pt-4 border-t border-slate-800 font-mono break-words">
                 安全规范: 只有驾驶员在座(A=1)、未系安全带(B=1)且车辆正在行驶(C=1)三者同时成立时，系统才触发声音与灯光报警。
               </div>
             </div>
 
             {/* 右侧定量分析题 */}
-            <div className="lg:col-span-4 p-5 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div className="lg:col-span-4 p-3.5 sm:p-5 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between min-w-0 max-w-full">
               <div>
-                <h4 className="text-sm font-bold text-slate-200 mb-2 flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   逻辑设计工单
                 </h4>
-                <p className="text-sm text-slate-300 mb-4">
+                <p className="text-sm text-slate-600 mb-4">
                   若驾驶员坐在车内(A=1)但车辆处于静止驻车状态(C=0)，即便未系安全带(B=1)，报警蜂鸣器是否应该鸣叫？对应的布尔逻辑值是多少？
                 </p>
 
@@ -652,7 +690,7 @@ export function E05LogicGatesScene({
                       className={`w-full text-left p-3 rounded-xl border text-sm transition-all cursor-pointer ${
                         s3Choice === opt.id
                           ? 'border-blue-500 bg-blue-500/10 text-white font-bold'
-                          : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700'
+                          : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-blue-300'
                       }`}
                     >
                       <span className="font-mono font-bold mr-2 text-blue-400">{opt.id}.</span>
@@ -662,7 +700,7 @@ export function E05LogicGatesScene({
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-slate-800">
+              <div className="mt-4 pt-4 border-t border-slate-200">
                 {!s3Submitted ? (
                   <Button
                     disabled={!s3Choice}
@@ -685,7 +723,7 @@ export function E05LogicGatesScene({
                   <div className="space-y-2">
                     <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-sm flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 shrink-0" />
-                      <span>设计分析完全正确！三条件与门联锁完全符合乘用车安全法规！</span>
+                      <span>设计分析完全正确！三条件与门联锁符合本训练模型的联锁条件！</span>
                     </div>
                     <Button
                       onClick={() => {
@@ -709,13 +747,13 @@ export function E05LogicGatesScene({
       {currentStep === 'BLIND_LOGIC_IC_FAULT_DIAGNOSIS' && (
         <div className="flex flex-col gap-5">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-            <div className="lg:col-span-7 p-6 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between min-h-[380px]">
+            <div className="lg:col-span-7 p-3.5 sm:p-6 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between min-h-[380px] min-w-0 max-w-full">
               <div>
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
                   <span className="text-sm font-bold uppercase text-blue-400">
                     实训测试台：4 片未知 74HC08 芯片盲测
                   </span>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <Button
                       size="sm"
                       onClick={() => {
@@ -740,7 +778,7 @@ export function E05LogicGatesScene({
                 </div>
 
                 {/* 样件切换 */}
-                <div className="grid grid-cols-4 gap-2 mb-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
                   {E05_SAMPLES.map((smp, idx) => (
                     <button
                       key={smp.id}
@@ -748,7 +786,7 @@ export function E05LogicGatesScene({
                         setS4SampleIndex(idx);
                         sounds.playToggleSound?.();
                       }}
-                      className={`p-2.5 rounded-xl text-sm font-bold border transition-all cursor-pointer ${
+                      className={`p-2 sm:p-2.5 rounded-xl text-sm font-bold border transition-all cursor-pointer ${
                         s4SampleIndex === idx
                           ? 'border-blue-500 bg-blue-500/20 text-white ring-2 ring-blue-500/40'
                           : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700'
@@ -760,11 +798,11 @@ export function E05LogicGatesScene({
                 </div>
 
                 {/* 仪表显示 */}
-                <div className="p-5 bg-slate-900 border border-slate-700 rounded-xl flex flex-col items-center">
+                <div className="p-3.5 sm:p-5 bg-slate-900 border border-slate-700 rounded-xl flex flex-col items-center">
                   <div className="text-sm text-slate-300 mb-2">
                     测试对象: <span className="text-white font-bold">{activeSample.name}</span>
                   </div>
-                  <div className="w-48 h-20 bg-emerald-950/60 border border-emerald-800 rounded-xl flex items-center justify-center font-mono text-3xl font-black text-emerald-400">
+                  <div className="w-40 sm:w-48 h-16 sm:h-20 bg-emerald-950/60 border border-emerald-800 rounded-xl flex items-center justify-center font-mono text-2xl sm:text-3xl font-black text-emerald-400">
                     {s4SampleOut ? 'HIGH (1 / 5V)' : 'LOW (0 / 0V)'}
                   </div>
                   <div className="text-sm text-slate-300 mt-2">
@@ -773,25 +811,25 @@ export function E05LogicGatesScene({
                 </div>
               </div>
 
-              <div className="text-sm text-slate-300 pt-4 border-t border-slate-800">
+              <div className="text-sm text-slate-300 pt-4 border-t border-slate-800 break-words">
                 诊断提示: 良好管仅 11 输出 1；若输入 00 时输出仍有 1 或 10 输出 1，为输入端内部悬空虚高；恒为 0 且无功耗为 VCC 虚焊或输出接地击穿。
               </div>
             </div>
 
             {/* 右侧诊断报告 */}
-            <div className="lg:col-span-5 p-5 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div className="lg:col-span-5 p-3.5 sm:p-5 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between min-w-0 max-w-full">
               <div>
-                <h4 className="text-sm font-bold text-slate-200 mb-2 flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   逻辑芯片诊断工单
                 </h4>
-                <p className="text-sm text-slate-300 mb-3">判定 4 片未知芯片的内部物理状态：</p>
+                <p className="text-sm text-slate-600 mb-3">判定 4 片未知芯片的内部物理状态：</p>
 
                 <div className="space-y-3">
                   {E05_SAMPLES.map((smp) => (
-                    <div key={smp.id} className="p-3 bg-slate-900/80 rounded-xl border border-slate-800 text-sm">
+                    <div key={smp.id} className="p-2.5 sm:p-3 bg-slate-900/80 rounded-xl border border-slate-800 text-sm">
                       <div className="font-bold text-slate-200 mb-1.5">{smp.name}</div>
-                      <div className="grid grid-cols-2 gap-1.5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                         {[
                           { val: 'GOOD', label: '逻辑功能良好' },
                           { val: 'VCC_DISCONNECTED', label: 'VCC供电引脚虚焊' },
@@ -808,7 +846,7 @@ export function E05LogicGatesScene({
                             className={`p-2 rounded-lg border text-center text-sm font-medium transition-all cursor-pointer ${
                               s4Diagnoses[smp.id] === opt.val
                                 ? 'border-blue-500 bg-blue-500/20 text-white font-bold'
-                                : 'border-slate-800 bg-slate-950/50 text-slate-400 hover:border-slate-700'
+                                : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-blue-300'
                             }`}
                           >
                             {opt.label}
@@ -820,7 +858,7 @@ export function E05LogicGatesScene({
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-slate-800">
+              <div className="mt-4 pt-4 border-t border-slate-200">
                 {!s4Submitted ? (
                   <Button
                     disabled={Object.keys(s4Diagnoses).length < 4}
@@ -871,24 +909,24 @@ export function E05LogicGatesScene({
       {currentStep === 'ENGINEERING_REPAIR_AND_DELIVERY' && (
         <div className="flex flex-col gap-5">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-            <div className="lg:col-span-8 p-6 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between min-h-[380px]">
+            <div className="lg:col-span-8 p-3.5 sm:p-6 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between min-h-[380px] min-w-0 max-w-full">
               <div>
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
                   <span className="text-sm font-bold uppercase text-blue-400">
                     实车工单：系好安全带后报警蜂鸣器仍持续鸣叫
                   </span>
                   <span className="text-sm text-rose-400 font-mono font-bold">故障代码: B1206-11</span>
                 </div>
 
-                <div className="p-4 bg-slate-900/80 rounded-xl border border-slate-800 text-sm space-y-3">
-                  <div className="text-slate-300">
+                <div className="p-3 sm:p-4 bg-slate-900/80 rounded-xl border border-slate-800 text-sm space-y-3">
+                  <div className="text-slate-300 break-words">
                     <span className="text-slate-500 font-bold">报修现象:</span> 车辆行驶中，驾驶员即便插牢安全带插扣，仪表盘红灯与蜂鸣器依然尖叫不止。
                   </div>
-                  <div className="text-slate-300">
+                  <div className="text-slate-300 break-words">
                     <span className="text-slate-500 font-bold">排查操作:</span> 用万用表电阻档 (200Ω) 测量安全带锁扣开关信号线对地电阻。
                   </div>
 
-                  <div className="flex items-center gap-4 pt-2">
+                  <div className="flex flex-wrap items-center gap-2 pt-2">
                     <Button
                       size="sm"
                       onClick={() => {
@@ -902,7 +940,7 @@ export function E05LogicGatesScene({
                     </Button>
 
                     {s5Measured && (
-                      <div className="text-sm font-mono">
+                      <div className="text-sm font-mono break-words">
                         实测对地电阻:{' '}
                         <span className="text-rose-400 font-bold">
                           {s5Repaired ? 'OL (绝缘正常)' : '0.1 Ω (严重短路搭铁！)'}
@@ -913,9 +951,9 @@ export function E05LogicGatesScene({
                 </div>
 
                 {s5Measured && !s5Repaired && (
-                  <div className="mt-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-3">
-                    <div className="text-sm text-amber-300 font-bold">
-                      根因查明：锁扣线束在座椅滑轨下被割破外皮搭铁短路，导致 BCM 逻辑输入端恒为高电平 1！
+                  <div className="mt-4 p-3 sm:p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-3">
+                    <div className="text-sm text-amber-300 font-bold break-words">
+                      根因查明：锁扣线束在座椅滑轨下被割破外皮搭铁短路，导致信号线保持低电平，BCM 解码为“未系”逻辑 1！
                     </div>
                     <Button
                       size="sm"
@@ -931,7 +969,7 @@ export function E05LogicGatesScene({
                 )}
 
                 {s5Repaired && (
-                  <div className="mt-4 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-between">
+                  <div className="mt-4 p-3 sm:p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <div className="text-sm font-bold text-emerald-300">
                         ✓ 新线束已更换并固定于安全卡槽，请插拔安全带验证消除报警
@@ -955,7 +993,7 @@ export function E05LogicGatesScene({
               </div>
 
               {s5Repaired && (
-                <div className="flex items-center gap-4 pt-4 border-t border-slate-800 text-sm font-mono">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-4 pt-4 border-t border-slate-800 text-sm font-mono">
                   <div className="text-emerald-400 font-bold">
                     {s5BuckleState === 'BUCKLED' ? '安全带系好，报警已静音 ✓' : '安全带拔出，报警正鸣叫 🚨'}
                   </div>
@@ -966,13 +1004,13 @@ export function E05LogicGatesScene({
             </div>
 
             {/* 右侧交付签署 */}
-            <div className="lg:col-span-5 p-5 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div className="lg:col-span-5 p-5 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
               <div>
-                <h4 className="text-sm font-bold text-slate-200 mb-2 flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                   工程交付验收单
                 </h4>
-                <p className="text-sm text-slate-300 mb-3">核验安全联锁修复指标：</p>
+                <p className="text-sm text-slate-600 mb-3">核验安全联锁修复指标：</p>
 
                 <div className="space-y-2 text-sm">
                   <div className="p-2.5 bg-slate-900 rounded-lg border border-slate-800 flex justify-between">
@@ -1003,12 +1041,12 @@ export function E05LogicGatesScene({
                     className="rounded accent-emerald-500"
                   />
                   <label htmlFor="e05-sign" className="text-sm text-slate-300 cursor-pointer">
-                    维修技师已通过实车路试插拔联锁复验，确认符合乘用车安全法规，准予交车
+                    维修技师已通过实车路试插拔联锁复验，确认符合本训练验收条件，准予交车
                   </label>
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-slate-800">
+              <div className="mt-4 pt-4 border-t border-slate-200">
                 {!s5Submitted ? (
                   <Button
                     disabled={!s5Signed || !s5Repaired}

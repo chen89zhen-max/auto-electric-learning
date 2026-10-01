@@ -1,4 +1,9 @@
 'use client';
+import { getLevelDisplayName } from '@/src/courses/curriculum';
+import { getNextLevelLabel } from '@/src/courses/curriculum';
+
+
+import { LevelHeading } from '@/src/components/LevelHeading';
 
 import React, { useState } from 'react';
 import {
@@ -17,9 +22,35 @@ import { getStudentDisplayName } from '@/src/stores/authStore';
 import { A03ResistanceScene } from './scenes/A03ResistanceScene';
 import { A03_STAGE_CONTENT, type A03Step } from './a03Training';
 import type { PracticeMode } from '@/src/types/evidence';
+import { formatDurationMs } from '@/src/lib/formatDuration';
 
 interface A03ExperienceProps {
   onReturnLobby: () => void;
+}
+
+type ProcessCounters = { wrongAttempts: number; hintRequests: number; meterGuardBlocks: number; unsafeActions: number; retries: number };
+type ProcessEvent = keyof ProcessCounters;
+
+function buildA03ProcessReport(counters: ProcessCounters, durationMs: number) {
+  const score = Math.round(Math.max(0, Math.min(1, 1 - 0.12 * counters.wrongAttempts - 0.15 * counters.hintRequests - 0.20 * counters.meterGuardBlocks - 0.30 * counters.unsafeActions - 0.05 * counters.retries)) * 100);
+  const stars = score >= 90 ? 5 : score >= 80 ? 4 : score >= 70 ? 3 : score >= 60 ? 2 : 1;
+  return {
+    score,
+    dimensions: [
+      { id: 'COLOR_CODE', label: '色环识读与阻值解码', stars },
+      { id: 'TOLERANCE', label: '公差区间计算与预测', stars },
+      { id: 'SAFETY_INTERCEPT', label: '断电测量与带电防呆', stars },
+      { id: 'POTENTIOMETER', label: '电位器动片特性核验', stars },
+      { id: 'TRANSFER_NTC', label: '实车传感器阻值诊断', stars },
+    ],
+    summaryItems: [
+      { label: '过程答错记录', value: `${counters.wrongAttempts} 次` },
+      { label: '教学提示使用', value: `${counters.hintRequests} 次` },
+      { label: '仪表安全拦截', value: `${counters.meterGuardBlocks} 次` },
+      { label: '安全违规操作', value: `${counters.unsafeActions} 次` },
+      { label: '本关用时', value: formatDurationMs(durationMs) },
+    ],
+  };
 }
 
 export function A03Experience({ onReturnLobby }: A03ExperienceProps) {
@@ -30,6 +61,9 @@ export function A03Experience({ onReturnLobby }: A03ExperienceProps) {
   const [sceneRevision, setSceneRevision] = useState(0);
   const [showWorkOrder, setShowWorkOrder] = useState(false);
   const [hintRequested, setHintRequested] = useState(false);
+  const [startedAt, setStartedAt] = useState(() => Date.now());
+  const [completedAt, setCompletedAt] = useState<number | null>(null);
+  const [processCounters, setProcessCounters] = useState<ProcessCounters>({ wrongAttempts: 0, hintRequests: 0, meterGuardBlocks: 0, unsafeActions: 0, retries: 0 });
 
   const guidance = A03_STAGE_CONTENT[currentStep];
 
@@ -54,8 +88,13 @@ export function A03Experience({ onReturnLobby }: A03ExperienceProps) {
       setCurrentStep('TRANSFER_NTC');
       setHintRequested(false);
     } else if (currentStep === 'TRANSFER_NTC') {
+      setCompletedAt(Date.now());
       setIsCompleted(true);
     }
+  };
+
+  const recordProcessEvent = (event: ProcessEvent) => {
+    setProcessCounters((current) => ({ ...current, [event]: current[event] + 1 }));
   };
 
   const handleRestart = () => {
@@ -63,9 +102,14 @@ export function A03Experience({ onReturnLobby }: A03ExperienceProps) {
     setCurrentStep('COLOR_CODE_CALC');
     setStepEvidences({});
     setHintRequested(false);
+    setStartedAt(Date.now());
+    setCompletedAt(null);
+    setProcessCounters({ wrongAttempts: 0, hintRequests: 0, meterGuardBlocks: 0, unsafeActions: 0, retries: 0 });
     setShowWorkOrder(false);
     setSceneRevision((r) => r + 1);
   };
+
+  const report = buildA03ProcessReport(processCounters, completedAt === null ? 0 : Math.max(0, completedAt - startedAt));
 
   return (
     <main className="app-shell level02-shell a03-shell">
@@ -75,12 +119,7 @@ export function A03Experience({ onReturnLobby }: A03ExperienceProps) {
           <span className="brand-mark safety-mark bg-amber-600 shadow-amber-600/20">
             <Sliders size={22} />
           </span>
-          <div>
-            <p className="eyebrow text-amber-700">篇章一：把电路看明白 · A03</p>
-            <h1 className="text-slate-800 font-bold">
-              学习任务3：元件身份核验——电阻识别与测量
-            </h1>
-          </div>
+          <LevelHeading levelId="A03" />
         </div>
 
         {/* Trainee Profile & Controls */}
@@ -124,13 +163,8 @@ export function A03Experience({ onReturnLobby }: A03ExperienceProps) {
                 levelId="A03"
                 domainLabel="技能领域 · 电阻识别与测量"
                 title="电阻识别与测量能力报告"
-                dimensions={[
-                  { id: 'COLOR_CODE', label: '色环识读与阻值解码', stars: 5 },
-                  { id: 'TOLERANCE', label: '公差区间计算与预测', stars: 5 },
-                  { id: 'SAFETY_INTERCEPT', label: '断电测量与带电防呆', stars: 5 },
-                  { id: 'POTENTIOMETER', label: '电位器动片特性核验', stars: 5 },
-                  { id: 'TRANSFER_NTC', label: '实车传感器阻值诊断', stars: 5 },
-                ]}
+                dimensions={report.dimensions}
+                score={report.score}
                 summaryItems={[
                   {
                     label: '标称阻值识读',
@@ -144,21 +178,17 @@ export function A03Experience({ onReturnLobby }: A03ExperienceProps) {
                       ? `${(stepEvidences.COLOR_CODE_CALC as { min: number; max: number }).min}~${(stepEvidences.COLOR_CODE_CALC as { min: number; max: number }).max} Ω 合格`
                       : '209~231 Ω 合格',
                   },
-                  { label: '带电测阻拦截', value: 'V05 安全防护达成' },
-                  { label: '超差电阻排查', value: '分类筛选准确率 100%' },
-                  { label: '电位器滑动特性', value: '双向阻值线性互补验证' },
-                  { label: '进气压力偏置盲检', value: '985Ω 公差合格判定准确' },
-                  { label: '实车 NTC 排查', value: '负温度系数特性排查达标' },
+                  ...report.summaryItems,
                 ]}
                 metrics={stepEvidences}
                 mode={practiceMode}
-                nextTask="学习任务4《电流到底走哪里——电流分析与测量》"
+                nextTask={getNextLevelLabel('A03')}
                 onRestart={handleRestart}
                 onReturn={onReturnLobby}
               />
             </div>
             <div className="objective-strip">
-              <span>当前任务</span>
+              <span>当前操作</span>
               <strong>查看电阻识别与测量能力报告</strong>
               <output className="feedback">实训评测已通过，元件识别与测量规范已牢固建立。</output>
             </div>
@@ -180,10 +210,11 @@ export function A03Experience({ onReturnLobby }: A03ExperienceProps) {
                   practiceMode={practiceMode}
                   onStepComplete={handleStepComplete}
                   onAdvanceStep={handleAdvanceStep}
+                  onProcessEvent={recordProcessEvent}
                 />
               </div>
               <div className="objective-strip">
-                <span>当前任务</span>
+                <span>当前操作</span>
                 <strong>{guidance.title}</strong>
                 <output className="feedback">{guidance.objective}</output>
               </div>
@@ -256,13 +287,16 @@ export function A03Experience({ onReturnLobby }: A03ExperienceProps) {
         <button
           type="button"
           className={hintRequested ? 'tool-active cursor-pointer' : 'cursor-pointer'}
-          onClick={() => setHintRequested(true)}
+          onClick={() => {
+            if (!hintRequested) recordProcessEvent('hintRequests');
+            setHintRequested(true);
+          }}
         >
           <HelpCircle size={19} /> 请师傅提示
         </button>
         <span className="toolbar-spacer" />
         <span className="unlock-hint">
-          测量要点：色标公差／断电隔离／电位器 · 学习任务3（14页）
+          测量要点：色标公差／断电隔离／电位器 · 教材与考纲见页头
         </span>
         <button type="button" onClick={handleRestart} className="cursor-pointer">
           <RotateCcw size={18} /> 重新开始
@@ -278,9 +312,7 @@ export function A03Experience({ onReturnLobby }: A03ExperienceProps) {
         >
           <section className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
             <p className="eyebrow">工单编号 · WO-A03-RESISTANCE</p>
-            <h2 className="mt-1 text-xl font-black text-slate-900">
-              元件身份核验——电阻识别与测量
-            </h2>
+            <h2 className="mt-1 text-xl font-black text-slate-900">{getLevelDisplayName('A03')} · 实训工单</h2>
             <p className="mt-3 leading-7 text-slate-700">
               在元件检测台上完成色环电阻标称值识读与合格公差推算，严格遵守断电隔离测量规范，排查超差件与断路件，并掌握可变电位器动片特性与实车传感器应用。
             </p>

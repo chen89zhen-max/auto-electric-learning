@@ -1,4 +1,9 @@
 'use client';
+import { getLevelDisplayName } from '@/src/courses/curriculum';
+import { getNextLevelLabel } from '@/src/courses/curriculum';
+
+
+import { LevelHeading } from '@/src/components/LevelHeading';
 
 import React, { useState } from 'react';
 import {
@@ -14,6 +19,7 @@ import { AbilityReport } from '@/src/components/AbilityReport';
 import { MasterChenAvatar } from '@/src/components/visuals/MasterChenAvatar';
 import { SpeechControls } from '@/src/components/visuals/SpeechControls';
 import { getStudentDisplayName } from '@/src/stores/authStore';
+import { buildChapterBProcessReport, type ChapterBProcessInput } from '@/src/levels/chapterB/ChapterBExperience';
 import { B04PowerEnergyScene } from './B04PowerEnergyScene';
 import { B04_STAGE_CONTENT, type B04Step } from './b04Training';
 
@@ -28,6 +34,7 @@ export function B04Experience({ onReturnLobby }: B04ExperienceProps) {
   const [sceneRevision, setSceneRevision] = useState(0);
   const [showWorkOrder, setShowWorkOrder] = useState(false);
   const [hintRequested, setHintRequested] = useState(false);
+  const [processStages, setProcessStages] = useState<NonNullable<ChapterBProcessInput['stages']>>([]);
 
   const guidance = B04_STAGE_CONTENT[currentStep];
 
@@ -56,14 +63,41 @@ export function B04Experience({ onReturnLobby }: B04ExperienceProps) {
     }
   };
 
+  const recordProcessEvent = (type: 'wrong' | 'unsafe') => {
+    const stageIndex = Object.keys(B04_STAGE_CONTENT).indexOf(currentStep);
+    setProcessStages((current) => {
+      const next = [...current];
+      const stage = next[stageIndex] ?? {};
+      next[stageIndex] = type === 'unsafe'
+        ? { ...stage, unsafeActions: (stage.unsafeActions ?? 0) + 1 }
+        : { ...stage, wrongAttempts: (stage.wrongAttempts ?? 0) + 1 };
+      return next;
+    });
+  };
+
+  const handleHintRequest = () => {
+    setHintRequested(true);
+    const stageIndex = Object.keys(B04_STAGE_CONTENT).indexOf(currentStep);
+    setProcessStages((current) => {
+      const next = [...current];
+      const stage = next[stageIndex] ?? {};
+      if ((stage.hintRequests ?? 0) >= 1) return current;
+      next[stageIndex] = { ...stage, hintRequests: 1 };
+      return next;
+    });
+  };
+
   const handleRestart = () => {
     setIsCompleted(false);
     setCurrentStep('RATED_VS_ACTUAL_POWER');
     setStepEvidences({});
     setHintRequested(false);
+    setProcessStages([]);
     setShowWorkOrder(false);
     setSceneRevision((r) => r + 1);
   };
+
+  const processReport = buildChapterBProcessReport('B04', { stages: processStages });
 
   return (
     <main className="app-shell level02-shell b04-shell">
@@ -73,12 +107,7 @@ export function B04Experience({ onReturnLobby }: B04ExperienceProps) {
           <span className="brand-mark safety-mark bg-amber-600 shadow-amber-600/20 text-white">
             <Calculator size={22} />
           </span>
-          <div>
-            <p className="eyebrow text-amber-700">篇章二：让电路按要求工作 · B04</p>
-            <h1 className="text-slate-800 font-bold">
-              学习任务7：工位用电预算——电能与电功率分析
-            </h1>
-          </div>
+          <LevelHeading levelId="B04" />
         </div>
 
         {/* Trainee Profile & Controls */}
@@ -122,30 +151,18 @@ export function B04Experience({ onReturnLobby }: B04ExperienceProps) {
                 levelId="B04"
                 domainLabel="技能领域 · 电功率与能量预算"
                 title="电功率、电能预算与用电安全能力报告"
-                dimensions={[
-                  { id: 'RATED_ACTUAL_POWER', label: '额定功率与实际功率辨析', stars: 5 },
-                  { id: 'JOULE_HEAT_SAFETY', label: '焦耳定律与线束载流安全', stars: 5 },
-                  { id: 'ENERGY_BUDGET', label: '工位用电量与成本预算', stars: 5 },
-                  { id: 'FUSE_CALC_SELECT', label: '独立功放保险与线径选型', stars: 5 },
-                  { id: 'INVERTER_HAZARD_DIAG', label: '大功率逆变器安全改装决策', stars: 5 },
-                ]}
-                summaryItems={[
-                  { label: '功率与电压关系', value: 'P = U² / R 非线性敏感' },
-                  { label: '焦耳热与导线截面', value: 'Q = I² · R · t 细线高阻自燃' },
-                  { label: '工位日用电预算', value: '6.20 kWh / ¥5.27' },
-                  { label: '360W功放配置', value: 'I=30A / 40A保险 / 6.0mm²线' },
-                  { label: '1000W逆变器整改', value: '电瓶直连16mm² / 100A大保险' },
-                  { label: '本关用时', value: '1 分钟' },
-                ]}
+                dimensions={processReport.dimensions}
+                score={processReport.score}
+                summaryItems={processReport.summaryItems}
                 metrics={stepEvidences}
                 mode="guided"
-                nextTask="学习任务9《电源为什么带不动——全电路欧姆定律与内阻》"
+                nextTask={getNextLevelLabel('B04')}
                 onRestart={handleRestart}
                 onReturn={onReturnLobby}
               />
             </div>
             <div className="objective-strip">
-              <span>当前任务</span>
+              <span>当前操作</span>
               <strong>查看电功率、电能预算与用电安全能力报告</strong>
               <output className="feedback">实训评测已通过，电功率/焦耳定律物理本质与车载大功率安全配电标准已熟练掌握。</output>
             </div>
@@ -164,10 +181,11 @@ export function B04Experience({ onReturnLobby }: B04ExperienceProps) {
                   currentStep={currentStep}
                   onStepComplete={handleStepComplete}
                   onAdvanceStep={handleAdvanceStep}
+                  onProcessEvent={recordProcessEvent}
                 />
               </div>
               <div className="objective-strip">
-                <span>当前任务</span>
+                <span>当前操作</span>
                 <strong>{guidance.title}</strong>
                 <output className="feedback">{guidance.objective}</output>
               </div>
@@ -240,13 +258,13 @@ export function B04Experience({ onReturnLobby }: B04ExperienceProps) {
         <button
           type="button"
           className={hintRequested ? 'tool-active cursor-pointer' : 'cursor-pointer'}
-          onClick={() => setHintRequested(true)}
+          onClick={handleHintRequest}
         >
           <HelpCircle size={19} /> 请师傅提示
         </button>
         <span className="toolbar-spacer" />
         <span className="unlock-hint">
-          实训要点：额定vs实际功率／焦耳发热灾难／工位电度预算／逆变器过载合规整改 · 学习任务7（9页）
+          实训要点：额定vs实际功率／焦耳发热灾难／工位电度预算／逆变器过载合规整改 · 教材与考纲见页头
         </span>
         <button type="button" onClick={handleRestart} className="cursor-pointer">
           <RotateCcw size={18} /> 重新开始
@@ -262,9 +280,7 @@ export function B04Experience({ onReturnLobby }: B04ExperienceProps) {
         >
           <section className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
             <p className="eyebrow text-amber-700">工单编号 · WO-B04-POWER</p>
-            <h2 className="mt-1 text-xl font-black text-slate-900">
-              工位用电预算——电能与电功率分析
-            </h2>
+            <h2 className="mt-1 text-xl font-black text-slate-900">{getLevelDisplayName('B04')} · 实训工单</h2>
             <p className="mt-3 leading-7 text-slate-700">
               在汽车电功率与工位能耗预算实验台上，对比额定功率与实际功率在不同供电电压下的落差，验证导线截面积过小产生焦耳热自燃的破坏性机理，编制汽修工位全天设备用电量与电费预算，独立核算大功率功放保险丝容量，并对大功率逆变器私插点烟器烧蚀险情制定合规整改决策。
             </p>

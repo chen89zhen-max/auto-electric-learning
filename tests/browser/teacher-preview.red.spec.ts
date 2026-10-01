@@ -11,5 +11,5 @@ test('teacher direct C01 preview renders the level after real dialog login', asy
 
   await page.goto('/?level=C01');
 
-  await expect(page.getByRole('heading', { name: /C01.*电压降分析与虚接诊断/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /C01 找出灯光变暗的原因/ })).toBeVisible();
 });

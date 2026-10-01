@@ -88,6 +88,7 @@ export function C01VoltageDropScene({
   hintRequested,
 }: C01VoltageDropSceneProps) {
   const assessment = useLevelAssessment('C01');
+  const requestAssessmentHint = assessment.requestHint;
 
   React.useEffect(() => {
     if (hintRequested) {
@@ -98,9 +99,9 @@ export function C01VoltageDropScene({
         BLIND_FAULT_ISOLATION: 'blind_test',
         REPAIR_AND_CLOSED_LOOP: 'transfer',
       };
-      assessment.requestHint(stageMap[currentStep]);
+      requestAssessmentHint(stageMap[currentStep]);
     }
-  }, [hintRequested, currentStep, assessment]);
+  }, [hintRequested, currentStep, requestAssessmentHint]);
 
   // Multimeter global knob state: 'OFF' | 'DCV_20' | 'DCV_2' | 'OHM'
   const [meterKnob, setMeterKnob] = useState<'OFF' | 'DCV_20' | 'DCV_2' | 'OHM'>('OFF');

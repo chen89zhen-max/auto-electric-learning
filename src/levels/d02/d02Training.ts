@@ -39,10 +39,10 @@ export const D02_STAGE_CONTENT: Record<D02Step, D02StageContent> = {
       '引入半圆铜环换向器与石墨电刷：在线圈刚越过平衡位置的瞬间（转矩为零），电刷接触片自动与另一半铜环接触。',
       '电流方向瞬间反转：越过平衡位置后线圈两侧电流随之换向，受到的电磁转矩始终保持顺时针，实现稳定连续高速旋转。',
       '映射实车起动机 6 大内部结构：电枢转子、定子磁极、换向器铜环、石墨电刷、电磁开关（吸拉与保持）与单向离合器驱动齿轮。',
-      '对比单相脉动磁场与三相旋转磁场：单相磁场不能自起动必须依靠换向器，三相交流电互差 120° 产生天然平滑旋转磁场（新能源电驱核心）。',
+      '对比单相脉动磁场与三相旋转磁场：单相感应电机的单绕组脉动磁场不能自行确定起动方向，可用辅助绕组与电容分相等方式起动；三相对称绕组和电流合成旋转磁场，不依靠机械换向器。',
       '在工单中记录换向器与电刷的机械摩擦与碳粉磨损机理。',
     ],
-    completion: '换向器工作原理与无换向器卡滞反例对比透彻，掌握直流电动机连续运转的机械结构。',
+    completion: '理解有刷直流电机换向；完成异步机定转子观察、同步转速与转差的独立验证。',
     mentorPrompt:
       '注意看！很多新手以为通上直流电电机就能一直转，结果做个实验线圈转了半圈就卡住抽搐！为什么？因为过了平衡位置转矩反了！直流电动机的核心绝活就是“换向器”和“碳刷”，在刚过中线的零点瞬间给线圈电流调个头，转矩就能一直顺着同一个方向推！',
     hint: '对比“无换向器 (平衡卡死)”与“带换向器 (连续旋转)”的动态动画与受力分析。',
@@ -70,7 +70,7 @@ export const D02_STAGE_CONTENT: Record<D02Step, D02StageContent> = {
     actions: [
       '接入未知故障车辆：客户报修副驾车窗只降不升，或电机卡死发烫。',
       '测量输入电压：操作升窗开关时，打表测量电机端子 1 是否达到 12V（排查升窗继电器 A 触点高阻）。',
-      '断电测量电机内阻：正常车窗电机内阻约 1.5Ω~3.0Ω；若阻值达几十欧姆，提示电刷磨损碳粉堆积虚接；若为 OL 则电枢绕组断路。',
+      '断电测量电机内阻：本训练样车正常电机内阻约 1.5Ω~3.0Ω；若阻值达几十欧姆，提示电刷磨损碳粉堆积虚接；若为 OL 则电枢绕组断路。',
       '排查机械卡滞：带载电流飙升至堵转电流（>15A），提示导轨异物卡滞。',
       '在工单中提交确凿测量证据并选定修复方案。',
     ],
@@ -86,7 +86,7 @@ export const D02_STAGE_CONTENT: Record<D02Step, D02StageContent> = {
     actions: [
       '对故障部件进行工程修复：更换副驾升窗继电器，清理电机换向器表面积碳。',
       '清理车窗玻璃升降玻璃泥槽导轨并涂抹专用润滑膏，防止机械阻力过大导致电机过载。',
-      '通电试车：升窗测试电机平稳上升，实测工作电流 3.2A（正常范围 2.5A~4.0A）；降窗实测电流 2.8A。',
+      '通电试车：升窗测试电机平稳上升，实测工作电流 3.2A（本训练样车参考范围 2.5A~4.0A）；降窗实测电流 2.8A。',
       '防夹功能与极限行程断电检查：玻璃升到顶部防夹传感器与过流保护正常动作。',
       '规范签署工单，向车主交车。',
     ],
@@ -166,16 +166,27 @@ export const MAGNETIC_FIELD_COMPARISON: MagneticFieldComparison = {
   singlePhase: {
     name: '单相交流/单线圈脉动磁场',
     type: 'PULSATING',
-    description: '固定空间轴线上大小和方向随时间正弦交变的脉动磁场，无固定旋转方向，不能自起动，必须借助机械换向器或起动电容裂相',
+    description: '固定空间轴线上大小和方向随时间正弦交变的脉动磁场，无固定旋转方向，不能自起动，可用辅助绕组与电容分相等方式起动，机械换向器属于有刷直流电机机制',
     isSelfStarting: false,
     phaseDifferenceDegrees: 0,
   },
   threePhase: {
     name: '三相交流旋转磁场',
     type: 'ROTATING',
-    description: '三相对称绕组在空间互差120°，通入对称三相交流电后合成产生恒定幅值、连续旋转的空间旋转磁场，无需机械换向器即可自然带动转子旋转',
+    description: '三相对称绕组在空间互差120°，通入对称三相交流电后合成产生恒定幅值、连续旋转的空间旋转磁场，在鼠笼转子中感应电流并产生电磁转矩；电动运行时转子低于同步转速，需要转差，不用机械换向器',
     isRotating: true,
     isSelfStarting: true,
     phaseDifferenceDegrees: 120,
   },
 };
+
+/** Balanced three-phase induction motor, pole count (not pole pairs).
+ * Teaching model for slip, not a torque/speed characteristic simulation. */
+export function calculateInductionMotor(frequencyHz: number, poles: number, rotorRpm: number) {
+  if (!Number.isFinite(frequencyHz) || frequencyHz <= 0 || !Number.isInteger(poles) || poles < 2 || poles % 2 || !Number.isFinite(rotorRpm)) {
+    throw new RangeError('需要正频率、正偶数极数及有限转速');
+  }
+  const synchronousRpm = 120 * frequencyHz / poles;
+  const slip = (synchronousRpm - rotorRpm) / synchronousRpm;
+  return { synchronousRpm, slipPercent: Math.round(slip * 10000) / 100, rotorFrequencyHz: Math.abs(slip * frequencyHz) };
+}

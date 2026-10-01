@@ -129,6 +129,7 @@ export function C02FaultClassifyScene({
   hintRequested,
 }: C02FaultClassifySceneProps) {
   const assessment = useLevelAssessment('C02');
+  const requestAssessmentHint = assessment.requestHint;
 
   React.useEffect(() => {
     if (hintRequested) {
@@ -139,9 +140,9 @@ export function C02FaultClassifyScene({
         BLIND_THREE_FAULT_ISOLATION: 'blind_test',
         FAULT_REPAIR_AND_PREVENTION: 'transfer',
       };
-      assessment.requestHint(stageMap[currentStep]);
+      requestAssessmentHint(stageMap[currentStep]);
     }
-  }, [hintRequested, currentStep, assessment]);
+  }, [hintRequested, currentStep, requestAssessmentHint]);
 
   // Selected diagnostic tool: 'TEST_LIGHT' or 'MULTIMETER'
   const [activeTool, setActiveTool] = useState<'TEST_LIGHT' | 'MULTIMETER'>('TEST_LIGHT');

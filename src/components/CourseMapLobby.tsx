@@ -1,48 +1,52 @@
 'use client';
+import { CurriculumRoutes } from './course-map/CurriculumRoutes';
 
 import React, { useState } from 'react';
-import {
-  CheckCircle2,
-  ChevronRight,
-  GraduationCap,
-  Lock,
-  Play,
-  RotateCcw,
-  ShieldAlert,
-  Sparkles,
-  ToggleLeft,
-  ToggleRight,
-  Wrench,
-  Zap,
-  LayoutDashboard,
-  LogIn,
-  LogOut,
-  Layers,
-} from 'lucide-react';
+import { ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   CANONICAL_COURSE_MAP,
-  CanonicalLevelMeta,
-  CHAPTER_LIST,
+  type CanonicalLevelMeta,
   getCourseLevel,
-  getLevelProgress,
   isLevelUnlocked,
-  normalizeLevelId,
   resetUserProgress,
-  toLegacyLevelId,
   toggleTeacherMode,
   useUserProgress,
 } from '@/src/stores/userProgressStore';
-import { FullscreenButton } from '@/src/components/FullscreenButton';
 import { useAuth, logoutUser } from '@/src/stores/authStore';
 import { AuthDialog } from '@/src/components/auth/AuthDialog';
 import { AdminDashboard } from '@/src/components/admin/AdminDashboard';
+import type { ChapterId } from '@/src/courses/registry';
+import { buildCourseMapViewModel, type CourseMapLevelModel } from './course-map/courseMapModel';
+import { CourseMapHeader } from './course-map/CourseMapHeader';
+import { VehicleElectricalMap } from './course-map/VehicleElectricalMap';
+import { FloatingMissionHud } from './course-map/FloatingMissionHud';
+import { CourseMapLegend } from './course-map/CourseMapLegend';
+import { ChapterTaskPanel } from './course-map/ChapterTaskPanel';
+import styles from './course-map/CourseMapLobby.module.css';
 
-interface CourseMapLobbyProps {
-  onSelectLevel: (levelId: string) => void;
+// 课程实训任务状态基线：已完成、当前、可学习、未解锁、建设中
+export function getGrowthRoleTitle(
+  completedTasks: number,
+  isAdmin?: boolean,
+  isTeacher?: boolean
+): string {
+  if (isAdmin) return '系统管理员';
+  if (isTeacher) return '任课教师';
+  if (completedTasks === 0) return '见习学员';
+  if (completedTasks === 1) return '安全实训学员';
+  if (completedTasks === 2) return '回路搭建能手';
+  if (completedTasks === 3) return '测量助手';
+  if (completedTasks === 4) return '诊断学员';
+  return `控制电路学员 · ${completedTasks}级`;
 }
 
-export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
+export interface CourseMapLobbyProps {
+  onSelectLevel: (levelId: string, mapActiveLevelId: string) => void;
+  driveFromLevelId?: string | null;
+}
+
+export function CourseMapLobby({ onSelectLevel, driveFromLevelId }: CourseMapLobbyProps) {
   const progress = useUserProgress();
   const { user, isAdmin } = useAuth();
   const [showAuthDialog, setShowAuthDialog] = useState(false);
@@ -50,29 +54,20 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
   const [lockedNotice, setLockedNotice] = useState<string | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [logoutPending, setLogoutPending] = useState(false);
-  const [selectedChapter, setSelectedChapter] = useState<string>('ALL');
 
-  // Calculate statistics with canonical normalization
-  const completedNormalized = new Set(
-    Object.entries(progress.levels)
-      .filter(([, l]) => l.status === 'completed')
-      .map(([id]) => normalizeLevelId(id))
-  );
-  const completedCount = completedNormalized.size;
-  const totalTasks = CANONICAL_COURSE_MAP.length;
-  const progressPercent = Math.round((completedCount / totalTasks) * 100);
+  // Build clean reactive view model from progress
+  const model = buildCourseMapViewModel(progress);
+  const [selectedChapterId, setSelectedChapterId] = useState<ChapterId>(model.activeChapterId);
+  const [previewChapterId, setPreviewChapterId] = useState<ChapterId | null>(null);
+  const [showAllTasks, setShowAllTasks] = useState(false);
+  const [focusedLevelId, setFocusedLevelId] = useState<string | null>(null);
+  const displayedLevel = model.chapters.flatMap(chapter => chapter.levels).find(level => level.id === focusedLevelId) ?? model.activeLevel;
+  const isTaskPreview = displayedLevel.id !== model.activeLevel.id;
 
   // Admin / Teacher Dashboard view
   if (showAdminDashboard && (isAdmin || user?.role === 'teacher')) {
     return <AdminDashboard onReturnLobby={() => setShowAdminDashboard(false)} />;
   }
-
-  // Determine current active level
-  const activeLevelMeta = CANONICAL_COURSE_MAP.find(
-    (m) => m.id === progress.currentActiveLevel || toLegacyLevelId(m.id) === progress.currentActiveLevel
-  ) || CANONICAL_COURSE_MAP[0];
-  const activeLevelProg = getLevelProgress(activeLevelMeta.id, progress);
-  const isActiveCompleted = activeLevelProg.status === 'completed' || completedNormalized.has(normalizeLevelId(activeLevelMeta.id));
 
   const handleCardClick = (meta: CanonicalLevelMeta) => {
     if (!user) {
@@ -92,7 +87,17 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
       setTimeout(() => setLockedNotice(null), 3500);
       return;
     }
-    onSelectLevel(meta.id);
+    onSelectLevel(meta.id, model.activeLevel.id);
+  };
+
+  const handleLevelAction = (level: CourseMapLevelModel) => {
+    const meta = CANONICAL_COURSE_MAP.find((item) => item.id === level.id);
+    if (!meta) {
+      setLockedNotice('⚠ 内部数据错误：未找到对应任务元数据');
+      setTimeout(() => setLockedNotice(null), 3000);
+      return;
+    }
+    handleCardClick(meta);
   };
 
   const handleToggleTeacher = () => {
@@ -117,153 +122,22 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-800 flex flex-col items-center p-4 sm:p-6 lg:p-8 select-none" suppressHydrationWarning>
-      {/* Top Banner & User Profile */}
-      <header className="w-full max-w-[1480px] bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200 shadow-md p-5 sm:p-6 mb-5 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4" suppressHydrationWarning>
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-500/20 shrink-0">
-            <Zap size={30} />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-amber-700 uppercase tracking-wider">
-                中职汽车类专业智能实训系统
-              </span>
-              {progress.teacherMode && (
-                <span className="text-[10px] font-bold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full border border-purple-200">
-                  教师演示模式 (仅供课堂展示，不产生学生成绩)
-                </span>
-              )}
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight">
-              汽车电工电子 · 课程地图与实训大厅
-            </h1>
-          </div>
-        </div>
-
-        {/* Student Stats & Teacher Mode Tools */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full lg:w-auto border-t lg:border-t-0 pt-3 lg:pt-0 border-slate-100">
-          <div className="bg-white border border-slate-200 shadow-xs hover:border-slate-300 rounded-2xl p-3 sm:px-4.5 sm:py-3 flex items-center gap-3.5 transition-all">
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0 ${isAdmin ? 'bg-gradient-to-br from-purple-600 to-indigo-600 shadow-purple-500/20' : 'bg-gradient-to-br from-amber-500 to-amber-600 shadow-amber-500/20'}`}>
-              {isAdmin ? <ShieldAlert size={26} /> : <GraduationCap size={26} />}
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-base sm:text-lg font-bold text-slate-900 tracking-tight leading-tight">
-                  {user ? user.realName : progress.traineeName}
-                </span>
-                {user?.className && (
-                  <span className="text-xs sm:text-sm text-slate-500 font-medium">
-                    ({user.className})
-                  </span>
-                )}
-                <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border shadow-2xs font-mono ${
-                  isAdmin
-                    ? 'bg-purple-50 text-purple-700 border-purple-200'
-                    : user?.role === 'teacher'
-                    ? 'bg-blue-50 text-blue-700 border-blue-200'
-                    : 'bg-amber-50 text-amber-800 border-amber-200'
-                }`}>
-                  {isAdmin
-                    ? '系统管理员'
-                    : user?.role === 'teacher'
-                    ? '任课教师'
-                    : completedCount === 0
-                    ? '见习学员'
-                    : completedCount === 1
-                    ? '安全实训学员'
-                    : completedCount === 2
-                    ? '回路搭建能手'
-                    : completedCount === 3
-                    ? '测量助手'
-                    : completedCount === 4
-                    ? '诊断学员'
-                    : `控制电路学员 · ${completedCount}级`}
-                </span>
-              </div>
-              <div className="text-xs sm:text-sm text-slate-600 mt-1 flex items-center gap-2.5 font-medium">
-                <span>完成进度: <strong className="text-slate-900 font-bold">{completedCount}</strong> / {totalTasks}</span>
-                <div className="w-24 sm:w-32 bg-slate-200 h-2.5 rounded-full overflow-hidden shadow-inner flex-shrink-0">
-                  <div className="bg-emerald-500 h-full rounded-full transition-all duration-300" style={{ width: `${progressPercent}%` }} />
-                </div>
-                <span className="text-xs text-emerald-600 font-bold font-mono">
-                  {progressPercent}%
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            <FullscreenButton />
-
-            {/* Admin / Teacher Dashboard Button */}
-            {(isAdmin || user?.role === 'teacher') && (
-              <Button
-                size="sm"
-                onClick={() => setShowAdminDashboard(true)}
-                className="text-xs bg-purple-700 hover:bg-purple-600 text-white font-bold flex items-center gap-1.5 shadow-sm"
-              >
-                <LayoutDashboard size={14} />
-                {isAdmin ? '系统管理大屏' : '班级教学大屏'}
-              </Button>
-            )}
-
-            {/* Auth Button */}
-            {user ? (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => void handleLogout()}
-                disabled={logoutPending}
-                className="text-xs border-slate-200 bg-white text-slate-600 hover:bg-slate-100 flex items-center gap-1"
-                title="退出当前登录账号"
-              >
-                <LogOut size={14} />
-                {logoutPending ? '退出中…' : '退出'}
-              </Button>
-            ) : (
-              <Button
-                size="sm"
-                onClick={() => setShowAuthDialog(true)}
-                className="text-xs bg-sky-600 hover:bg-sky-500 text-white font-bold flex items-center gap-1 shadow-sm"
-              >
-                <LogIn size={14} />
-                账号登录/激活
-              </Button>
-            )}
-
-            {/* Demo Mode strictly restricted to Teachers and Admins */}
-            {(isAdmin || user?.role === 'teacher') && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleToggleTeacher}
-                className={`text-xs border-slate-200 flex items-center gap-1 ${
-                  progress.teacherMode
-                    ? 'bg-purple-50 text-purple-700 border-purple-300'
-                    : 'bg-white text-slate-600 hover:bg-slate-50'
-                }`}
-                title="切换教师演示模式：解锁关卡结构便于备课，不记录学生成绩"
-              >
-                {progress.teacherMode ? <ToggleRight size={16} className="text-purple-600" /> : <ToggleLeft size={16} />}
-                演示模式
-              </Button>
-            )}
-
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setShowResetConfirm(true)}
-              className="text-xs border-slate-200 bg-white text-slate-500 hover:text-rose-600 hover:bg-rose-50"
-              disabled={!!user}
-              title={user ? '正式学习记录由教师申请重训，管理员按流程处理' : '清理本机访客缓存'}
-            >
-              <RotateCcw size={14} className="mr-1" />
-              清理缓存
-            </Button>
-          </div>
-        </div>
-      </header>
+    <div className={styles.lobbyContainer} suppressHydrationWarning>
+      {/* Top Banner & User Profile Header */}
+      <CourseMapHeader
+        user={user}
+        isAdmin={isAdmin}
+        teacherMode={progress.teacherMode}
+        completedTasks={model.completedTasks}
+        totalTasks={model.totalTasks}
+        progressPercent={model.progressPercent}
+        logoutPending={logoutPending}
+        onOpenDashboard={() => setShowAdminDashboard(true)}
+        onOpenAuth={() => setShowAuthDialog(true)}
+        onLogout={() => void handleLogout()}
+        onToggleTeacherMode={handleToggleTeacher}
+        onOpenReset={() => setShowResetConfirm(true)}
+      />
 
       {/* Floating Notice / Toast */}
       {lockedNotice && (
@@ -274,18 +148,27 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
 
       {/* Reset Confirmation Modal */}
       {showResetConfirm && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-slate-200 text-center">
-            <ShieldAlert size={36} className="text-amber-500 mx-auto mb-2" />
-            <h3 className="text-base font-bold text-slate-800">确认重置全部学习记录？</h3>
-            <p className="text-xs text-slate-500 my-2 leading-relaxed">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-slate-900 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-slate-700 text-center">
+            <ShieldAlert size={36} className="text-amber-400 mx-auto mb-2" />
+            <h3 className="text-base font-bold text-slate-100">确认重置全部学习记录？</h3>
+            <p className="text-xs text-slate-400 my-2 leading-relaxed">
               重置后，学习进度将还原为新学员初始状态（仅保留任务0解锁）。已记录的学习进度与成长称号将被重置。
             </p>
             <div className="flex gap-2 mt-4 justify-center">
-              <Button size="sm" variant="outline" onClick={() => setShowResetConfirm(false)}>
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-slate-700 text-slate-300 hover:bg-slate-800"
+                onClick={() => setShowResetConfirm(false)}
+              >
                 取消
               </Button>
-              <Button size="sm" className="bg-rose-600 hover:bg-rose-500 text-white font-bold" onClick={handleConfirmReset}>
+              <Button
+                size="sm"
+                className="bg-rose-600 hover:bg-rose-500 text-white font-bold"
+                onClick={handleConfirmReset}
+              >
                 确认重置
               </Button>
             </div>
@@ -293,241 +176,53 @@ export function CourseMapLobby({ onSelectLevel }: CourseMapLobbyProps) {
         </div>
       )}
 
-      {/* "Continue Learning" Recommended Task Banner */}
-      <section className="w-full max-w-[1480px] bg-gradient-to-r from-amber-500/10 via-amber-400/5 to-white rounded-2xl border-2 border-amber-300 p-5 sm:p-6 mb-5 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-500/20 shrink-0">
-            <Sparkles size={24} />
-          </div>
-          <div>
-            <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider block">
-              ⭐ 推荐继续学习进度
-            </span>
-            <h2 className="text-base sm:text-lg font-black text-slate-800">
-              {activeLevelMeta.num} · {activeLevelMeta.title} —— {activeLevelMeta.subtitle}
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-              {activeLevelMeta.description}
-            </p>
-          </div>
+      {/* Main Interactive Stage - Full Width Immersive Theater Mode */}
+      <CurriculumRoutes levels={model.chapters.flatMap(chapter => chapter.levels)} onOpenLevel={handleLevelAction} />
+      <main className={styles.main}>
+        <div className={styles.heroGrid}>
+          <VehicleElectricalMap
+            chapters={model.chapters}
+            selectedChapterId={previewChapterId ?? selectedChapterId}
+            activeLevelId={model.activeLevel.id}
+            driveFromLevelId={driveFromLevelId}
+            focusedLevelId={displayedLevel.id}
+            onSelectLevel={(lvl) => setFocusedLevelId(lvl.id)}
+            onSelectChapter={(id) => {
+              setSelectedChapterId(id);
+              setShowAllTasks(false);
+              requestAnimationFrame(() => {
+                const heading = document.getElementById('chapter-task-panel-heading');
+                if (heading) {
+                  heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  heading.focus();
+                }
+              });
+            }}
+            onPreviewChapter={setPreviewChapterId}
+          />
+          <FloatingMissionHud
+            key={displayedLevel.id}
+            level={displayedLevel}
+            onOpen={handleLevelAction}
+            isPreview={isTaskPreview}
+            onReturnCurrent={() => setFocusedLevelId(null)}
+          />
         </div>
 
-        <Button
-          size="lg"
-          onClick={() => handleCardClick(activeLevelMeta)}
-          className="bg-amber-600 hover:bg-amber-500 text-white font-bold px-6 py-2.5 shadow-md shadow-amber-600/20 flex items-center gap-2 whitespace-nowrap shrink-0"
-        >
-          <span>
-            {isActiveCompleted
-              ? '再次复习实训'
-              : '继续实训'}
-          </span>
-          <ChevronRight size={18} />
-        </Button>
-      </section>
+        <CourseMapLegend />
 
-      {/* Chapter Filter Tabs */}
-      <div className="w-full max-w-[1480px] mb-4 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-        <button
-          type="button"
-          onClick={() => setSelectedChapter('ALL')}
-          className={`text-xs font-bold px-3.5 py-1.5 rounded-xl border transition-all shrink-0 flex items-center gap-1.5 ${
-            selectedChapter === 'ALL'
-              ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-          }`}
-        >
-          <Layers size={14} />
-          <span>全景课程地图</span>
-        </button>
-        {CHAPTER_LIST.map((ch) => (
-          <button
-            type="button"
-            key={ch.id}
-            onClick={() => setSelectedChapter(ch.id)}
-            className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition-all shrink-0 ${
-              selectedChapter === ch.id
-                ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
-                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-            }`}
-          >
-            <span>{ch.num}: {ch.title}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* Full Curriculum Grid */}
-      <main className="w-full max-w-[1480px]">
-        <div className="flex items-center justify-between mb-3.5 px-1">
-          <h2 className="text-sm sm:text-base font-bold text-slate-700 flex items-center gap-2">
-            <Wrench size={18} className="text-amber-600" />
-            <span>全景专业技能成长路径 (任务 0 ~ 任务 9)</span>
-          </h2>
-          <span className="text-xs text-slate-400 font-medium">
-            从车间准入到整车诊断 · 完成实训，逐步解锁
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5">
-          {CANONICAL_COURSE_MAP.map((meta) => {
-            const levelProg = getLevelProgress(meta.id, progress);
-            const unlocked = isLevelUnlocked(meta.id, progress);
-            const isCompleted = levelProg.status === 'completed' || completedNormalized.has(normalizeLevelId(meta.id));
-            const isPlayable = meta.implemented;
-            const canonical = getCourseLevel(meta.id);
-            const attemptCount = levelProg.attemptCount ?? (isCompleted ? 1 : 0);
-
-            // Chapter filter check
-            if (selectedChapter !== 'ALL' && canonical && canonical.chapterId !== selectedChapter) {
-              return null;
-            }
-
-            const recentScore = levelProg.recentRecord?.score ?? levelProg.score ?? 100;
-
-            return (
-              <button
-                type="button"
-                key={meta.id}
-                onClick={() => handleCardClick(meta)}
-                className={`w-full text-left p-5 sm:p-6 rounded-2xl border-2 transition-all flex flex-col justify-between relative cursor-pointer min-h-[175px] ${
-                  isCompleted
-                    ? 'bg-emerald-50/40 border-emerald-300/80 shadow-xs hover:shadow-md hover:border-emerald-400'
-                    : unlocked
-                    ? isPlayable
-                      ? 'bg-white border-amber-400 shadow-md shadow-amber-500/10 hover:border-amber-500 ring-2 ring-amber-400/20'
-                      : 'bg-white border-slate-300 shadow-xs hover:border-slate-400'
-                    : 'bg-slate-50/60 border-slate-200 opacity-75 hover:opacity-90'
-                }`}
-              >
-                {/* Card Top Strip */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3.5">
-                    <span
-                      className={`w-11 h-11 rounded-xl font-mono text-base font-bold flex items-center justify-center border shrink-0 ${
-                        isCompleted
-                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                          : unlocked && isPlayable
-                          ? 'bg-amber-100 text-amber-800 border-amber-300'
-                          : 'bg-slate-100 text-slate-400 border-slate-200'
-                      }`}
-                    >
-                      {meta.num}
-                    </span>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                          {meta.category}
-                        </span>
-                        {canonical?.curriculumRequirement === 'elective' && (
-                          <span className="text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 border border-purple-200">
-                            ⭐ 选学/拓展
-                          </span>
-                        )}
-                        <span className="text-[10px] sm:text-xs text-slate-400">
-                          {meta.duration}
-                        </span>
-                        {canonical && (
-                          <span className="text-[10px] text-slate-400 border-l pl-2 border-slate-200">
-                            {canonical.chapterTitle.split('：')[0]}
-                          </span>
-                        )}
-                      </div>
-                      <h3 className="text-base sm:text-lg font-bold text-slate-800 mt-1">
-                        {meta.title}
-                      </h3>
-                    </div>
-                  </div>
-
-                  {/* Status Badge */}
-                  <div className="shrink-0">
-                    {isCompleted ? (
-                      <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-2.5 py-1 rounded-full border border-emerald-300 flex items-center gap-1">
-                        <CheckCircle2 size={14} />
-                        已完成
-                      </span>
-                    ) : !isPlayable ? (
-                      <span className="text-xs bg-slate-100 text-slate-600 font-bold px-2.5 py-1 rounded-full border border-slate-300 flex items-center gap-1">
-                        🛠️ 建设中
-                      </span>
-                    ) : unlocked ? (
-                      <span className="text-xs bg-amber-100 text-amber-800 font-bold px-2.5 py-1 rounded-full border border-amber-300 flex items-center gap-1">
-                        <Play size={12} className="fill-amber-800" />
-                        可实训
-                      </span>
-                    ) : (
-                      <span className="text-xs bg-slate-100 text-slate-500 font-bold px-2 py-1 rounded-full border border-slate-200 flex items-center gap-1">
-                        <Lock size={12} />
-                        未解锁
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Subtitle & Description */}
-                <div className="my-2.5">
-                  <h4 className="text-xs sm:text-sm font-bold text-slate-700">
-                    {meta.subtitle}
-                  </h4>
-                  <p className="text-xs sm:text-sm text-slate-500 mt-1 line-clamp-2 leading-relaxed">
-                    {meta.description}
-                  </p>
-                  {canonical?.textbookTask && (
-                    <p className="text-[11px] text-slate-400 mt-1">
-                      对应教材：{canonical.textbookTask}
-                    </p>
-                  )}
-                </div>
-
-                {/* Card Footer */}
-                <div className="border-t border-slate-100 pt-2.5 flex items-center justify-between text-xs">
-                  <div>
-                    {isCompleted ? (
-                      <span className="text-[11px] sm:text-xs text-emerald-700 font-medium">
-                        已完成实训 · 最近成绩 ({recentScore}分)
-                        {attemptCount > 1 && ` · 练习${attemptCount}次`}
-                      </span>
-                    ) : !isPlayable ? (
-                      <span className="text-[11px] sm:text-xs text-slate-500 font-medium">
-                        按教材大纲规划中 · 建设中
-                      </span>
-                    ) : unlocked ? (
-                      <span className="text-[11px] sm:text-xs text-amber-700 font-bold">
-                        当前推荐实训任务
-                      </span>
-                    ) : (
-                      <span className="text-[11px] sm:text-xs text-slate-400">
-                        {meta.prerequisiteName ? `需先完成：${meta.prerequisiteName}` : '前置考核未完成'}
-                      </span>
-                    )}
-                  </div>
-
-                  <div>
-                    {isPlayable ? (
-                      <span
-                        className={`font-bold flex items-center gap-1 ${
-                          isCompleted
-                            ? 'text-slate-500 hover:text-slate-800'
-                            : 'text-amber-700'
-                        }`}
-                      >
-                        {isCompleted ? '重新实训' : '进入任务'}
-                        <ChevronRight size={14} />
-                      </span>
-                    ) : (
-                      <span className="text-[11px] sm:text-xs text-slate-400 font-medium">
-                        开发建设中
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
+        <ChapterTaskPanel
+          chapters={model.chapters}
+          selectedChapterId={previewChapterId ?? selectedChapterId}
+          showAll={showAllTasks}
+          onSelectChapter={setSelectedChapterId}
+          onToggleAll={() => setShowAllTasks((value) => !value)}
+          onOpenLevel={handleLevelAction}
+        />
       </main>
 
       {/* Footer */}
-      <footer className="w-full max-w-[1480px] text-center text-xs text-slate-400 mt-8 pb-4">
+      <footer className="w-full text-center text-xs text-slate-500 mt-8 pb-4">
         中职汽车电工电子技术实训系统 · 课堂互动与技能训练平台
       </footer>
 

@@ -1,4 +1,5 @@
 import { createBaseUserProgress, type UserProgressData } from '@/src/types/progress';
+import type { C7EvidenceLevelId, AttemptEvidenceListResponse } from '@/src/types/attemptEvidence';
 import { recordAuditStrict } from '../auth/audit';
 import { generateSecureToken } from '../auth/crypto';
 import {
@@ -8,6 +9,7 @@ import {
   type ClassRecord,
 } from '../db/classService';
 import { getDatabase, type AppDatabase } from '../db/database';
+import { listAttemptEvidence } from '../learning/attemptEvidenceService';
 
 export type TeacherServiceErrorCode =
   | 'FORBIDDEN_STUDENT'
@@ -17,7 +19,8 @@ export type TeacherServiceErrorCode =
   | 'INVALID_ATTEMPT'
   | 'DUPLICATE_RETRAINING_REQUEST'
   | 'DUPLICATE_PHYSICAL_RUBRIC'
-  | 'DUPLICATE_EVALUATION';
+  | 'DUPLICATE_EVALUATION'
+  | 'STUDENT_NOT_FOUND';
 
 export const E07_PHYSICAL_RUBRIC_VERSION = 'E07-PHYSICAL-v1';
 
@@ -239,7 +242,9 @@ export function listStudentE07Attempts(
 ): Array<{
   attemptId: string;
   attemptScore: number | null;
+  startedAt: number;
   completedAt: number;
+  durationMs: number;
   hasPhysicalRubric: boolean;
   physicalEvaluation?: {
     id: string;
@@ -253,6 +258,7 @@ export function listStudentE07Attempts(
   requireAuthorizedStudent(teacherId, studentId, db);
   const rows = db.prepare<{
     attemptId: string;
+    startedAt: number;
     completedAt: number;
     attemptScore: number | null;
     evaluationId: string | null;
@@ -263,7 +269,7 @@ export function listStudentE07Attempts(
     teacherUsername: string | null;
     rubricDataStr: string | null;
   }>(
-    `SELECT a.id AS attemptId, a.completed_at AS completedAt, a.score AS attemptScore,
+    `SELECT a.id AS attemptId, a.started_at AS startedAt, a.completed_at AS completedAt, a.score AS attemptScore,
             e.id AS evaluationId, e.score AS totalScore, e.signed_at AS signedAt,
             e.comment, e.rubric_data AS rubricDataStr,
             u.real_name AS teacherName, u.username AS teacherUsername
@@ -271,7 +277,7 @@ export function listStudentE07Attempts(
      LEFT JOIN teacher_evaluations e
        ON e.attempt_id = a.id AND e.evaluation_type = 'PHYSICAL_RUBRIC'
      LEFT JOIN users u ON u.id = e.teacher_id
-     WHERE a.student_id = ? AND a.level_id = 'E07'
+     WHERE a.student_id = ? AND a.level_id = 'E07' AND a.status = 'completed' AND a.completed_at IS NOT NULL
      ORDER BY a.started_at DESC`
   ).all(studentId);
 
@@ -283,7 +289,9 @@ export function listStudentE07Attempts(
     const result: {
       attemptId: string;
       attemptScore: number | null;
+      startedAt: number;
       completedAt: number;
+      durationMs: number;
       hasPhysicalRubric: boolean;
       physicalEvaluation?: {
         id: string;
@@ -296,7 +304,9 @@ export function listStudentE07Attempts(
     } = {
       attemptId: r.attemptId,
       attemptScore: r.attemptScore,
+      startedAt: r.startedAt,
       completedAt: r.completedAt,
+      durationMs: Math.max(0, r.completedAt - r.startedAt),
       hasPhysicalRubric: Boolean(r.evaluationId),
     };
     if (r.evaluationId && r.totalScore !== null && r.signedAt !== null) {
@@ -419,4 +429,33 @@ export function requestStudentRetraining(
     }, db);
   });
   return { id, status: 'requested', createdAt: now };
+}
+
+export function listStudentAttemptEvidence(
+  teacherId: string,
+  studentId: string,
+  levelId: C7EvidenceLevelId,
+  db: AppDatabase = getDatabase(),
+): AttemptEvidenceListResponse {
+  const student = db.prepare<{ id: string; role: string; status: string }>(
+    'SELECT id, role, status FROM users WHERE id=?'
+  ).get(studentId);
+
+  if (!student || student.role !== 'student' || student.status === 'deleted') {
+    throw new TeacherServiceError('STUDENT_NOT_FOUND', '目标学生不存在或已被删除');
+  }
+
+  if (!isTeacherAuthorizedForStudent(teacherId, studentId, db)) {
+    recordAuditStrict({
+      actorId: teacherId,
+      action: 'TEACHER_ATTEMPT_EVIDENCE_READ_DENIED',
+      targetType: 'user',
+      targetId: studentId,
+      result: 'DENIED',
+      details: { levelId },
+    }, db);
+    throw new TeacherServiceError('FORBIDDEN_STUDENT', '教师只能查看当前任教班级学生的过程证据');
+  }
+
+  return listAttemptEvidence({ studentId, levelId, limit: 50, db });
 }

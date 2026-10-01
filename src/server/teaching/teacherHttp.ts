@@ -11,6 +11,9 @@ export function requireTeacher(
 
 export function teacherErrorResponse(error: unknown): NextResponse {
   if (error instanceof TeacherServiceError) {
+    if (error.code === 'STUDENT_NOT_FOUND') {
+      return NextResponse.json({ success: false, code: error.code, error: error.message }, { status: 404 });
+    }
     if (error.code.startsWith('FORBIDDEN_')) {
       return NextResponse.json({ success: false, code: error.code, error: error.message }, { status: 403 });
     }

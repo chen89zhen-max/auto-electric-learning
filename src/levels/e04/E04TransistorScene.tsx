@@ -13,8 +13,11 @@ import { Button } from '@/components/ui/button';
 import { sounds } from '@/src/components/visuals/SoundEffects';
 import {
   type E04Step,
+  type BjtState,
+  type E04StateSampleRecord,
   E04_SAMPLES,
   calculateBjtOperatingPoint,
+  hasCompletedAllThreeStates,
 } from './e04Training';
 import { useLevelAssessment } from '@/src/assessment/useLevelAssessment';
 import type { LevelAssessmentResult } from '@/src/assessment/assessmentTypes';
@@ -36,6 +39,7 @@ export function E04TransistorScene({
   hintRequested = false,
 }: E04TransistorSceneProps) {
   const assessment = useLevelAssessment('E04');
+  const requestAssessmentHint = assessment.requestHint;
   // Multimeter knob: 'OFF' | 'DIODE' | 'HFE' | 'DCV_20'
   const [meterKnob, setMeterKnob] = useState<'OFF' | 'DIODE' | 'HFE' | 'DCV_20'>('OFF');
   const [meterWarning, setMeterWarning] = useState<string | null>(null);
@@ -50,9 +54,16 @@ export function E04TransistorScene({
   const [s2Choice, setS2Choice] = useState<string | null>(null);
   const [s2Submitted, setS2Submitted] = useState<boolean>(false);
 
-  // Step 3: Three States Calculation
+  // Step 3: Three States Calculation & Independent Judgment
   const [s3BaseVoltage, setS3BaseVoltage] = useState<number>(5.0);
   const [s3BaseResistorOhm, setS3BaseResistorOhm] = useState<number>(2200); // 2.2k
+  const [s3SelectedState, setS3SelectedState] = useState<BjtState | null>(null);
+  const [s3Verification, setS3Verification] = useState<{
+    verified: boolean;
+    isCorrect: boolean;
+    feedback: string;
+  } | null>(null);
+  const [s3ThreeStateRecords, setS3ThreeStateRecords] = useState<E04StateSampleRecord[]>([]);
   const [s3Choice, setS3Choice] = useState<string | null>(null);
   const [s3Submitted, setS3Submitted] = useState<boolean>(false);
 
@@ -78,9 +89,9 @@ export function E04TransistorScene({
         BLIND_TRANSISTOR_FAULT_DIAGNOSIS: 'blind_test',
         ENGINEERING_REPAIR_AND_DELIVERY: 'transfer',
       };
-      assessment.requestHint(stageMap[currentStep]);
+      requestAssessmentHint(stageMap[currentStep]);
     }
-  }, [hintRequested, currentStep, assessment]);
+  }, [hintRequested, currentStep, requestAssessmentHint]);
 
   const requireMeterKnob = (required: ('DIODE' | 'HFE' | 'DCV_20') | ('DIODE' | 'HFE' | 'DCV_20')[]): boolean => {
     const stageMap: Record<E04Step, 'cognition' | 'standard' | 'calculation' | 'blind_test' | 'transfer'> = {
@@ -110,9 +121,9 @@ export function E04TransistorScene({
   const activeSample = E04_SAMPLES[s4SampleIndex];
 
   return (
-    <div className="flex flex-col gap-5 p-4 md:p-6 bg-slate-900/90 border border-slate-700/80 rounded-2xl text-slate-100 shadow-2xl backdrop-blur-md">
+    <div className="flex flex-col gap-5 p-4 md:p-6 bg-slate-50 border border-slate-200 rounded-2xl text-slate-800 shadow-sm">
       {/* 顶部数字万用表状态栏 */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-slate-800/80 rounded-xl border border-slate-700">
+      <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-white rounded-xl border border-slate-200 shadow-xs">
         <div className="flex items-center gap-3">
           <div className="p-2.5 bg-blue-500/20 text-blue-400 rounded-lg border border-blue-500/30">
             <Gauge className="w-6 h-6" />
@@ -181,7 +192,7 @@ export function E04TransistorScene({
               </div>
 
               {/* 电路仿真示意 */}
-              <div className="relative w-full h-52 flex items-center justify-center my-4 bg-slate-900/60 rounded-xl border border-slate-800/80 p-3">
+              <div className="relative w-full h-64 flex items-center justify-center my-4 bg-slate-900/60 rounded-xl border border-slate-800/80 p-3">
                 <svg className="w-full h-full max-w-md" viewBox="0 0 400 180">
                   {/* ECU 信号 */}
                   <rect x="20" y="70" width="60" height="40" rx="6" fill="#1e293b" stroke="#38bdf8" strokeWidth="2" />
@@ -192,7 +203,7 @@ export function E04TransistorScene({
                   {/* 基极限流电阻 Rb */}
                   <line x1="80" y1="90" x2="130" y2="90" stroke={s1Triggered ? '#10b981' : '#64748b'} strokeWidth="3" />
                   <rect x="130" y="82" width="35" height="16" fill="#334155" stroke="#94a3b8" />
-                  <text x="135" y="94" fill="#f8fafc" fontSize="8">2.2kΩ</text>
+                  <text x="132" y="94" fill="#f8fafc" fontSize="11" fontWeight="bold">2.2kΩ</text>
                   <line x1="165" y1="90" x2="200" y2="90" stroke={s1Triggered ? '#10b981' : '#64748b'} strokeWidth="3" />
 
                   {/* NPN 三极管 */}
@@ -212,14 +223,14 @@ export function E04TransistorScene({
 
                   {/* 12V 继电器线圈 */}
                   <rect x="205" y="10" width="40" height="30" rx="4" fill="#334155" stroke={s1Triggered ? '#10b981' : '#94a3b8'} strokeWidth="2" />
-                  <text x="212" y="28" fill="#f8fafc" fontSize="9">继电器</text>
+                  <text x="207" y="28" fill="#f8fafc" fontSize="11" fontWeight="bold">继电器</text>
                   <line x1="225" y1="10" x2="225" y2="0" stroke="#10b981" strokeWidth="3" />
-                  <text x="230" y="8" fill="#f59e0b" fontSize="9" fontWeight="bold">+12V</text>
+                  <text x="233" y="11" fill="#f59e0b" fontSize="12" fontWeight="bold">+12V</text>
 
                   {/* 状态指示 */}
                   <g transform="translate(290, 60)">
                     <rect x="0" y="0" width="90" height="60" rx="8" fill="#1e293b" stroke="#334155" />
-                    <text x="10" y="22" fill="#94a3b8" fontSize="10">继电器动作:</text>
+                    <text x="10" y="22" fill="#cbd5e1" fontSize="12">继电器动作:</text>
                     <text x="10" y="44" fill={s1Triggered ? '#10b981' : '#94a3b8'} fontSize="12" fontWeight="bold">
                       {s1Triggered ? '✓ 咔嗒吸合' : '释放断开'}
                     </text>
@@ -257,13 +268,13 @@ export function E04TransistorScene({
             </div>
 
             {/* 右侧零剧透知识验证 */}
-            <div className="lg:col-span-4 p-5 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div className="lg:col-span-4 p-5 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
               <div>
-                <h4 className="text-sm font-bold text-slate-200 mb-2 flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   认知判定与理论验证
                 </h4>
-                <p className="text-sm text-slate-300 mb-4">
+                <p className="text-sm text-slate-600 mb-4">
                   在汽车电控单元中，三极管充当继电器驱动器的核心作用是什么？
                 </p>
 
@@ -283,7 +294,7 @@ export function E04TransistorScene({
                       className={`w-full text-left p-3 rounded-xl border text-sm transition-all cursor-pointer ${
                         s1Choice === opt.id
                           ? 'border-blue-500 bg-blue-500/10 text-white font-bold'
-                          : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700'
+                          : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-blue-300'
                       }`}
                     >
                       <span className="font-mono font-bold mr-2 text-blue-400">{opt.id}.</span>
@@ -293,7 +304,7 @@ export function E04TransistorScene({
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-slate-800">
+              <div className="mt-4 pt-4 border-t border-slate-200">
                 {!s1Submitted ? (
                   <Button
                     disabled={!s1Choice}
@@ -355,7 +366,7 @@ export function E04TransistorScene({
                     [
                       { id: 'PIN_BE', label: 'B-E 发射结' },
                       { id: 'PIN_BC', label: 'B-C 集电结' },
-                      { id: 'PIN_CE', label: 'C-E 间耐压' },
+                      { id: 'PIN_CE', label: 'C-E 间导通检查' },
                       { id: 'HFE_SLOT', label: 'hFE 放大倍数插孔' },
                     ] as const
                   ).map((target) => (
@@ -391,35 +402,35 @@ export function E04TransistorScene({
                     </span>
                   </div>
                   <div className="text-sm text-slate-400 mt-2 font-medium">
-                    {meterKnob === 'DIODE' && s2Target === 'PIN_BE' && '发射结 B-E 正向导通 (压降稍大 672mV)'}
-                    {meterKnob === 'DIODE' && s2Target === 'PIN_BC' && '集电结 B-C 正向导通 (压降稍小 645mV)'}
-                    {meterKnob === 'DIODE' && s2Target === 'PIN_CE' && 'C-E 间反向截止绝缘 (正常开路 OL)'}
-                    {meterKnob === 'HFE' && s2Target === 'HFE_SLOT' && '直流电流放大倍数 β = 145 (标准优选值)'}
+                    {meterKnob === 'DIODE' && s2Target === 'PIN_BE' && '发射结 B-E 正向导通 (本样本显示压降 672mV)'}
+                    {meterKnob === 'DIODE' && s2Target === 'PIN_BC' && '集电结 B-C 正向导通 (本样本显示压降 645mV)'}
+                    {meterKnob === 'DIODE' && s2Target === 'PIN_CE' && 'C-E 间反向未导通 (二极管档显示 OL，仅说明当前未导通，不证明耐压试验)'}
+                    {meterKnob === 'HFE' && s2Target === 'HFE_SLOT' && '直流电流放大倍数 β = 145 (本台架器件特定测试条件下实测值，非全系列通用唯一值)'}
                   </div>
                 </div>
               </div>
 
               <div className="text-sm text-slate-300 pt-4 border-t border-slate-800">
-                引脚识别口诀: 红笔定在 B，测另外两极均有压降为 NPN 管；压降略高的一侧为发射极 E，另一侧为集电极 C。
+                引脚识别规范: 红笔定在 B，测另外两极均有压降为 NPN 管；C 与 E 的确切判定应严格查阅原厂数据手册与封装引脚定义。
               </div>
             </div>
 
             {/* 右侧零剧透判定 */}
-            <div className="lg:col-span-4 p-5 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div className="lg:col-span-4 p-5 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
               <div>
-                <h4 className="text-sm font-bold text-slate-200 mb-2 flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
                   <Zap className="w-4 h-4 text-cyan-400" />
                   引脚与好坏判别规则
                 </h4>
-                <p className="text-sm text-slate-300 mb-4">
-                  根据上述万用表二极管档实测读数，如何确凿辨别发射极 E 与集电极 C？
+                <p className="text-sm text-slate-600 mb-4">
+                  在确定基极 B 后，工程上如何规范、确凿地辨别发射极 E 与集电极 C？
                 </p>
 
                 <div className="space-y-2">
                   {[
-                    { id: 'A', text: '由于发射区高掺杂，发射结 B-E 正向压降(0.67V)略高于集电结 B-C(0.64V)' },
+                    { id: 'A', text: '查阅对应原厂数据手册与封装引脚定义（如 TO-92 封装标准管脚排布），必要时结合专档复核，不能单凭微小压降泛化判断' },
                     { id: 'B', text: '发射极测出来阻值恒为 0Ω，集电极恒为无穷大' },
-                    { id: 'C', text: '引脚长短完全一致无法区分' },
+                    { id: 'C', text: '仅凭普通二极管档测量即可完全排除所有封装差异与参数离散' },
                   ].map((opt) => (
                     <button
                       key={opt.id}
@@ -431,7 +442,7 @@ export function E04TransistorScene({
                       className={`w-full text-left p-3 rounded-xl border text-sm transition-all cursor-pointer ${
                         s2Choice === opt.id
                           ? 'border-blue-500 bg-blue-500/10 text-white font-bold'
-                          : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700'
+                          : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-blue-300'
                       }`}
                     >
                       <span className="font-mono font-bold mr-2 text-blue-400">{opt.id}.</span>
@@ -441,7 +452,7 @@ export function E04TransistorScene({
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-slate-800">
+              <div className="mt-4 pt-4 border-t border-slate-200">
                 {!s2Submitted ? (
                   <Button
                     disabled={!s2Choice}
@@ -454,7 +465,7 @@ export function E04TransistorScene({
                       } else {
                         assessment.recordWrong('standard');
                         sounds.playFailureSound?.();
-                        alert('判别有误，发射区重掺杂使得 B-E 压降略大于 B-C 压降！');
+                        alert('判别有误！不同厂商与工艺离散度下不能仅凭微小压降泛化断定 C/E，应严格结合原厂数据手册与引脚规范判定！');
                       }
                     }}
                     className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold cursor-pointer"
@@ -465,7 +476,7 @@ export function E04TransistorScene({
                   <div className="space-y-2">
                     <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-sm flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 shrink-0" />
-                      <span>检测规范掌握精准！引脚与 β 参数全部厘清。</span>
+                      <span>检测规范掌握精准！结合数据手册与测试插孔，管脚与 β 参数全部厘清。</span>
                     </div>
                     <Button
                       onClick={() => {
@@ -485,159 +496,363 @@ export function E04TransistorScene({
         </div>
       )}
 
-      {/* 步骤 3：截止、放大与饱和三态定量计算 */}
-      {currentStep === 'THREE_OPERATION_STATES_CALC' && (
-        <div className="flex flex-col gap-5">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-            <div className="lg:col-span-8 p-6 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between min-h-[380px]">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-sm font-bold uppercase text-blue-400">
-                    工作状态分析仪：调节偏置观察三态跳变
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <label htmlFor="e04-voltage-input" className="text-sm font-medium text-slate-300">基极控制电压:</label>
-                    <input
-                      id="e04-voltage-input"
-                      type="range"
-                      min="0"
-                      max="5"
-                      step="0.5"
-                      value={s3BaseVoltage}
-                      onChange={(e) => setS3BaseVoltage(parseFloat(e.target.value))}
-                      className="w-24 accent-blue-500 cursor-pointer"
-                    />
-                    <span className="text-sm font-mono font-bold text-blue-300">{s3BaseVoltage.toFixed(1)}V</span>
-                  </div>
-                </div>
+      {/* 步骤 3：截止、放大与饱和三态定量计算与独立状态判定 */}
+      {currentStep === 'THREE_OPERATION_STATES_CALC' && (() => {
+        const s3HasCutoff = s3ThreeStateRecords.some((r) => r.isCorrect && r.studentState === 'CUTOFF');
+        const s3HasActive = s3ThreeStateRecords.some((r) => r.isCorrect && r.studentState === 'ACTIVE');
+        const s3HasSaturation = s3ThreeStateRecords.some((r) => r.isCorrect && r.studentState === 'SATURATION');
+        const s3CompletedCount = (s3HasCutoff ? 1 : 0) + (s3HasActive ? 1 : 0) + (s3HasSaturation ? 1 : 0);
+        const s3AllThreeReady = hasCompletedAllThreeStates(s3ThreeStateRecords);
 
-                <div className="p-4 bg-slate-900/90 rounded-xl border border-slate-800 space-y-4 mb-4">
-                  <div>
-                    <div className="flex justify-between text-sm text-slate-300 mb-1">
-                      <span>基极限流电阻 Rb:</span>
-                      <span className="font-mono font-bold text-emerald-400">{(s3BaseResistorOhm / 1000).toFixed(1)} kΩ</span>
+        const stateLabels: Record<BjtState, string> = {
+          CUTOFF: '截止区 (Cutoff)',
+          ACTIVE: '线性放大区 (Active)',
+          SATURATION: '深度饱和区 (Saturation)',
+        };
+
+        const handleSliderVoltage = (val: number) => {
+          if (s3Submitted) setS3Submitted(false);
+          setS3BaseVoltage(val);
+          setS3SelectedState(null);
+          setS3Verification(null);
+        };
+
+        const handleSliderResistor = (val: number) => {
+          if (s3Submitted) setS3Submitted(false);
+          setS3BaseResistorOhm(val);
+          setS3SelectedState(null);
+          setS3Verification(null);
+        };
+
+        const handleVerifyAndRecord = () => {
+          if (!s3SelectedState || s3Submitted) return;
+          const isCorrect = s3SelectedState === s3Point.state;
+          const record: E04StateSampleRecord = {
+            uIn: s3BaseVoltage,
+            rBaseOhm: s3BaseResistorOhm,
+            rLoadOhm: 80,
+            vSupply: 12.0,
+            ibMa: s3Point.ibMa,
+            icMa: s3Point.icMa,
+            uceV: s3Point.uceV,
+            actualState: s3Point.state,
+            studentState: s3SelectedState,
+            isCorrect,
+            timestamp: Date.now(),
+          };
+
+          setS3ThreeStateRecords((prev) => [...prev, record]);
+
+          if (isCorrect) {
+            sounds.playSuccessSound?.();
+            setS3Verification({
+              verified: true,
+              isCorrect: true,
+              feedback: `判断正确！当前条件（Ub=${s3BaseVoltage.toFixed(1)}V, Rb=${(s3BaseResistorOhm / 1000).toFixed(1)}kΩ）下管子处于【${stateLabels[s3Point.state]}】。数据已录入。`,
+            });
+          } else {
+            assessment.recordWrong('calculation');
+            sounds.playFailureSound?.();
+            setS3Verification({
+              verified: true,
+              isCorrect: false,
+              feedback: `判断有误！当前测得 Ib=${s3Point.ibMa}mA, Uce=${s3Point.uceV}V，不符合【${stateLabels[s3SelectedState]}】物理特征，请重新分析判断！`,
+            });
+          }
+        };
+
+        const handleClearRecords = () => {
+          sounds.playToggleSound?.();
+          setS3ThreeStateRecords([]);
+          setS3SelectedState(null);
+          setS3Verification(null);
+          setS3Submitted(false);
+        };
+
+        return (
+          <div className="flex flex-col gap-5">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+              {/* 左侧工作状态分析仪 */}
+              <div className="lg:col-span-8 p-5 md:p-6 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between min-h-[420px]">
+                <div className="space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+                    <span className="text-sm font-bold uppercase text-blue-400">
+                      工作状态分析仪：调节偏置实测三态
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <label htmlFor="e04-voltage-input" className="text-sm font-medium text-slate-300">
+                        基极输入电压 Ub:
+                      </label>
+                      <input
+                        id="e04-voltage-input"
+                        type="range"
+                        min="0"
+                        max="5"
+                        step="0.5"
+                        disabled={s3Submitted}
+                        value={s3BaseVoltage}
+                        onChange={(e) => handleSliderVoltage(parseFloat(e.target.value))}
+                        className="w-24 accent-blue-500 cursor-pointer disabled:opacity-50"
+                      />
+                      <span className="text-sm font-mono font-bold text-blue-300">{s3BaseVoltage.toFixed(1)}V</span>
                     </div>
-                    <input
-                      type="range"
-                      min="1000"
-                      max="30000"
-                      step="1000"
-                      value={s3BaseResistorOhm}
-                      onChange={(e) => setS3BaseResistorOhm(parseInt(e.target.value, 10))}
-                      className="w-full accent-emerald-500 cursor-pointer"
-                    />
                   </div>
 
-                  {/* 状态看板 */}
-                  <div className="grid grid-cols-4 gap-2 text-center pt-2 border-t border-slate-800">
-                    <div className="p-2 bg-slate-950 rounded-lg">
-                      <div className="text-sm text-slate-400">基极 Ib</div>
-                      <div className="text-sm font-mono font-bold text-cyan-400">{s3Point.ibMa} mA</div>
+                  {/* 滑动条与电阻控制 */}
+                  <div className="p-4 bg-slate-900/90 rounded-xl border border-slate-800 space-y-3">
+                    <div>
+                      <div className="flex justify-between text-sm text-slate-300 mb-1">
+                        <label htmlFor="e04-resistor-input" className="cursor-pointer">基极限流电阻 Rb:</label>
+                        <span className="font-mono font-bold text-emerald-400">{(s3BaseResistorOhm / 1000).toFixed(1)} kΩ</span>
+                      </div>
+                      <input
+                        id="e04-resistor-input"
+                        type="range"
+                        min="1000"
+                        max="30000"
+                        step="1000"
+                        disabled={s3Submitted}
+                        value={s3BaseResistorOhm}
+                        onChange={(e) => handleSliderResistor(parseInt(e.target.value, 10))}
+                        className="w-full accent-emerald-500 cursor-pointer disabled:opacity-50"
+                      />
                     </div>
-                    <div className="p-2 bg-slate-950 rounded-lg">
-                      <div className="text-sm text-slate-400">集电极 Ic</div>
-                      <div className="text-sm font-mono font-bold text-emerald-400">{s3Point.icMa} mA</div>
+
+                    {/* 仪表读数看板 (验证前不直接剧透状态答案) */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center pt-2 border-t border-slate-800">
+                      <div className="p-2.5 bg-slate-950 rounded-lg border border-slate-800/60">
+                        <div className="text-sm text-slate-400">基极 Ib</div>
+                        <div className="text-base font-mono font-bold text-cyan-400">{s3Point.ibMa} mA</div>
+                      </div>
+                      <div className="p-2.5 bg-slate-950 rounded-lg border border-slate-800/60">
+                        <div className="text-sm text-slate-400">集电极 Ic</div>
+                        <div className="text-base font-mono font-bold text-emerald-400">{s3Point.icMa} mA</div>
+                      </div>
+                      <div className="p-2.5 bg-slate-950 rounded-lg border border-slate-800/60">
+                        <div className="text-sm text-slate-400">管压降 Uce</div>
+                        <div className="text-base font-mono font-bold text-amber-300">{s3Point.uceV} V</div>
+                      </div>
+                      <div className="p-2.5 bg-slate-950 rounded-lg border border-slate-800/60 flex flex-col justify-center">
+                        <div className="text-sm text-slate-400">状态判读</div>
+                        <div className="text-sm font-bold mt-1">
+                          {s3Verification?.verified ? (
+                            s3Verification.isCorrect ? (
+                              <span className="text-emerald-400">{stateLabels[s3Point.state]}</span>
+                            ) : (
+                              <span className="text-rose-400">判定有误</span>
+                            )
+                          ) : (
+                            <span className="text-slate-400">待分析判定</span>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <div className="p-2 bg-slate-950 rounded-lg">
-                      <div className="text-sm text-slate-400">管压降 Uce</div>
-                      <div className="text-sm font-mono font-bold text-amber-300">{s3Point.uceV} V</div>
+                  </div>
+
+                  {/* 独立状态判断与录入区 */}
+                  <div className="p-4 bg-slate-900/60 rounded-xl border border-slate-800 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-slate-200">
+                        请根据测得参数自主判断三极管当前状态：
+                      </span>
+                      {s3Submitted && (
+                        <span className="text-sm text-amber-400">（已提交工单，控件锁定）</span>
+                      )}
                     </div>
-                    <div className="p-2 bg-slate-950 rounded-lg">
-                      <div className="text-sm text-slate-400">当前区域</div>
-                      <div className="text-sm font-bold mt-0.5">
-                        {s3Point.state === 'CUTOFF' && <span className="text-slate-400">截止区 (关断)</span>}
-                        {s3Point.state === 'ACTIVE' && <span className="text-amber-400">放大区 (发热)</span>}
-                        {s3Point.state === 'SATURATION' && <span className="text-emerald-400">饱和区 (开关ON)</span>}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {(['CUTOFF', 'ACTIVE', 'SATURATION'] as const).map((st) => (
+                        <button
+                          key={st}
+                          type="button"
+                          disabled={s3Submitted}
+                          onClick={() => {
+                            setS3SelectedState(st);
+                            sounds.playToggleSound?.();
+                          }}
+                          className={`p-2.5 rounded-lg border text-sm font-bold transition-all cursor-pointer ${
+                            s3SelectedState === st
+                              ? 'border-blue-500 bg-blue-500/20 text-blue-200 ring-2 ring-blue-500/30'
+                              : 'border-slate-800 bg-slate-950/70 text-slate-400 hover:border-slate-700'
+                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                          {stateLabels[st]}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3 pt-1">
+                      <Button
+                        size="sm"
+                        disabled={!s3SelectedState || s3Submitted}
+                        onClick={handleVerifyAndRecord}
+                        className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold cursor-pointer disabled:opacity-50"
+                      >
+                        验证并记录当前状态
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={s3ThreeStateRecords.length === 0 || s3Submitted}
+                        onClick={handleClearRecords}
+                        className="border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-300 text-sm cursor-pointer"
+                      >
+                        清空实测记录
+                      </Button>
+                      {s3Submitted && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setS3Submitted(false)}
+                          className="border-amber-600/50 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-sm cursor-pointer"
+                        >
+                          重新测算修改
+                        </Button>
+                      )}
+                    </div>
+
+                    {s3Verification && (
+                      <div
+                        className={`p-2.5 rounded-lg text-sm font-medium border ${
+                          s3Verification.isCorrect
+                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                            : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+                        }`}
+                      >
+                        {s3Verification.feedback}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 三态记录清单与进度 */}
+                  <div className="p-3.5 bg-slate-900/40 rounded-xl border border-slate-800/80">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-bold text-slate-300">三态实测记录留痕（完成门槛：3/3）</span>
+                      <span className="text-sm font-mono font-bold text-blue-400">已有效达成: {s3CompletedCount} / 3</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <div className={`p-2 rounded-lg border text-sm ${s3HasCutoff ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-slate-950 border-slate-800 text-slate-500'}`}>
+                        <div className="font-bold flex items-center justify-between">
+                          <span>截止区 (Cutoff)</span>
+                          <span>{s3HasCutoff ? '✓ 已达成' : '未记录'}</span>
+                        </div>
+                        <div className="text-sm text-slate-400 mt-0.5">Ub≤0.7V, Ib=0, Uce=12V</div>
+                      </div>
+                      <div className={`p-2 rounded-lg border text-sm ${s3HasActive ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-slate-950 border-slate-800 text-slate-500'}`}>
+                        <div className="font-bold flex items-center justify-between">
+                          <span>放大区 (Active)</span>
+                          <span>{s3HasActive ? '✓ 已达成' : '未记录'}</span>
+                        </div>
+                        <div className="text-sm text-slate-400 mt-0.5">Ic=β·Ib, 0.2V&lt;Uce&lt;12V</div>
+                      </div>
+                      <div className={`p-2 rounded-lg border text-sm ${s3HasSaturation ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-slate-950 border-slate-800 text-slate-500'}`}>
+                        <div className="font-bold flex items-center justify-between">
+                          <span>饱和区 (Saturation)</span>
+                          <span>{s3HasSaturation ? '✓ 已达成' : '未记录'}</span>
+                        </div>
+                        <div className="text-sm text-slate-400 mt-0.5">Uce=0.2V ≤ 0.3V</div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="text-sm text-slate-300 pt-4 border-t border-slate-800 font-mono">
-                判定准则: 汽车开关驱动要求 Uce ≤ 0.3V 达到深度饱和，避免工作在放大区产生严重焦耳热烧毁晶体管。
-              </div>
-            </div>
-
-            {/* 右侧定量计算 */}
-            <div className="lg:col-span-4 p-5 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between">
-              <div>
-                <h4 className="text-sm font-bold text-slate-200 mb-2 flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-amber-400" />
-                  三极管开关设计工单
-                </h4>
-                <p className="text-sm text-slate-300 mb-4">
-                  汽车 ECU 输出 5V 信号驱动 12V/150mA 汽车继电器，要确保三极管可靠进入“深度饱和导通”且发热最小，管压降 Uce 应满足什么标准？
-                </p>
-
-                <div className="space-y-2">
-                  {[
-                    { id: 'A', text: 'Uce ≤ 0.3V (深度饱和，相当于电子触点彻底闭合)' },
-                    { id: 'B', text: 'Uce 必须恒定在 6.0V (处在放大区正中间)' },
-                    { id: 'C', text: 'Uce 越高越好，最好达到 12.0V' },
-                  ].map((opt) => (
-                    <button
-                      key={opt.id}
-                      disabled={s3Submitted}
-                      onClick={() => {
-                        setS3Choice(opt.id);
-                        sounds.playToggleSound?.();
-                      }}
-                      className={`w-full text-left p-3 rounded-xl border text-sm transition-all cursor-pointer ${
-                        s3Choice === opt.id
-                          ? 'border-blue-500 bg-blue-500/10 text-white font-bold'
-                          : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700'
-                      }`}
-                    >
-                      <span className="font-mono font-bold mr-2 text-blue-400">{opt.id}.</span>
-                      {opt.text}
-                    </button>
-                  ))}
+                <div className="text-sm text-slate-400 pt-3 mt-3 border-t border-slate-800 font-mono">
+                  台架假设说明: 供电 Vcc=12.0V, Vbe=0.7V, 深度饱和 Vce(sat)=0.2V, 继电器负载 80Ω, 标称放大倍数 β=100。
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-slate-800">
-                {!s3Submitted ? (
-                  <Button
-                    disabled={!s3Choice}
-                    onClick={() => {
-                      if (s3Choice === 'A') {
-                        setS3Submitted(true);
-                        sounds.playSuccessSound?.();
-                        onStepComplete('THREE_OPERATION_STATES_CALC', { s3Choice, s3Point });
-                      } else {
-                        assessment.recordWrong('calculation');
-                        sounds.playFailureSound?.();
-                        alert('结论有误！开关应用必须确保饱和导通 Uce ≤ 0.3V！');
-                      }
-                    }}
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold cursor-pointer"
-                  >
-                    提交设计结论
-                  </Button>
-                ) : (
-                  <div className="space-y-2">
-                    <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-sm flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 shrink-0" />
-                      <span>计算与设计完全达标！深度饱和保证开关驱动零功耗！</span>
+              {/* 右侧定量计算工单 */}
+              <div className="lg:col-span-4 p-5 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
+                <div>
+                  <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-400" />
+                    三极管开关设计工单
+                  </h4>
+                  <p className="text-sm text-slate-600 mb-3">
+                    汽车 ECU 输出 5V 信号驱动 12V 汽车继电器（台架限流约 147.5mA），要确保三极管可靠进入“深度饱和导通”且发热最小，管压降 Uce 应满足什么标准？
+                  </p>
+
+                  {!s3AllThreeReady && (
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm mb-3 font-medium">
+                      <strong>实训考核门槛：</strong>需在左侧调节偏置，独立判定并正确记录【截止、放大、饱和】全部 3 种工作状态（当前进度：{s3CompletedCount}/3）。全部达成后方可提交工单。
                     </div>
-                    <Button
-                      onClick={() => {
-                        assessment.completeStage('calculation');
-                        assessment.startStage('blind_test');
-                        onAdvanceStep();
-                      }}
-                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold flex items-center justify-center gap-1 cursor-pointer"
-                    >
-                      进入步骤 4：典型故障盲测 <ArrowRight className="w-3.5 h-3.5" />
-                    </Button>
+                  )}
+
+                  <div className="space-y-2">
+                    {[
+                      { id: 'A', text: 'Uce ≤ 0.3V (深度饱和，相当于电子触点彻底闭合)' },
+                      { id: 'B', text: 'Uce 必须恒定在 6.0V (处在放大区正中间)' },
+                      { id: 'C', text: 'Uce 越高越好，最好达到 12.0V' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        disabled={s3Submitted}
+                        onClick={() => {
+                          setS3Choice(opt.id);
+                          sounds.playToggleSound?.();
+                        }}
+                        className={`w-full text-left p-3 rounded-xl border text-sm transition-all cursor-pointer ${
+                          s3Choice === opt.id
+                            ? 'border-blue-500 bg-blue-500/10 text-slate-900 font-bold'
+                            : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-blue-300'
+                        } disabled:opacity-60 disabled:cursor-not-allowed`}
+                      >
+                        <span className="font-mono font-bold mr-2 text-blue-500">{opt.id}.</span>
+                        {opt.text}
+                      </button>
+                    ))}
                   </div>
-                )}
+                </div>
+
+                <div className="mt-4 pt-4 border-t border-slate-200">
+                  {!s3Submitted ? (
+                    <Button
+                      disabled={!s3Choice || !s3AllThreeReady}
+                      onClick={() => {
+                        if (!s3AllThreeReady) return;
+                        if (s3Choice === 'A') {
+                          setS3Submitted(true);
+                          sounds.playSuccessSound?.();
+                          onStepComplete('THREE_OPERATION_STATES_CALC', {
+                            s3Choice,
+                            s3Point,
+                            s3ThreeStateRecords,
+                          });
+                        } else {
+                          assessment.recordWrong('calculation');
+                          sounds.playFailureSound?.();
+                          alert('结论有误！汽车开关应用必须确保深度饱和导通 Uce ≤ 0.3V！');
+                        }
+                      }}
+                      className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {s3AllThreeReady ? '提交设计结论' : `须先录齐三态 (${s3CompletedCount}/3)`}
+                    </Button>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-800 text-sm flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+                        <span>计算与三态实测完全达标！深度饱和保证开关驱动极小功耗！</span>
+                      </div>
+                      <Button
+                        onClick={() => {
+                          assessment.completeStage('calculation');
+                          assessment.startStage('blind_test');
+                          onAdvanceStep();
+                        }}
+                        className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold flex items-center justify-center gap-1 cursor-pointer"
+                      >
+                        进入步骤 4：典型故障盲测 <ArrowRight className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* 步骤 4：典型故障盲测排查 */}
       {currentStep === 'BLIND_TRANSISTOR_FAULT_DIAGNOSIS' && (
@@ -721,13 +936,13 @@ export function E04TransistorScene({
             </div>
 
             {/* 右侧工单 */}
-            <div className="lg:col-span-5 p-5 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div className="lg:col-span-5 p-5 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
               <div>
-                <h4 className="text-sm font-bold text-slate-200 mb-2 flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   三极管盲测分类报告
                 </h4>
-                <p className="text-sm text-slate-300 mb-3">判定 4 组驱动模块的内部故障：</p>
+                <p className="text-sm text-slate-600 mb-3">判定 4 组驱动模块的内部故障：</p>
 
                 <div className="space-y-3">
                   {E04_SAMPLES.map((smp) => (
@@ -750,7 +965,7 @@ export function E04TransistorScene({
                             className={`p-2 rounded-lg border text-center text-sm font-medium transition-all cursor-pointer ${
                               s4Diagnoses[smp.id] === opt.val
                                 ? 'border-blue-500 bg-blue-500/20 text-white font-bold'
-                                : 'border-slate-800 bg-slate-950/50 text-slate-400 hover:border-slate-700'
+                                : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-blue-300'
                             }`}
                           >
                             {opt.label}
@@ -762,7 +977,7 @@ export function E04TransistorScene({
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-slate-800">
+              <div className="mt-4 pt-4 border-t border-slate-200">
                 {!s4Submitted ? (
                   <Button
                     disabled={Object.keys(s4Diagnoses).length < 4}
@@ -906,13 +1121,13 @@ export function E04TransistorScene({
             </div>
 
             {/* 右侧交付签署 */}
-            <div className="lg:col-span-5 p-5 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div className="lg:col-span-5 p-5 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
               <div>
-                <h4 className="text-sm font-bold text-slate-200 mb-2 flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                   工程交付验收单
                 </h4>
-                <p className="text-sm text-slate-300 mb-3">核验证实风扇控制系统修复质量：</p>
+                <p className="text-sm text-slate-600 mb-3">核验证实风扇控制系统修复质量：</p>
 
                 <div className="space-y-2 text-sm">
                   <div className="p-2.5 bg-slate-900 rounded-lg border border-slate-800 flex justify-between">
@@ -948,7 +1163,7 @@ export function E04TransistorScene({
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-slate-800">
+              <div className="mt-4 pt-4 border-t border-slate-200">
                 {!s5Submitted ? (
                   <Button
                     disabled={!s5Signed || s5SimTemp < 96}
